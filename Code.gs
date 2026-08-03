@@ -1063,3 +1063,97 @@ function eliminarCheqEmById(id) {
   invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
   return res;
 }
+
+// ============================================
+// NORMALIZACIÓN PROVEEDORES
+// ============================================
+
+function normalizarProveedor(str) {
+  return (str || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/[.,]/g, '');
+}
+
+function analizarProveedoresDuplicados() {
+  var todosProveedores = supabaseQueryAll('proveedores', QUERY_PROVEEDORES);
+  var mapa = {};
+  var duplicados = [];
+
+  (todosProveedores || []).forEach(function(p) {
+    var original = p.nombre || '';
+    var normalizado = normalizarProveedor(original);
+
+    if (!mapa[normalizado]) {
+      mapa[normalizado] = [];
+    }
+    mapa[normalizado].push({
+      id: p.id,
+      nombre_original: original,
+      tipo: p.tipo || ''
+    });
+  });
+
+  Object.keys(mapa).forEach(function(key) {
+    if (mapa[key].length > 1) {
+      duplicados.push({
+        normalizado: key,
+        variantes: mapa[key]
+      });
+    }
+  });
+
+  return {
+    total: todosProveedores.length,
+    con_duplicados: duplicados.length,
+    duplicados: duplicados,
+    todos: todosProveedores
+  };
+}
+
+function consolidarProveedores(operaciones) {
+  // operaciones = [{ principal_id: 123, eliminar_ids: [124, 125] }, ...]
+  var resultados = [];
+
+  (operaciones || []).forEach(function(op) {
+    try {
+      var idPrincipal = op.principal_id;
+      var idsEliminar = op.eliminar_ids || [];
+
+      // Actualizar referencias en fletes
+      var fletes = supabaseQueryAll('fletes', 'order=id.asc');
+      (fletes || []).forEach(function(f) {
+        if (idsEliminar.indexOf(f.proveedor_id) !== -1) {
+          supabaseQuery('fletes', 'PATCH', { proveedor_id: idPrincipal }, { id: f.id });
+        }
+        if (idsEliminar.indexOf(f.chofer_id) !== -1) {
+          supabaseQuery('fletes', 'PATCH', { chofer_id: idPrincipal }, { id: f.id });
+        }
+      });
+
+      // Actualizar referencias en gastos
+      var gastos = supabaseQueryAll('gastos', 'order=id.asc');
+      (gastos || []).forEach(function(g) {
+        if (idsEliminar.indexOf(g.proveedor_id) !== -1) {
+          supabaseQuery('gastos', 'PATCH', { proveedor_id: idPrincipal }, { id: g.id });
+        }
+      });
+
+      // Eliminar proveedores duplicados
+      idsEliminar.forEach(function(id) {
+        supabaseDelete('proveedores', id);
+      });
+
+      resultados.push({ principal_id: idPrincipal, eliminados: idsEliminar.length });
+    } catch(e) {
+      resultados.push({ error: e.message });
+    }
+  });
+
+  invalidarCacheTabla('proveedores', QUERY_PROVEEDORES);
+  invalidarCacheTabla('fletes', QUERY_FLETES);
+  invalidarCacheTabla('gastos', QUERY_GASTOS);
+
+  return resultados;
+}
