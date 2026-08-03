@@ -1836,6 +1836,8 @@ function abrirModalPago(idx) {
   if(p)actualizarMatchInfoPago(p.cliente_id,p.cliente_nombre);else document.getElementById('ppMatchInfo').style.display='none';
 
   pagoChequesState=[];
+  comprobantesSeleccionados.clear();
+  document.getElementById('ppComprobantesSelec').style.display='none';
   var tieneChequeLegado=!!(p&&p.cheque_numero);
   document.getElementById('ppTieneCheque').checked=tieneChequeLegado;
   document.getElementById('ppSeccionCheque').style.display=tieneChequeLegado?'block':'none';
