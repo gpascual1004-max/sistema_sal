@@ -1,0 +1,21 @@
+Fecha,Categoria,Descripcion,Monto,Proveedor,MetodoPago,ChequeNumero,Observaciones,Estado
+2024-09-01,Combustible,Nafta Mercedes,50000,YPF,EFECTIVO,,Tanque lleno,PAGADO
+2024-09-02,Alquiler,Alquiler galpón mes septiembre,200000,Propietario,CHEQUE,62436901,Contrato actualizado,PAGADO
+2024-09-03,Sueldos,Salario empleados,500000,Personal,TRANSFERENCIA,,Nómina septiembre,PAGADO
+2024-09-05,Mantenimiento,Reparación de camión,75000,Mecánica López,CHEQUE,62436902,Cambio de aceite,PAGADO
+2024-09-07,Combustible,Diesel,80000,YPF,EFECTIVO,,Carga para flota,PAGADO
+2024-09-10,Servicios,Electricidad galpón,15000,EDESUR,TRANSFERENCIA,,Mes de septiembre,PAGADO
+2024-09-12,Seguros,Seguro camiones,100000,AXA,CHEQUE,62436903,Póliza anual,PAGADO
+2024-09-15,Repuestos,Neumaticos,120000,Rodacos,EFECTIVO,,4 neumaticos semi,PAGADO
+2024-09-18,Combustible,Nafta,45000,Shell,EFECTIVO,,Tanque,PAGADO
+2024-09-20,Mantenimiento,Lavado y detallado,25000,Carwash Plus,EFECTIVO,,Limpieza flota,PAGADO
+2024-09-22,Impuestos,Patentes vehículos,150000,ARBA,TRANSFERENCIA,,Varias patentes,PENDIENTE
+2024-09-25,Combustible,Gasoil,70000,YPF,CHEQUE,62436904,Compra a granel,PAGADO
+2024-09-28,Servicios,Teléfono e internet,8000,Claro,TRANSFERENCIA,,Factura mensual,PAGADO
+2024-10-01,Alquiler,Alquiler galpón mes octubre,200000,Propietario,CHEQUE,62436905,Contrato actualizado,PAGADO
+2024-10-03,Combustible,Nafta,55000,YPF,EFECTIVO,,Tanque,PAGADO
+2024-10-05,Mantenimiento,Revisión técnica,30000,Taller Gómez,EFECTIVO,,Inspección seguridad,PAGADO
+2024-10-07,Sueldos,Salario empleados,500000,Personal,TRANSFERENCIA,,Nómina octubre,PAGADO
+2024-10-10,Repuestos,Bateria camión,45000,Baterías Plus,CHEQUE,62436906,Bateria 90A,PAGADO
+2024-10-12,Combustible,Diesel,80000,YPF,EFECTIVO,,Carga para flota,PAGADO
+2024-10-15,Servicios,Electricidad,15000,EDESUR,TRANSFERENCIA,,Mes de octubre,PAGADO

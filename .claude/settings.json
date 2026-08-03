@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(cp Code.gs /tmp/Code_gastos1.js)",
+      "Bash(node --check /tmp/Code_gastos1.js)",
+      "Bash(rm /tmp/Code_gastos1.js)",
+      "Bash(curl -s \"https://mlgvalvuacdfjscelpnm.supabase.co/rest/v1/ventas?select=observaciones,estado&limit=10000\" -H \"apikey: sb_publishable_xqJh9IwGfjKDBkYUDeuaVg_9c3EQZ0Q\" -H \"Authorization: Bearer sb_publishable_xqJh9IwGfjKDBkYUDeuaVg_9c3EQZ0Q\" -o \"C:\\\\Users\\\\gpasc\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-gpasc-Documents-Repositorio-VSCODE-sistema-sal-sistema-sal\\\\616b3fe5-260a-457d-bbeb-4da9e52a2c20\\\\scratchpad\\\\ventas_obs.json\")",
+      "WebFetch(domain:docs.google.com)",
+      "WebFetch(domain:doc-0c-5o-sheets.googleusercontent.com)",
+      "Bash(curl -sL \"https://docs.google.com/spreadsheets/d/1IZmkRBC8BSZgf5lD2wIuoA_oO3qyQaLza2Njh98cgQU/export?format=csv\" -o \"C:\\\\Users\\\\gpasc\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-gpasc-Documents-Repositorio-VSCODE-sistema-sal-sistema-sal\\\\616b3fe5-260a-457d-bbeb-4da9e52a2c20\\\\scratchpad\\\\tareas.csv\" -w \"HTTP status: %{http_code}\\\\n\")",
+      "Bash(cp Code.gs /tmp/Code_t5.js)",
+      "Bash(node --check /tmp/Code_t5.js)",
+      "Bash(rm /tmp/Code_t5.js)",
+      "Bash(cp Code.gs /tmp/Code_t567.js)",
+      "Bash(node --check /tmp/Code_t567.js)",
+      "Bash(rm /tmp/Code_t567.js)",
+      "Bash(cp Code.gs /tmp/Code_final_all.js)",
+      "Bash(node --check /tmp/Code_final_all.js)",
+      "Bash(rm /tmp/Code_final_all.js)"
+    ]
+  }
+}

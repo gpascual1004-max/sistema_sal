@@ -1,0 +1,16 @@
+# Credenciales y configuración sensible
+.env
+config.local.js
+credenciales.json
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Archivos temporales
+*.tmp
+*.log
+
+# VSCode
+.vscode/
