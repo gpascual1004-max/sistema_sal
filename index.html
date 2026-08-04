@@ -1892,7 +1892,7 @@ function abrirSelectorComprobantes(){
     document.getElementById('overlaySelectorComprobantes').classList.add('activo');
   },function(err){mensaje('msgSelectorComprobantes','Error: '+err.message,'error');});
 }
-function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');comprobantesSeleccionados.clear();}
+function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');}
 function filtrarComprobantesSelector(){
   var q=document.getElementById('fBuscadorComprobantes').value.toLowerCase().trim();
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
@@ -1908,7 +1908,11 @@ function confirmarSelectorComprobantes(){
   var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');
   comprobantesSeleccionados.clear();
   var montoTotal=0;
-  checkboxes.forEach(function(cb){comprobantesSeleccionados.add(cb.dataset.comprobante);montoTotal+=parseFloat(cb.dataset.monto)||0;});
+  checkboxes.forEach(function(cb){
+    var cId=cb.dataset.comprobante;
+    comprobantesSeleccionados.add(cId);
+    montoTotal+=parseFloat(cb.dataset.monto)||0;
+  });
   document.getElementById('ppHaber').value=montoTotal.toFixed(2);
   var div=document.getElementById('ppComprobantesSelec');
   if(comprobantesSeleccionados.size>0){
