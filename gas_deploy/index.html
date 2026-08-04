@@ -536,13 +536,16 @@
     </div>
 
     <!-- SELECTOR COMPROBANTES PAGO -->
-    <div class="overlay" id="overlaySelectorComprobantes" onclick="if(event.target===this)cerrarSelectorComprobantes()">
+    <div class="overlay" id="overlaySelectorComprobantes" onclick="if(event.target===this)cerrarSelectorComprobantes()" style="z-index:10001">
       <div class="modal" style="width:700px;max-height:92vh;overflow-y:auto">
         <h3>Seleccionar Comprobantes — 100% pagado</h3>
         <div id="msgSelectorComprobantes" style="margin-bottom:12px"></div>
-        <div class="table-container">
+        <div style="margin-bottom:12px">
+          <input type="text" id="fBuscadorComprobantes" placeholder="Buscar por comprobante, fecha o monto..." oninput="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:100%">
+        </div>
+        <div class="table-container" style="max-height:400px;overflow-y:auto">
           <table style="width:100%;border-collapse:collapse">
-            <thead><tr><th style="text-align:left">Comprobante</th><th style="text-align:right">Fecha</th><th style="text-align:right">Monto</th><th style="text-align:left">Estado</th><th style="text-align:center;width:50px">Seleccionar</th></tr></thead>
+            <thead><tr><th style="text-align:left;padding:8px">Comprobante</th><th style="text-align:right;padding:8px">Fecha</th><th style="text-align:right;padding:8px">Monto</th><th style="text-align:left;padding:8px">Estado</th><th style="text-align:center;width:50px;padding:8px">✓</th></tr></thead>
             <tbody id="cuerpoSelectorComprobantes"></tbody>
           </table>
         </div>
@@ -1876,6 +1879,16 @@ function abrirSelectorComprobantes(){
   },function(err){mensaje('msgSelectorComprobantes','Error: '+err.message,'error');});
 }
 function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');comprobantesSeleccionados.clear();}
+function filtrarComprobantesSelector(){
+  var q=document.getElementById('fBuscadorComprobantes').value.toLowerCase().trim();
+  var tbody=document.getElementById('cuerpoSelectorComprobantes');
+  var filas=tbody.querySelectorAll('tr');
+  filas.forEach(function(fila){
+    if(!q){fila.style.display='';return;}
+    var texto=fila.textContent.toLowerCase();
+    fila.style.display=texto.includes(q)?'':'none';
+  });
+}
 function confirmarSelectorComprobantes(){
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
   var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');

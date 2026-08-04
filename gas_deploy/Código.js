@@ -802,6 +802,7 @@ function obtenerProveedores() {
 }
 
 function guardarProveedor(datos, id) {
+  if (datos.nombre) datos.nombre = datos.nombre.toUpperCase();
   if (id) {
     supabaseQuery('proveedores', 'PATCH', datos, { id: id });
   } else {
@@ -1062,6 +1063,23 @@ function eliminarCheqEmById(id) {
   var res = supabaseDelete('cheques_emitidos', id);
   invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
   return res;
+}
+
+// ============================================
+// LIMPIEZA DE CACHE
+// ============================================
+
+function limpiarTodoElCache() {
+  var cache = CacheService.getUserCache();
+  cache.removeAll(cache.getKeys());
+  return { ok: true, mensaje: 'Cache limpiado completamente' };
+}
+
+function limpiarCacheProveedores() {
+  invalidarCacheTabla('proveedores', QUERY_PROVEEDORES);
+  invalidarCacheTabla('fletes', QUERY_FLETES);
+  invalidarCacheTabla('gastos', QUERY_GASTOS);
+  return { ok: true, mensaje: 'Cache de proveedores, fletes y gastos limpiado' };
 }
 
 // ============================================
