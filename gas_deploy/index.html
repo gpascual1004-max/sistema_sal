@@ -738,6 +738,7 @@
           <span id="pillChequesProximo" class="status-pill warn" style="display:none"></span>
         </div>
         <div style="display:flex;align-items:center;gap:10px">
+          <span id="countCheques" class="count-label"></span>
           <button class="btn btn-success" onclick="abrirModalCheque(null)">+ Nuevo Cheque</button>
         </div>
       </div>
@@ -3261,9 +3262,12 @@ function poblarFiltrosAnioMesCheques() {
   Array.from(meses).sort().forEach(function(m) { var o = document.createElement('option'); o.value = m; o.textContent = mesesNom[parseInt(m)-1]; selM.appendChild(o); });
 }
 function actualizarPillsCheques() {
+  actualizarPillsChequesConDatos(todosCheques);
+}
+function actualizarPillsChequesConDatos(cheques) {
   var hoy = new Date(); hoy.setHours(0,0,0,0);
   var vigPersp = 0, vigNo = 0, prox = 0;
-  todosCheques.forEach(function(c) {
+  cheques.forEach(function(c) {
     if (c.estado === 'ENTREGADO') return;
     var venc = c.fecha_vencimiento ? new Date(c.fecha_vencimiento + 'T00:00:00') : null;
     if (!venc) return;
@@ -3280,6 +3284,7 @@ function actualizarPillsCheques() {
   document.getElementById('pillChequesVigorosos').style.display = vigPersp > 0 ? 'inline-block' : 'none';
   document.getElementById('pillChequesVigente').style.display = vigNo > 0 ? 'inline-block' : 'none';
   document.getElementById('pillChequesProximo').style.display = prox > 0 ? 'inline-block' : 'none';
+  document.getElementById('countCheques').textContent = cheques.length + ' registro' + (cheques.length !== 1 ? 's' : '');
 }
 function filtrarCheques() {
   var anio   = document.getElementById('fChequeAnio').value;
@@ -3315,7 +3320,7 @@ function filtrarCheques() {
     return true;
   });
   paginaCheques = 1;
-  actualizarPillsCheques();
+  actualizarPillsChequesConDatos(chequesFiltrados);
   renderizarCheques();
 }
 function limpiarFiltrosCheques() {
