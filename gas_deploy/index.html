@@ -1247,7 +1247,7 @@ function actualizarDashboard() {
   var tcobrado=pg.reduce(function(s,p){return s+cobroReal(p);},0), tcobradoA=pA.reduce(function(s,p){return s+cobroReal(p);},0);
   var pendienteCobros=tpg-tcobrado;
   var ing=tvt,inga=tvta,cob=tcobrado,coba=tcobradoA;
-  var egr=tgs+tfl,egra=tgsa+tfla,gan=ing-egr,gana=inga-egra,mar=ing>0?gan/ing*100:0,mara=inga>0?gana/inga*100:0;
+  var egr=tgs+tfl,egra=tgsa+tfla,gan=cob-egr,gana=coba-egra,mar=cob>0?gan/cob*100:0,mara=coba>0?gana/coba*100:0;
   var anio=document.getElementById('dbAnio').value,meses=dbGetMesesActivos();
   var label=(anio?anio:'Todos los años')+(meses&&meses.length?' — '+meses.map(function(m){return NOMBRES_MESES[parseInt(m,10)-1];}).join(', '):'');
   document.getElementById('dbPeriodoLabel').textContent=label;
