@@ -1728,7 +1728,7 @@ document.getElementById('overlayProveedor').addEventListener('click',function(e)
 // ==========================================
 // PAGOS
 // ==========================================
-var todosPagos=[],pagosFiltrados=[],paginaPagos=1,porPaginaPagos=20,idPagoEdicion=null,mapaClientesPagos={},mesesSeleccionados={},comprobantesSeleccionados=new Set(),ventasDisponibles=[];
+var todosPagos=[],pagosFiltrados=[],paginaPagos=1,porPaginaPagos=20,idPagoEdicion=null,mapaClientesPagos={},mesesSeleccionados={},comprobantesSeleccionados=new Set(),ventasDisponibles=[],comprobantesInfo={};
 var pagoChequesState=[]; // cheques del pago que se está editando/creando: [{id, numero, banco, importe, tipo, fecha_emision, fecha_pago, dias, fecha_vencimiento}]
 
 function toggleDropdownMeses(){var d=document.getElementById('dropdownMeses');d.style.display=d.style.display==='none'?'block':'none';}
@@ -1844,9 +1844,20 @@ function abrirModalPago(idx) {
     try{
       var comprobantesGuardados=JSON.parse(p.comprobantes_ids);
       comprobantesGuardados.forEach(function(cId){comprobantesSeleccionados.add(cId);});
-    }catch(e){}
-  }
-  mostrarComprobantesSeleccionados();
+      if(p.cliente_id){
+        gsRun('obtenerVentasNoPagadas',[p.cliente_id,comprobantesGuardados],function(ventas){
+          if(ventas){
+            ventas.forEach(function(v){
+              if(comprobantesGuardados.indexOf(String(v.id))!==-1){
+                comprobantesInfo[v.id]={comprobante:v.comprobante,monto:parseFloat(v.debe)};
+              }
+            });
+          }
+          mostrarComprobantesSeleccionados();
+        });
+      }else{mostrarComprobantesSeleccionados();}
+    }catch(e){mostrarComprobantesSeleccionados();}
+  }else{mostrarComprobantesSeleccionados();}
   var tieneChequeLegado=!!(p&&p.cheque_numero);
   document.getElementById('ppTieneCheque').checked=tieneChequeLegado;
   document.getElementById('ppSeccionCheque').style.display=tieneChequeLegado?'block':'none';
@@ -1872,7 +1883,7 @@ function mostrarComprobantesSeleccionados(){
   var div=document.getElementById('ppComprobantesSelec');
   if(comprobantesSeleccionados.size>0){
     var lista=document.getElementById('ppListaComprobantes');
-    lista.innerHTML=Array.from(comprobantesSeleccionados).map(function(cId){var v=ventasDisponibles.find(function(x){return x.id===cId;});return v?v.comprobante+' ($'+v.debe+')':''}).filter(function(x){return x;}).join(', ');
+    lista.innerHTML=Array.from(comprobantesSeleccionados).map(function(cId){var info=comprobantesInfo[cId];return info?info.comprobante+' ($'+info.monto.toFixed(0)+')':''}).filter(function(x){return x;}).join(', ');
     div.style.display='block';
   }else{div.style.display='none';}
 }
@@ -1886,6 +1897,7 @@ function abrirSelectorComprobantes(){
     if(!ventasDisponibles.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes pendientes de pago</td></tr>';document.getElementById('overlaySelectorComprobantes').classList.add('activo');return;}
     ventasDisponibles.forEach(function(v){
       var checked=comprobantesSeleccionados.has(v.id)?'checked':'';
+      if(checked && !comprobantesInfo[v.id]){comprobantesInfo[v.id]={comprobante:v.comprobante,monto:parseFloat(v.debe)};}
       var tr=document.createElement('tr');
       tr.innerHTML='<td style="padding:8px;border-bottom:1px solid #eee">'+v.comprobante+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">'+v.fecha+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">$'+v.debe+'</td><td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666">'+v.estado+'</td><td style="text-align:center;padding:8px;border-bottom:1px solid #eee"><input type="checkbox" data-comprobante="'+v.id+'" data-monto="'+v.debe+'" '+checked+'></td>';
       tbody.appendChild(tr);
@@ -1908,6 +1920,7 @@ function confirmarSelectorComprobantes(){
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
   var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');
   comprobantesSeleccionados.clear();
+  comprobantesInfo={};
   var montoTotal=0;
   var items=[];
   checkboxes.forEach(function(cb){
@@ -1916,6 +1929,7 @@ function confirmarSelectorComprobantes(){
     var comprobante=tr.querySelector('td').textContent;
     var monto=parseFloat(cb.dataset.monto)||0;
     comprobantesSeleccionados.add(cId);
+    comprobantesInfo[cId]={comprobante:comprobante,monto:monto};
     items.push(comprobante+' ($'+monto.toFixed(0)+')');
     montoTotal+=monto;
   });
