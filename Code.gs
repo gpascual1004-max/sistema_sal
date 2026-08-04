@@ -292,21 +292,32 @@ function reemplazarVentasDelMes(mesKey, rows) {
   var inicio = mesKey + '-01';
   var finMes = mes === 12 ? (anio + 1) + '-01-01' : anio + '-' + (mes + 1 < 10 ? '0' : '') + (mes + 1) + '-01';
 
-  UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/ventas?fecha=gte.' + inicio + '&fecha=lt.' + finMes, {
-    method: 'DELETE',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Prefer': 'return=minimal'
-    },
-    muteHttpExceptions: true
+  var ventasExistentes = supabaseQuery('ventas', 'GET', null, null, 'fecha=gte.' + inicio + '&fecha=lt.' + finMes + '&order=id.asc') || [];
+  var mapaExistentes = {};
+  ventasExistentes.forEach(function(v) {
+    mapaExistentes[v.comprobante] = v;
+  });
+
+  var rowsABorrar = [], rowsAInsertar = [];
+  rows.forEach(function(r) {
+    var existente = mapaExistentes[r.comprobante];
+    if (!existente) {
+      rowsAInsertar.push(r);
+    } else if (existente.estado !== 'PAGADA') {
+      rowsABorrar.push(existente.id);
+      rowsAInsertar.push(r);
+    }
+  });
+
+  rowsABorrar.forEach(function(id) {
+    supabaseDelete('ventas', id);
   });
 
   var insertados = 0, errors = [];
   var LOTE = 200;
-  for (var i = 0; i < rows.length; i += LOTE) {
+  for (var i = 0; i < rowsAInsertar.length; i += LOTE) {
     try {
-      var lote = rows.slice(i, i + LOTE);
+      var lote = rowsAInsertar.slice(i, i + LOTE);
       var url = SUPABASE_URL + '/rest/v1/ventas?on_conflict=comprobante';
       UrlFetchApp.fetch(url, {
         method: 'POST',
