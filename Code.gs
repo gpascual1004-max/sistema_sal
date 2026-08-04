@@ -1065,6 +1065,23 @@ function eliminarCheqEmById(id) {
 }
 
 // ============================================
+// LIMPIEZA DE CACHE
+// ============================================
+
+function limpiarTodoElCache() {
+  var cache = CacheService.getUserCache();
+  cache.removeAll(cache.getKeys());
+  return { ok: true, mensaje: 'Cache limpiado completamente' };
+}
+
+function limpiarCacheProveedores() {
+  invalidarCacheTabla('proveedores', QUERY_PROVEEDORES);
+  invalidarCacheTabla('fletes', QUERY_FLETES);
+  invalidarCacheTabla('gastos', QUERY_GASTOS);
+  return { ok: true, mensaje: 'Cache de proveedores, fletes y gastos limpiado' };
+}
+
+// ============================================
 // NORMALIZACIÓN PROVEEDORES
 // ============================================
 
