@@ -802,6 +802,7 @@ function obtenerProveedores() {
 }
 
 function guardarProveedor(datos, id) {
+  if (datos.nombre) datos.nombre = datos.nombre.toUpperCase();
   if (id) {
     supabaseQuery('proveedores', 'PATCH', datos, { id: id });
   } else {
