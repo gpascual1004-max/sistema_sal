@@ -1940,7 +1940,6 @@ function confirmarSelectorComprobantes(){
     items.push(comprobante+' ($'+monto.toFixed(0)+')');
     montoTotal+=monto;
   });
-  document.getElementById('ppHaber').value=montoTotal.toFixed(2);
   var div=document.getElementById('ppComprobantesSelec');
   if(comprobantesSeleccionados.size>0){
     var lista=document.getElementById('ppListaComprobantes');
