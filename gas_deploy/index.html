@@ -1841,7 +1841,8 @@ function abrirModalPago(idx) {
 
   pagoChequesState=[];
   comprobantesOriginales=[];
-  if(!p){limpiarComprobantesAlAbrirModal();}
+  comprobantesSeleccionados.clear();
+  comprobantesInfo={};
   if(p&&p.comprobantes_ids){
     try{
       var comprobantesGuardados=JSON.parse(p.comprobantes_ids);
