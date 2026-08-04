@@ -448,21 +448,12 @@ function obtenerChequesDePago(pagoId) {
 // Guarda el pago y sincroniza sus cheques (puede haber más de uno). cheques: [{id, numero,
 // banco, importe, tipo, fecha_emision, fecha_pago, dias}] — id nulo/ausente = cheque nuevo.
 // Cualquier cheque que ya estuviera linkeado a este pago y no venga en la lista se borra.
-function guardarPagoConCheques(datos, id, cheques, comprobantesIds) {
+function guardarPagoConCheques(datos, id, cheques, comprobantesIds, comprobantesDeseleccionados) {
   var pagoId = id;
   comprobantesIds = comprobantesIds || [];
+  comprobantesDeseleccionados = comprobantesDeseleccionados || [];
 
   if (id) {
-    // Edición: revertir comprobantes previos, luego aplicar nuevos
-    var pagoAnterior = supabaseQuery('pagos', 'GET', null, { id: id }) || [];
-    if (pagoAnterior.length > 0 && pagoAnterior[0].comprobantes_ids) {
-      try {
-        var comprobantesAnteriores = JSON.parse(pagoAnterior[0].comprobantes_ids);
-        comprobantesAnteriores.forEach(function(cId) {
-          supabaseQuery('ventas', 'PATCH', { estado: 'PENDIENTE' }, { id: cId });
-        });
-      } catch(e) {}
-    }
     datos.comprobantes_ids = JSON.stringify(comprobantesIds);
     supabaseQuery('pagos', 'PATCH', datos, { id: id });
   } else {
@@ -493,6 +484,12 @@ function guardarPagoConCheques(datos, id, cheques, comprobantesIds) {
   aBorrar.forEach(function(e) {
     supabaseDelete('cheques', e.id);
   });
+
+  if (comprobantesDeseleccionados && comprobantesDeseleccionados.length > 0) {
+    comprobantesDeseleccionados.forEach(function(cId) {
+      supabaseQuery('ventas', 'PATCH', { estado: 'ENTREGADA CONFORME' }, { id: cId });
+    });
+  }
 
   if (comprobantesIds && comprobantesIds.length > 0) {
     comprobantesIds.forEach(function(cId) {

@@ -1728,7 +1728,7 @@ document.getElementById('overlayProveedor').addEventListener('click',function(e)
 // ==========================================
 // PAGOS
 // ==========================================
-var todosPagos=[],pagosFiltrados=[],paginaPagos=1,porPaginaPagos=20,idPagoEdicion=null,mapaClientesPagos={},mesesSeleccionados={},comprobantesSeleccionados=new Set(),ventasDisponibles=[],comprobantesInfo={};
+var todosPagos=[],pagosFiltrados=[],paginaPagos=1,porPaginaPagos=20,idPagoEdicion=null,mapaClientesPagos={},mesesSeleccionados={},comprobantesSeleccionados=new Set(),ventasDisponibles=[],comprobantesInfo={},comprobantesOriginales=[];
 var pagoChequesState=[]; // cheques del pago que se está editando/creando: [{id, numero, banco, importe, tipo, fecha_emision, fecha_pago, dias, fecha_vencimiento}]
 
 function toggleDropdownMeses(){var d=document.getElementById('dropdownMeses');d.style.display=d.style.display==='none'?'block':'none';}
@@ -1839,10 +1839,12 @@ function abrirModalPago(idx) {
   if(p)actualizarMatchInfoPago(p.cliente_id,p.cliente_nombre);else document.getElementById('ppMatchInfo').style.display='none';
 
   pagoChequesState=[];
+  comprobantesOriginales=[];
   if(!p){limpiarComprobantesAlAbrirModal();}
   if(p&&p.comprobantes_ids){
     try{
       var comprobantesGuardados=JSON.parse(p.comprobantes_ids);
+      comprobantesOriginales=comprobantesGuardados.slice();
       comprobantesGuardados.forEach(function(cId){comprobantesSeleccionados.add(cId);});
       if(p.cliente_id){
         gsRun('obtenerVentasNoPagadas',[p.cliente_id,comprobantesGuardados],function(ventas){
@@ -1934,7 +1936,7 @@ function confirmarSelectorComprobantes(){
     items.push(comprobante+' ($'+monto.toFixed(0)+')');
     montoTotal+=monto;
   });
-  document.getElementById('ppHaber').value=montoTotal.toFixed(2);
+  if(!idPagoEdicion){document.getElementById('ppHaber').value=montoTotal.toFixed(2);}
   var div=document.getElementById('ppComprobantesSelec');
   if(comprobantesSeleccionados.size>0){
     var lista=document.getElementById('ppListaComprobantes');
@@ -1972,7 +1974,8 @@ function guardarPago() {
 
   var etiqueta=idPagoEdicion?'Cobro actualizado.':'Cobro agregado correctamente.';
   var comprobantesArr=Array.from(comprobantesSeleccionados);
-  gsRun('guardarPagoConCheques',[datos,idPagoEdicion,cheques,comprobantesArr],function(){
+  var comprobantesDeseleccionados=comprobantesOriginales.filter(function(c){return comprobantesArr.indexOf(c)===-1;});
+  gsRun('guardarPagoConCheques',[datos,idPagoEdicion,cheques,comprobantesArr,comprobantesDeseleccionados],function(){
     cerrarModalPago();
     var txtCheques=cheques.length?(' '+cheques.length+' cheque'+(cheques.length!==1?'s':'')+' guardado'+(cheques.length!==1?'s':'')+'.'):'';
     var txtComprobantes=comprobantesArr.length?(' '+comprobantesArr.length+' comprobante'+(comprobantesArr.length!==1?'s':'')+' marcado'+(comprobantesArr.length!==1?'s':'')+' como pagado.'):'';
