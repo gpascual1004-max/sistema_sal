@@ -1879,7 +1879,7 @@ function mostrarComprobantesSeleccionados(){
 function abrirSelectorComprobantes(){
   var clienteId=document.getElementById('ppClienteId').value.trim();
   if(!clienteId){mensaje('msgSelectorComprobantes','Selecciona un cliente primero','error');return;}
-  gsRun('obtenerVentasNoPagadas',[clienteId],function(ventas){
+  gsRun('obtenerVentasNoPagadas',[clienteId,Array.from(comprobantesSeleccionados)],function(ventas){
     ventasDisponibles=ventas||[];
     var tbody=document.getElementById('cuerpoSelectorComprobantes');
     tbody.innerHTML='';

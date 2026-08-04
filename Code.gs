@@ -406,17 +406,21 @@ function guardarPago(datos, id, comprobantesIds) {
   }
   if (comprobantesIds && comprobantesIds.length > 0) {
     comprobantesIds.forEach(function(cId) {
-      supabaseQuery('ventas', 'PATCH', { estado: 'PAGADO' }, { id: cId });
+      supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: cId });
     });
   }
   invalidarCachePagos();
   return { ok: true };
 }
 
-function obtenerVentasNoPagadas(clienteId) {
+function obtenerVentasNoPagadas(clienteId, comprobantesEnCobro) {
+  comprobantesEnCobro = comprobantesEnCobro || [];
   var todas = supabaseQueryAll('ventas', 'order=comprobante.asc');
   return (todas || []).filter(function(v) {
-    return v.cliente_id === clienteId && (v.estado || '') !== 'PAGADO';
+    if (v.cliente_id !== clienteId) return false;
+    var estado = v.estado || '';
+    // Mostrar si: no está PAGADA, O está PAGADA pero está en este cobro (para poder deseleccionar)
+    return estado !== 'PAGADA' || comprobantesEnCobro.indexOf(String(v.id)) !== -1;
   }).map(function(v) {
     return {
       id: v.id,
@@ -492,7 +496,7 @@ function guardarPagoConCheques(datos, id, cheques, comprobantesIds) {
 
   if (comprobantesIds && comprobantesIds.length > 0) {
     comprobantesIds.forEach(function(cId) {
-      supabaseQuery('ventas', 'PATCH', { estado: 'PAGADO' }, { id: cId });
+      supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: cId });
     });
   }
 
