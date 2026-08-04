@@ -2707,7 +2707,7 @@ function renderReportesIndicadoresGenerales(ventas, pagos, meses) {
   meses.forEach(function(m){
     var ay=String(m.year), am=String(m.month+1).padStart(2,'0');
     dataVentas.push(ventas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.debe)||0);},0));
-    dataCobros.push(pagos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+cobroReal(r);},0));
+    dataCobros.push(pagos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.haber)||0);},0));
   });
 
   var ctx=document.getElementById('chartRepVentasCobros').getContext('2d');
