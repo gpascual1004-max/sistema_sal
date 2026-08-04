@@ -1882,7 +1882,7 @@ function abrirSelectorComprobantes(){
     ventasDisponibles=ventas||[];
     var tbody=document.getElementById('cuerpoSelectorComprobantes');
     tbody.innerHTML='';
-    if(!ventasDisponibles.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes pendientes de pago</td></tr>';return;}
+    if(!ventasDisponibles.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes pendientes de pago</td></tr>';document.getElementById('overlaySelectorComprobantes').classList.add('activo');return;}
     ventasDisponibles.forEach(function(v){
       var checked=comprobantesSeleccionados.has(v.id)?'checked':'';
       var tr=document.createElement('tr');
