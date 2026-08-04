@@ -1908,16 +1908,21 @@ function confirmarSelectorComprobantes(){
   var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');
   comprobantesSeleccionados.clear();
   var montoTotal=0;
+  var items=[];
   checkboxes.forEach(function(cb){
+    var tr=cb.closest('tr');
     var cId=cb.dataset.comprobante;
+    var comprobante=tr.querySelector('td').textContent;
+    var monto=parseFloat(cb.dataset.monto)||0;
     comprobantesSeleccionados.add(cId);
-    montoTotal+=parseFloat(cb.dataset.monto)||0;
+    items.push(comprobante+' ($'+monto.toFixed(0)+')');
+    montoTotal+=monto;
   });
   document.getElementById('ppHaber').value=montoTotal.toFixed(2);
   var div=document.getElementById('ppComprobantesSelec');
   if(comprobantesSeleccionados.size>0){
     var lista=document.getElementById('ppListaComprobantes');
-    lista.innerHTML=Array.from(comprobantesSeleccionados).map(function(cId){var v=ventasDisponibles.find(function(x){return x.id===cId;});return v?v.comprobante+' ($'+v.debe+')':''}).join(', ');
+    lista.innerHTML=items.join(', ');
     div.style.display='block';
   }else{div.style.display='none';}
   cerrarSelectorComprobantes();
