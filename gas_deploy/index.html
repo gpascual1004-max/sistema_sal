@@ -1839,7 +1839,7 @@ function abrirModalPago(idx) {
   if(p)actualizarMatchInfoPago(p.cliente_id,p.cliente_nombre);else document.getElementById('ppMatchInfo').style.display='none';
 
   pagoChequesState=[];
-  comprobantesSeleccionados.clear();
+  if(!p){limpiarComprobantesAlAbrirModal();}
   if(p&&p.comprobantes_ids){
     try{
       var comprobantesGuardados=JSON.parse(p.comprobantes_ids);
@@ -1866,7 +1866,8 @@ function abrirModalPago(idx) {
     },function(e){console.error('[abrirModalPago] error al cargar cheques',e);});
   }
 }
-function cerrarModalPago(){document.getElementById('overlayPago').classList.remove('activo');idPagoEdicion=null;pagoChequesState=[];comprobantesSeleccionados.clear();}
+function cerrarModalPago(){document.getElementById('overlayPago').classList.remove('activo');idPagoEdicion=null;pagoChequesState=[];}
+function limpiarComprobantesAlAbrirModal(){comprobantesSeleccionados.clear();}
 function mostrarComprobantesSeleccionados(){
   var div=document.getElementById('ppComprobantesSelec');
   if(comprobantesSeleccionados.size>0){
