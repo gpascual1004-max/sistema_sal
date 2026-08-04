@@ -1281,9 +1281,10 @@ function renderGraficoEvolucion() {
     var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1),ay=String(d.getFullYear()),am=String(d.getMonth()+1).padStart(2,'0');
     ml.push(NOMBRES_MESES[d.getMonth()].substr(0,3)+' '+ay.substr(2));
     var vt=dbVentas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.debe)||0);},0);
+    var cob=dbPagos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+cobroReal(r);},0);
     var fl=dbFletes.filter(function(r){var f=r.fecha_flete||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.importe)||0);},0);
     var gs=dbGastos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.monto)||0);},0);
-    dv.push(vt);df.push(fl);dm.push(vt>0?parseFloat(((vt-fl-gs)/vt*100).toFixed(1)):0);
+    dv.push(vt);df.push(fl);dm.push(cob>0?parseFloat(((cob-fl-gs)/cob*100).toFixed(1)):0);
   }
   if(chartEvolucion)chartEvolucion.destroy();
   var bgMargen=dm.map(function(m){return m>25?'rgba(40,167,69,0.7)':m>=20?'rgba(253,126,20,0.7)':'rgba(220,53,69,0.7)';});
@@ -2707,7 +2708,7 @@ function renderReportesIndicadoresGenerales(ventas, pagos, meses) {
   meses.forEach(function(m){
     var ay=String(m.year), am=String(m.month+1).padStart(2,'0');
     dataVentas.push(ventas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.debe)||0);},0));
-    dataCobros.push(pagos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.haber)||0);},0));
+    dataCobros.push(pagos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+cobroReal(r);},0));
   });
 
   var ctx=document.getElementById('chartRepVentasCobros').getContext('2d');
