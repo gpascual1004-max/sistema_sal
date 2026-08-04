@@ -487,13 +487,13 @@ function guardarPagoConCheques(datos, id, cheques, comprobantesIds, comprobantes
 
   if (comprobantesDeseleccionados && comprobantesDeseleccionados.length > 0) {
     comprobantesDeseleccionados.forEach(function(cId) {
-      supabaseQuery('ventas', 'PATCH', { estado: 'ENTREGADA CONFORME' }, { id: cId });
+      supabaseQuery('ventas', 'PATCH', { estado: 'ENTREGADA CONFORME' }, { id: parseInt(cId, 10) });
     });
   }
 
   if (comprobantesIds && comprobantesIds.length > 0) {
     comprobantesIds.forEach(function(cId) {
-      supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: cId });
+      supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: parseInt(cId, 10) });
     });
   }
 
