@@ -446,9 +446,23 @@ function obtenerChequesDePago(pagoId) {
 // Cualquier cheque que ya estuviera linkeado a este pago y no venga en la lista se borra.
 function guardarPagoConCheques(datos, id, cheques, comprobantesIds) {
   var pagoId = id;
+  comprobantesIds = comprobantesIds || [];
+
   if (id) {
+    // Edición: revertir comprobantes previos, luego aplicar nuevos
+    var pagoAnterior = supabaseQuery('pagos', 'GET', null, { id: id }) || [];
+    if (pagoAnterior.length > 0 && pagoAnterior[0].comprobantes_ids) {
+      try {
+        var comprobantesAnteriores = JSON.parse(pagoAnterior[0].comprobantes_ids);
+        comprobantesAnteriores.forEach(function(cId) {
+          supabaseQuery('ventas', 'PATCH', { estado: 'PENDIENTE' }, { id: cId });
+        });
+      } catch(e) {}
+    }
+    datos.comprobantes_ids = JSON.stringify(comprobantesIds);
     supabaseQuery('pagos', 'PATCH', datos, { id: id });
   } else {
+    datos.comprobantes_ids = JSON.stringify(comprobantesIds);
     var res = supabaseQuery('pagos', 'POST', [datos]);
     pagoId = (res && res[0] && res[0].id) ? res[0].id : null;
   }
