@@ -2036,7 +2036,7 @@ function filtrarGastos() {
     if(anio&&(g.fecha||'').substr(0,4)!==anio)return false;
     if(mes&&(g.fecha||'').substr(5,2)!==mes)return false;
     if(estado&&(g.estado||'PENDIENTE')!==estado)return false;
-    if(proveedores&&!proveedores.has(g.proveedor||''))return false;
+    if(proveedores&&!proveedores.has((g.proveedor||'').toUpperCase()))return false;
     if(rubros&&!rubros.has(g.rubro||''))return false;
     return true;
   });
