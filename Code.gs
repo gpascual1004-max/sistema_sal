@@ -1204,7 +1204,7 @@ function consolidarProveedores(operaciones) {
 
 function obtenerGuiasDeObservaciones() {
   var pagos = supabaseQueryAll('pagos', QUERY_PAGOS);
-  var ventas = supabaseQueryAll('ventas', QUERY_VENTAS);
+  var ventas = supabaseQueryAll('ventas', 'order=fecha.desc'); // Ordenar por fecha DESC para obtener datos más recientes primero
   var guias = [];
 
   // Crear índice de ventas por cliente normalizado
