@@ -1201,3 +1201,34 @@ function consolidarProveedores(operaciones) {
 
   return resultados;
 }
+
+function obtenerGuiasDeObservaciones() {
+  var pagos = supabaseQueryAll('pagos', QUERY_PAGOS);
+  var guias = [];
+
+  pagos.forEach(function(p) {
+    var obs = (p.observaciones || '').trim();
+    if (!obs) return;
+
+    var clienteNombre = p.cliente_nombre || '(sin cliente)';
+    var fecha = p.fecha || '';
+
+    var codigos = obs.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
+
+    codigos.forEach(function(codigo) {
+      guias.push({
+        cliente: clienteNombre,
+        fecha: fecha,
+        guia: codigo
+      });
+    });
+  });
+
+  guias.sort(function(a, b) {
+    if (a.cliente !== b.cliente) return a.cliente.localeCompare(b.cliente);
+    if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
+    return a.guia.localeCompare(b.guia);
+  });
+
+  return guias;
+}

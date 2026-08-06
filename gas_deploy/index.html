@@ -928,6 +928,10 @@
         </div>
       </div>
 
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="mostrarNormalizacionGuias()">📋 Normalización de Guías</button>
+      </div>
+
       <h3 style="margin:10px 0 15px;color:#333">Indicadores Generales</h3>
       <div class="charts-grid">
         <div class="card">
@@ -3769,6 +3773,56 @@ if (localStorage.getItem(LOGIN_STORAGE_KEY) === '1') {
 } else {
   document.getElementById('loginPass').focus();
 }
+
+function mostrarNormalizacionGuias() {
+  gsRun('obtenerGuiasDeObservaciones', [], function(guias) {
+    var tbody = document.getElementById('tablaGuiasBody');
+    tbody.innerHTML = '';
+    if (!guias.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;padding:20px">No hay guías registradas</td></tr>';
+      document.getElementById('overlayNormalizacionGuias').classList.add('activo');
+      return;
+    }
+    guias.forEach(function(g) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + g.cliente + '</td><td>' + g.fecha + '</td><td style="font-family:monospace;font-size:12px">' + g.guia + '</td>';
+      tbody.appendChild(tr);
+    });
+    document.getElementById('overlayNormalizacionGuias').classList.add('activo');
+  });
+}
+
+function cerrarNormalizacionGuias() {
+  document.getElementById('overlayNormalizacionGuias').classList.remove('activo');
+}
 </script>
+
+<!-- MODAL: Normalización de Guías -->
+<div class="overlay" id="overlayNormalizacionGuias">
+  <div class="modal" style="width:900px;max-width:95%">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h2 style="margin:0">Normalización de Guías desde Cobros</h2>
+      <button style="background:none;border:none;font-size:24px;cursor:pointer" onclick="cerrarNormalizacionGuias()">&times;</button>
+    </div>
+    <div class="table-container" style="max-height:500px;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="position:sticky;top:0;background:#f8f9fa">
+          <tr>
+            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Cliente</th>
+            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Fecha</th>
+            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Guía</th>
+          </tr>
+        </thead>
+        <tbody id="tablaGuiasBody">
+          <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:15px;text-align:right">
+      <button class="btn btn-primary" onclick="cerrarNormalizacionGuias()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
