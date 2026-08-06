@@ -3779,13 +3779,14 @@ function mostrarNormalizacionGuias() {
     var tbody = document.getElementById('tablaGuiasBody');
     tbody.innerHTML = '';
     if (!guias.length) {
-      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#999;padding:20px">No hay guías registradas</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px">No hay guías registradas</td></tr>';
       document.getElementById('overlayNormalizacionGuias').classList.add('activo');
       return;
     }
     guias.forEach(function(g) {
       var tr = document.createElement('tr');
-      tr.innerHTML = '<td>' + g.cliente + '</td><td>' + g.fecha + '</td><td style="font-family:monospace;font-size:12px">' + g.guia + '</td>';
+      var foundBadge = g.encontrado === 'SÍ' ? '<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold">✓ Encontrado</span>' : '<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold">✗ No encontrado</span>';
+      tr.innerHTML = '<td>' + g.cliente + '</td><td style="font-size:12px">' + g.fecha + '</td><td style="font-family:monospace;font-size:12px">' + g.guia + '</td><td style="font-family:monospace;font-size:11px">' + g.comprobante + '</td><td style="font-size:12px">' + (g.estadoVentas === '—' ? '—' : g.estadoVentas) + '</td><td style="text-align:center">' + foundBadge + '</td>';
       tbody.appendChild(tr);
     });
     document.getElementById('overlayNormalizacionGuias').classList.add('activo');
@@ -3809,12 +3810,15 @@ function cerrarNormalizacionGuias() {
         <thead style="position:sticky;top:0;background:#f8f9fa">
           <tr>
             <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Cliente</th>
-            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Fecha</th>
-            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Guía</th>
+            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Fecha Cobro</th>
+            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Guía (Obs.)</th>
+            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Comprobante</th>
+            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Estado Ventas</th>
+            <th style="text-align:center;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Coincide</th>
           </tr>
         </thead>
         <tbody id="tablaGuiasBody">
-          <tr><td colspan="3" style="text-align:center;padding:20px;color:#999">Cargando...</td></tr>
+          <tr><td colspan="6" style="text-align:center;padding:20px;color:#999">Cargando...</td></tr>
         </tbody>
       </table>
     </div>

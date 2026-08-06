@@ -1204,28 +1204,67 @@ function consolidarProveedores(operaciones) {
 
 function obtenerGuiasDeObservaciones() {
   var pagos = supabaseQueryAll('pagos', QUERY_PAGOS);
+  var ventas = supabaseQueryAll('ventas', QUERY_VENTAS);
   var guias = [];
+
+  // Crear índice de ventas por cliente normalizado
+  var ventasPorClienteNorm = {};
+  ventas.forEach(function(v) {
+    var clienteNorm = (v.cliente_nombre || '').toUpperCase().trim();
+    if (!ventasPorClienteNorm[clienteNorm]) {
+      ventasPorClienteNorm[clienteNorm] = [];
+    }
+    ventasPorClienteNorm[clienteNorm].push({
+      comprobante: (v.comprobante || '').trim(),
+      estado: v.estado || 'PENDIENTE',
+      fecha: v.fecha
+    });
+  });
 
   pagos.forEach(function(p) {
     var obs = (p.observaciones || '').trim();
     if (!obs) return;
 
     var clienteNombre = p.cliente_nombre || '(sin cliente)';
+    var clienteNorm = clienteNombre.toUpperCase().trim();
     var fecha = p.fecha || '';
 
     var codigos = obs.split('-').map(function(s) { return s.trim(); }).filter(function(s) { return s; });
 
     codigos.forEach(function(codigo) {
+      var ventasDelCliente = ventasPorClienteNorm[clienteNorm] || [];
+      var comprobante = null;
+      var estadoVentas = null;
+
+      // Buscar comprobante: extraer dígitos de la guía y comparar contra últimos N dígitos del comprobante
+      var digitosGuia = codigo.replace(/\D/g, '');
+      if (digitosGuia.length >= 4) {
+        for (var i = 0; i < ventasDelCliente.length; i++) {
+          var v = ventasDelCliente[i];
+          var digitosCompro = v.comprobante.replace(/\D/g, '');
+          var ultimosDigitosCompro = digitosCompro.slice(-digitosGuia.length);
+          if (ultimosDigitosCompro === digitosGuia) {
+            comprobante = v.comprobante;
+            estadoVentas = v.estado;
+            break;
+          }
+        }
+      }
+
       guias.push({
         cliente: clienteNombre,
         fecha: fecha,
-        guia: codigo
+        guia: codigo,
+        comprobante: comprobante || '—',
+        estadoVentas: estadoVentas || '—',
+        encontrado: comprobante ? 'SÍ' : 'NO'
       });
     });
   });
 
   guias.sort(function(a, b) {
     if (a.cliente !== b.cliente) return a.cliente.localeCompare(b.cliente);
+    if (a.encontrado !== b.encontrado) return (a.encontrado === 'SÍ' ? -1 : 1);
     if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
     return a.guia.localeCompare(b.guia);
   });
