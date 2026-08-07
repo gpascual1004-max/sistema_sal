@@ -2865,6 +2865,8 @@ function calcularResumenMensual(meses) {
   return { meses3: meses3, ventas: ventasPM, pagos: pagosPM, sAnt: sAnt, sTot: sTot };
 }
 function abrirDetalleSaldo(s) {
+  document.getElementById('fSaldoCliente').value = s.cliente;
+  filtrarSaldos();
   document.getElementById('tituloDetalleSaldo').textContent = s.cliente + ' — Saldo pendiente: ' + pesos(s.sp);
   var r = calcularResumenMensual(s.meses);
   for (var i = 0; i < 3; i++) {

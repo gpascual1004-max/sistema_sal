@@ -552,6 +552,7 @@
     <div class="overlay" id="overlaySelectorComprobantes" onclick="if(event.target===this)cerrarSelectorComprobantes()" style="z-index:10001">
       <div class="modal" style="width:700px;max-height:92vh;overflow-y:auto">
         <h3>Seleccionar Comprobantes — 100% pagado</h3>
+        <div id="selectorComprobantesTotal" style="padding:12px;margin-bottom:12px;background:#f0f4ff;border-radius:5px;font-weight:600;text-align:right;color:#667eea;font-size:16px">Total: $0.00</div>
         <div id="msgSelectorComprobantes" style="margin-bottom:12px"></div>
         <div style="margin-bottom:12px">
           <input type="text" id="fBuscadorComprobantes" placeholder="Buscar por comprobante, fecha o monto..." oninput="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:100%">
@@ -562,7 +563,6 @@
             <tbody id="cuerpoSelectorComprobantes"></tbody>
           </table>
         </div>
-        <div id="selectorComprobantesTotal" style="padding:12px;margin-top:8px;background:#f0f4ff;border-radius:5px;font-weight:600;text-align:right;color:#667eea">Total: $0.00</div>
         <div class="modal-footer">
           <button class="btn" onclick="cerrarSelectorComprobantes()" style="background:#6c757d;color:white">Cancelar</button>
           <button class="btn btn-success" onclick="confirmarSelectorComprobantes()">Confirmar</button>
@@ -2014,7 +2014,8 @@ function actualizarTotalSelectorComprobantes(){
   var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');
   var total=0;
   checkboxes.forEach(function(cb){total+=parseFloat(cb.dataset.monto)||0;});
-  document.getElementById('selectorComprobantesTotal').textContent='Total: $'+total.toFixed(2);
+  var totalFormato=total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  document.getElementById('selectorComprobantesTotal').textContent='Total: $'+totalFormato;
 }
 function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');}
 function filtrarComprobantesSelector(){
@@ -2696,6 +2697,8 @@ function calcularResumenMensual(meses) {
   return { meses3: meses3, ventas: ventasPM, pagos: pagosPM, sAnt: sAnt, sTot: sTot };
 }
 function abrirDetalleSaldo(s) {
+  document.getElementById('fSaldoCliente').value = s.cliente;
+  filtrarSaldos();
   document.getElementById('tituloDetalleSaldo').textContent = s.cliente + ' — Saldo pendiente: ' + pesos(s.sp);
   var r = calcularResumenMensual(s.meses);
   for (var i = 0; i < 3; i++) {
@@ -3917,3 +3920,4 @@ if (localStorage.getItem(LOGIN_STORAGE_KEY) === '1') {
 
 </body>
 </html>
+
