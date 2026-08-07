@@ -2182,7 +2182,8 @@ function actualizarTotalSelectorComprobantes(){
   var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');
   var total=0;
   checkboxes.forEach(function(cb){total+=parseFloat(cb.dataset.monto)||0;});
-  document.getElementById('selectorComprobantesTotal').textContent='Total: $'+total.toFixed(2);
+  var totalFormato=total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  document.getElementById('selectorComprobantesTotal').textContent='Total: $'+totalFormato;
 }
 function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');}
 function filtrarComprobantesSelector(){
