@@ -695,7 +695,7 @@ function gsRun(fnName, params, onSuccess, onError) {
         <h3>Seleccionar Comprobantes — 100% pagado</h3>
         <div id="selectorComprobantesTotal" style="padding:12px;margin-bottom:12px;background:#f0f4ff;border-radius:5px;font-weight:600;text-align:right;color:#667eea;font-size:16px">Total: $0.00</div>
         <div id="msgSelectorComprobantes" style="margin-bottom:12px"></div>
-        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;justify-content:space-between">
           <select id="fComprobanteMes" onchange="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px">
             <option value="">Todos los meses</option>
           </select>
@@ -704,6 +704,7 @@ function gsRun(fnName, params, onSuccess, onError) {
             <span>Seleccionar todos</span>
           </label>
         </div>
+        <div id="barraEfectivoComprobantes" style="padding:10px 12px;margin-bottom:12px;background:#e8f5e9;border-radius:5px;font-weight:600;text-align:left;color:#2e7d32;font-size:14px">Efectivo/Transf/Cheques: $0.00</div>
         <div style="margin-bottom:12px">
           <input type="text" id="fBuscadorComprobantes" placeholder="Buscar por comprobante, fecha o monto..." oninput="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:100%">
         </div>
@@ -2205,6 +2206,24 @@ function actualizarTotalSelectorComprobantes(){
   checkboxes.forEach(function(cb){total+=parseFloat(cb.dataset.monto)||0;});
   var totalFormato=total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
   document.getElementById('selectorComprobantesTotal').textContent='Total: $'+totalFormato;
+
+  var efectivo=parseFloat(document.getElementById('ppEfectivo').value)||0;
+  var transferencia=parseFloat(document.getElementById('ppTransferencia').value)||0;
+  var sumaPagos=efectivo+transferencia;
+  var sumaPagosFormato=sumaPagos.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+
+  var barra=document.getElementById('barraEfectivoComprobantes');
+  barra.textContent='Efectivo/Transf/Cheques: $'+sumaPagosFormato;
+
+  if(total>0){
+    if(sumaPagos<total){
+      barra.style.background='#ffebee';
+      barra.style.color='#c62828';
+    }else{
+      barra.style.background='#e8f5e9';
+      barra.style.color='#2e7d32';
+    }
+  }
 }
 function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');}
 function filtrarComprobantesSelector(){
@@ -3689,7 +3708,7 @@ function filtrarCheques() {
     return true;
   });
   paginaCheques = 1;
-  actualizarPillsChequesConDatos(chequesFiltrados);
+  actualizarPillsChequesConDatos(todosCheques);
   renderizarCheques();
 }
 function limpiarFiltrosCheques() {
