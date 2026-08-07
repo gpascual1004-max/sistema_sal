@@ -552,20 +552,15 @@
     <div class="overlay" id="overlaySelectorComprobantes" onclick="if(event.target===this)cerrarSelectorComprobantes()" style="z-index:10001">
       <div class="modal" style="width:700px;max-height:92vh;overflow-y:auto">
         <h3>Seleccionar Comprobantes — 100% pagado</h3>
-        <div id="selectorComprobantesTotal" style="padding:12px;margin-bottom:12px;background:#f0f4ff;border-radius:5px;font-weight:600;text-align:right;color:#667eea;font-size:16px">Total: $0.00</div>
+        <div id="barraEfectivoComprobantes" style="padding:10px 12px;margin-bottom:12px;background:#e8f5e9;border-radius:5px;font-weight:600;text-align:left;color:#2e7d32;font-size:14px">Cobrado: $0.00</div>
         <div id="msgSelectorComprobantes" style="margin-bottom:12px"></div>
-        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;justify-content:space-between">
-          <select id="fComprobanteMes" onchange="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px">
-            <option value="">Todos los meses</option>
-          </select>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0">
+        <div id="selectorComprobantesTotal" style="padding:12px;margin-bottom:12px;background:#f0f4ff;border-radius:5px;font-weight:600;text-align:right;color:#667eea;font-size:16px">Total: $0.00</div>
+        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center">
+          <input type="text" id="fBuscadorComprobantes" placeholder="Buscar por comprobante, fecha o monto..." oninput="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;flex:1">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;white-space:nowrap">
             <input type="checkbox" id="chkSeleccionarTodosComprobantes" onchange="seleccionarTodosComprobantes()">
             <span>Seleccionar todos</span>
           </label>
-        </div>
-        <div id="barraEfectivoComprobantes" style="padding:10px 12px;margin-bottom:12px;background:#e8f5e9;border-radius:5px;font-weight:600;text-align:left;color:#2e7d32;font-size:14px">Efectivo/Transf/Cheques: $0.00</div>
-        <div style="margin-bottom:12px">
-          <input type="text" id="fBuscadorComprobantes" placeholder="Buscar por comprobante, fecha o monto..." oninput="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:100%">
         </div>
         <div class="table-container" style="max-height:400px;overflow-y:auto">
           <table style="width:100%;border-collapse:collapse">
@@ -1019,7 +1014,7 @@ function gsRun(fn, args, onSuccess, onError) {
 var dmEstado = {};
 
 function dmInit(id, nombres, onchange) {
-  dmEstado[id] = { todos: nombres.slice().sort(), seleccionados: new Set(), onchange: onchange };
+  dmEstado[id] = { todos: nombres.slice(), seleccionados: new Set(), onchange: onchange };
   dmEstado[id].seleccionados = new Set(dmEstado[id].todos);
   dmRenderList(id, ''); dmUpdateLabel(id);
 }
@@ -1306,17 +1301,13 @@ function actualizarDashboard() {
   document.getElementById('gananciaNeta').textContent=pesos(gan);
   document.getElementById('margenNeto').textContent=mar.toFixed(1)+'%';
   var hoy=new Date(),mesActual=hoy.getMonth()+1,anioActual=hoy.getFullYear();
-  var dbAnioVal=document.getElementById('dbAnio').value;
-  var dbMesesSeleccionados=dmGetActivos('dmDbMes');
+  var hoyStr=anioActual+'-'+String(mesActual).padStart(2,'0')+'-'+String(hoy.getDate()).padStart(2,'0');
   var chequesVencen=todosCheques.filter(function(c){
     if(!c.fecha_vencimiento||c.estado==='Entregado')return false;
+    if(c.fecha_vencimiento<hoyStr)return false;
     var f=c.fecha_vencimiento.split('-');
     var cAnio=parseInt(f[0]),cMes=parseInt(f[1]);
-    if(dbAnioVal&&cAnio!=dbAnioVal)return false;
-    if(dbMesesSeleccionados&&!dbMesesSeleccionados.has(String(cMes)))return false;
-    if(!dbAnioVal&&!dbMesesSeleccionados&&cAnio==anioActual&&cMes==mesActual)return true;
-    if(dbAnioVal||dbMesesSeleccionados)return true;
-    return false;
+    return cAnio==anioActual&&cMes==mesActual;
   });
   var totalChequesVencen=chequesVencen.reduce(function(s,c){return s+(parseFloat(c.importe)||0);},0);
   document.getElementById('chequesVencen').textContent=pesos(totalChequesVencen);
@@ -1958,9 +1949,10 @@ function abrirModalPago(idx) {
       if(p.cliente_id){
         gsRun('obtenerVentasNoPagadas',[p.cliente_id,comprobantesGuardados],function(ventas){
           if(ventas){
+            var comprobantesGuardadosStr=comprobantesGuardados.map(function(c){return String(c);});
             ventas.forEach(function(v){
               var vId=String(v.id);
-              if(comprobantesGuardados.indexOf(vId)!==-1){
+              if(comprobantesGuardadosStr.indexOf(vId)!==-1){
                 comprobantesInfo[vId]={comprobante:v.comprobante,monto:parseFloat(v.debe)};
               }
             });
@@ -2024,23 +2016,28 @@ function abrirSelectorComprobantes(){
 function poblarFiltroMesComprobantes(){
   var meses=new Set();
   ventasDisponibles.forEach(function(v){
-    var fecha=v.fecha;
-    if(fecha){
-      var año=fecha.split('-')[0];
-      var mes=fecha.split('-')[1];
-      if(año && mes){
-        var nomMes=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(mes)];
-        meses.add(año+'-'+nomMes);
+    if(v.estado!=='ANULADA'){
+      var fecha=v.fecha;
+      if(fecha){
+        var año=fecha.split('-')[0];
+        var mes=fecha.split('-')[1];
+        if(año && mes){
+          var nomMes=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(mes)];
+          meses.add(año+'-'+mes+'-'+nomMes);
+        }
       }
     }
   });
-  var select=document.getElementById('fComprobanteMes');
-  select.innerHTML='<option value="">Todos los meses</option>';
-  Array.from(meses).sort().reverse().forEach(function(m){
-    var opt=document.createElement('option');
-    opt.value=m;opt.textContent=m;
-    select.appendChild(opt);
+  var mesesArray=Array.from(meses).sort(function(a,b){
+    var partsA=a.split('-');
+    var partsB=b.split('-');
+    var cmpAño=partsB[0].localeCompare(partsA[0]);
+    if(cmpAño!==0)return cmpAño;
+    return parseInt(partsB[1])-parseInt(partsA[1]);
+  }).map(function(m){
+    return m.split('-')[0]+'-'+m.split('-')[2];
   });
+  dmInit('dmFiltroMesesComprobantes',mesesArray,filtrarComprobantesSelector);
 }
 function actualizarTotalSelectorComprobantes(){
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
@@ -2052,11 +2049,13 @@ function actualizarTotalSelectorComprobantes(){
 
   var efectivo=parseFloat(document.getElementById('ppEfectivo').value)||0;
   var transferencia=parseFloat(document.getElementById('ppTransferencia').value)||0;
-  var sumaPagos=efectivo+transferencia;
+  var cheques=0;
+  pagoChequesState.forEach(function(ch){cheques+=parseFloat(ch.importe)||0;});
+  var sumaPagos=efectivo+transferencia+cheques;
   var sumaPagosFormato=sumaPagos.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 
   var barra=document.getElementById('barraEfectivoComprobantes');
-  barra.textContent='Efectivo/Transf/Cheques: $'+sumaPagosFormato;
+  barra.textContent='Cobrado: $'+sumaPagosFormato;
 
   if(total>0){
     if(sumaPagos<total){
@@ -2071,41 +2070,45 @@ function actualizarTotalSelectorComprobantes(){
 function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');}
 function filtrarComprobantesSelector(){
   var q=document.getElementById('fBuscadorComprobantes').value.toLowerCase().trim();
-  var mesSeleccionado=document.getElementById('fComprobanteMes').value.trim();
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
   tbody.innerHTML='';
+  document.getElementById('chkSeleccionarTodosComprobantes').checked=false;
 
-  var ventasFiltradasPorMes=ventasDisponibles;
-  if(mesSeleccionado){
-    var partes=mesSeleccionado.split('-');
-    var año=partes[0];
-    var nomMes=partes[1];
-    var meses=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    var numMes=meses.indexOf(nomMes);
-    var mesPadded=String(numMes).padStart(2,'0');
-    ventasFiltradasPorMes=ventasDisponibles.filter(function(v){
-      return v.fecha && v.fecha.startsWith(año+'-'+mesPadded);
-    });
+  var ventasFiltradas=ventasDisponibles.filter(function(v){
+    if(v.estado==='ANULADA')return false;
+    return true;
+  });
+
+  var contadorMostrados=0;
+  if(q){
+    console.log('Buscando:',q,'en',ventasFiltradas.length,'comprobantes. Primeras 3 fechas:',ventasFiltradas.slice(0,3).map(function(v){return v.fecha;}));
   }
 
-  if(!ventasFiltradasPorMes.length){
-    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes para este mes</td></tr>';
+  if(!ventasFiltradas.length){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes disponibles</td></tr>';
     actualizarTotalSelectorComprobantes();
     return;
   }
 
-  ventasFiltradasPorMes.forEach(function(v){
+  ventasFiltradas.forEach(function(v){
     var vId=String(v.id);
     var checked=comprobantesSeleccionados.has(vId)?'checked':'';
     if(checked && !comprobantesInfo[vId]){comprobantesInfo[vId]={comprobante:v.comprobante,monto:parseFloat(v.debe)};}
-    var texto=v.comprobante.toLowerCase()+' '+v.fecha.toLowerCase()+(v.debe+'').toLowerCase();
-    if(q && !texto.includes(q))return;
+    if(q){
+      var comprobanteLower=v.comprobante.toLowerCase();
+      var fechaLower=v.fecha.toLowerCase();
+      var montoLower=(v.debe+'').toLowerCase();
+      var coincide=comprobanteLower.includes(q)||fechaLower.includes(q)||montoLower.includes(q);
+      if(!coincide)return;
+    }
+    contadorMostrados++;
     var tr=document.createElement('tr');
     tr.innerHTML='<td style="padding:8px;border-bottom:1px solid #eee">'+v.comprobante+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">'+v.fecha+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">$'+v.debe+'</td><td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666">'+v.estado+'</td><td style="text-align:center;padding:8px;border-bottom:1px solid #eee"><input type="checkbox" data-comprobante="'+vId+'" data-monto="'+v.debe+'" '+checked+'></td>';
     tbody.appendChild(tr);
     var chk=tr.querySelector('input[type="checkbox"]');
     chk.addEventListener('change',actualizarTotalSelectorComprobantes);
   });
+  if(q) console.log('  Resultados encontrados:',contadorMostrados,'filas mostradas');
   actualizarTotalSelectorComprobantes();
 }
 function seleccionarTodosComprobantes(){
@@ -2120,6 +2123,7 @@ function seleccionarTodosComprobantes(){
 function confirmarSelectorComprobantes(){
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
   var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');
+  console.log('Confirmando comprobantes seleccionados:',checkboxes.length,'items encontrados');
   comprobantesSeleccionados.clear();
   comprobantesInfo={};
   var montoTotal=0;
@@ -2129,6 +2133,7 @@ function confirmarSelectorComprobantes(){
     var cId=cb.dataset.comprobante;
     var comprobante=tr.querySelector('td').textContent;
     var monto=parseFloat(cb.dataset.monto)||0;
+    console.log('  Agregando comprobante:',cId,comprobante,monto);
     comprobantesSeleccionados.add(cId);
     comprobantesInfo[cId]={comprobante:comprobante,monto:monto};
     items.push(comprobante+' ($'+monto.toFixed(0)+')');
@@ -2200,6 +2205,7 @@ function guardarPago() {
   var etiqueta=idPagoEdicion?'Cobro actualizado.':'Cobro agregado correctamente.';
   var comprobantesArr=Array.from(comprobantesSeleccionados);
   var comprobantesDeseleccionados=comprobantesOriginales.filter(function(c){return comprobantesArr.indexOf(String(c))===-1;}).map(function(c){return String(c);});
+  console.log('Guardando pago:',datos,'Comprobantes:',comprobantesArr,'Deseleccionados:',comprobantesDeseleccionados);
   gsRun('guardarPagoConCheques',[datos,idPagoEdicion,cheques,comprobantesArr,comprobantesDeseleccionados],function(){
     cerrarModalPago();
     var txtCheques=cheques.length?(' '+cheques.length+' cheque'+(cheques.length!==1?'s':'')+' guardado'+(cheques.length!==1?'s':'')+'.'):'';
