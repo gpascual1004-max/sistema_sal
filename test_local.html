@@ -695,6 +695,15 @@ function gsRun(fnName, params, onSuccess, onError) {
         <h3>Seleccionar Comprobantes — 100% pagado</h3>
         <div id="selectorComprobantesTotal" style="padding:12px;margin-bottom:12px;background:#f0f4ff;border-radius:5px;font-weight:600;text-align:right;color:#667eea;font-size:16px">Total: $0.00</div>
         <div id="msgSelectorComprobantes" style="margin-bottom:12px"></div>
+        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="fComprobanteMes" onchange="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px">
+            <option value="">Todos los meses</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0">
+            <input type="checkbox" id="chkSeleccionarTodosComprobantes" onchange="seleccionarTodosComprobantes()">
+            <span>Seleccionar todos</span>
+          </label>
+        </div>
         <div style="margin-bottom:12px">
           <input type="text" id="fBuscadorComprobantes" placeholder="Buscar por comprobante, fecha o monto..." oninput="filtrarComprobantesSelector()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:100%">
         </div>
@@ -2148,6 +2157,7 @@ function mostrarComprobantesSeleccionados(){
     div.style.display='block';
   }else{div.style.display='none';}
 }
+var ventasDisponiblesCompletas=[];
 function abrirSelectorComprobantes(){
   var clienteId=document.getElementById('ppClienteId').value.trim();
   var clienteNombre=document.getElementById('ppCliente').value.trim();
@@ -2159,23 +2169,34 @@ function abrirSelectorComprobantes(){
   if(!clienteId){mensaje('msgSelectorComprobantes','Cliente no encontrado en la base de datos','error');return;}
   gsRun('obtenerVentasNoPagadas',[clienteId,Array.from(comprobantesSeleccionados)],function(ventas){
     ventasDisponibles=ventas||[];
+    ventasDisponiblesCompletas=ventasDisponibles.slice();
     ventasDisponibles.sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
-    var tbody=document.getElementById('cuerpoSelectorComprobantes');
-    tbody.innerHTML='';
-    if(!ventasDisponibles.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes pendientes de pago</td></tr>';document.getElementById('overlaySelectorComprobantes').classList.add('activo');return;}
-    ventasDisponibles.forEach(function(v){
-      var vId=String(v.id);
-      var checked=comprobantesSeleccionados.has(vId)?'checked':'';
-      if(checked && !comprobantesInfo[vId]){comprobantesInfo[vId]={comprobante:v.comprobante,monto:parseFloat(v.debe)};}
-      var tr=document.createElement('tr');
-      tr.innerHTML='<td style="padding:8px;border-bottom:1px solid #eee">'+v.comprobante+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">'+v.fecha+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">$'+v.debe+'</td><td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666">'+v.estado+'</td><td style="text-align:center;padding:8px;border-bottom:1px solid #eee"><input type="checkbox" data-comprobante="'+vId+'" data-monto="'+v.debe+'" '+checked+'></td>';
-      tbody.appendChild(tr);
-      var chk=tr.querySelector('input[type="checkbox"]');
-      chk.addEventListener('change',actualizarTotalSelectorComprobantes);
-    });
-    actualizarTotalSelectorComprobantes();
+    poblarFiltroMesComprobantes();
+    document.getElementById('chkSeleccionarTodosComprobantes').checked=false;
+    filtrarComprobantesSelector();
     document.getElementById('overlaySelectorComprobantes').classList.add('activo');
   },function(err){mensaje('msgSelectorComprobantes','Error: '+err.message,'error');});
+}
+function poblarFiltroMesComprobantes(){
+  var meses=new Set();
+  ventasDisponibles.forEach(function(v){
+    var fecha=v.fecha;
+    if(fecha){
+      var año=fecha.split('-')[0];
+      var mes=fecha.split('-')[1];
+      if(año && mes){
+        var nomMes=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(mes)];
+        meses.add(año+'-'+nomMes);
+      }
+    }
+  });
+  var select=document.getElementById('fComprobanteMes');
+  select.innerHTML='<option value="">Todos los meses</option>';
+  Array.from(meses).sort().reverse().forEach(function(m){
+    var opt=document.createElement('option');
+    opt.value=m;opt.textContent=m;
+    select.appendChild(opt);
+  });
 }
 function actualizarTotalSelectorComprobantes(){
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
@@ -2188,13 +2209,51 @@ function actualizarTotalSelectorComprobantes(){
 function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');}
 function filtrarComprobantesSelector(){
   var q=document.getElementById('fBuscadorComprobantes').value.toLowerCase().trim();
+  var mesSeleccionado=document.getElementById('fComprobanteMes').value.trim();
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
-  var filas=tbody.querySelectorAll('tr');
-  filas.forEach(function(fila){
-    if(!q){fila.style.display='';return;}
-    var texto=fila.textContent.toLowerCase();
-    fila.style.display=texto.includes(q)?'':'none';
+  tbody.innerHTML='';
+
+  var ventasFiltradasPorMes=ventasDisponibles;
+  if(mesSeleccionado){
+    var partes=mesSeleccionado.split('-');
+    var año=partes[0];
+    var nomMes=partes[1];
+    var meses=['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    var numMes=meses.indexOf(nomMes);
+    var mesPadded=String(numMes).padStart(2,'0');
+    ventasFiltradasPorMes=ventasDisponibles.filter(function(v){
+      return v.fecha && v.fecha.startsWith(año+'-'+mesPadded);
+    });
+  }
+
+  if(!ventasFiltradasPorMes.length){
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes para este mes</td></tr>';
+    actualizarTotalSelectorComprobantes();
+    return;
+  }
+
+  ventasFiltradasPorMes.forEach(function(v){
+    var vId=String(v.id);
+    var checked=comprobantesSeleccionados.has(vId)?'checked':'';
+    if(checked && !comprobantesInfo[vId]){comprobantesInfo[vId]={comprobante:v.comprobante,monto:parseFloat(v.debe)};}
+    var texto=v.comprobante.toLowerCase()+' '+v.fecha.toLowerCase()+(v.debe+'').toLowerCase();
+    if(q && !texto.includes(q))return;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="padding:8px;border-bottom:1px solid #eee">'+v.comprobante+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">'+v.fecha+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">$'+v.debe+'</td><td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666">'+v.estado+'</td><td style="text-align:center;padding:8px;border-bottom:1px solid #eee"><input type="checkbox" data-comprobante="'+vId+'" data-monto="'+v.debe+'" '+checked+'></td>';
+    tbody.appendChild(tr);
+    var chk=tr.querySelector('input[type="checkbox"]');
+    chk.addEventListener('change',actualizarTotalSelectorComprobantes);
   });
+  actualizarTotalSelectorComprobantes();
+}
+function seleccionarTodosComprobantes(){
+  var checkAll=document.getElementById('chkSeleccionarTodosComprobantes').checked;
+  var tbody=document.getElementById('cuerpoSelectorComprobantes');
+  var checkboxes=tbody.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach(function(cb){
+    cb.checked=checkAll;
+  });
+  actualizarTotalSelectorComprobantes();
 }
 function confirmarSelectorComprobantes(){
   var tbody=document.getElementById('cuerpoSelectorComprobantes');
