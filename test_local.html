@@ -1438,7 +1438,18 @@ function actualizarDashboard() {
   document.getElementById('gananciaNeta').textContent=pesos(gan);
   document.getElementById('margenNeto').textContent=mar.toFixed(1)+'%';
   var hoy=new Date(),mesActual=hoy.getMonth()+1,anioActual=hoy.getFullYear();
-  var chequesVencen=todosCheques.filter(function(c){if(!c.fecha_vencimiento)return false;var f=c.fecha_vencimiento.split('-');return parseInt(f[0])==anioActual&&parseInt(f[1])==mesActual&&c.estado!=='Entregado';});
+  var dbAnioVal=document.getElementById('dbAnio').value;
+  var dbMesesSeleccionados=dmGetActivos('dmDbMes');
+  var chequesVencen=todosCheques.filter(function(c){
+    if(!c.fecha_vencimiento||c.estado==='Entregado')return false;
+    var f=c.fecha_vencimiento.split('-');
+    var cAnio=parseInt(f[0]),cMes=parseInt(f[1]);
+    if(dbAnioVal&&cAnio!=dbAnioVal)return false;
+    if(dbMesesSeleccionados&&!dbMesesSeleccionados.has(String(cMes)))return false;
+    if(!dbAnioVal&&!dbMesesSeleccionados&&cAnio==anioActual&&cMes==mesActual)return true;
+    if(dbAnioVal||dbMesesSeleccionados)return true;
+    return false;
+  });
   var totalChequesVencen=chequesVencen.reduce(function(s,c){return s+(parseFloat(c.importe)||0);},0);
   document.getElementById('chequesVencen').textContent=pesos(totalChequesVencen);
   renderVar('varChequesVencen','cardChequesVencen',totalChequesVencen,0);
