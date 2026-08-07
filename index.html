@@ -272,6 +272,7 @@
         <div class="card" id="cardGastos"><h3>Total Gastos</h3><div class="value" id="totalGastos">-</div><div class="card-var" id="varGastos"></div><div class="subtitle">Egresos del período</div></div>
         <div class="card" id="cardGanancia"><h3>Ganancia Neta</h3><div class="value" id="gananciaNeta">-</div><div class="card-var" id="varGanancia"></div><div class="subtitle">Ingresos - Gastos</div></div>
         <div class="card" id="cardMargen"><h3>Margen Neto</h3><div class="value" id="margenNeto">-</div><div class="card-var" id="varMargen"></div><div class="subtitle">Ganancia / Ingresos</div></div>
+        <div class="card warning" id="cardChequesVencen"><h3>Cheques por Vencer</h3><div class="value" id="chequesVencen">-</div><div class="card-var" id="varChequesVencen"></div><div class="subtitle">Vencen este mes</div></div>
       </div>
       <div class="charts-grid">
         <div class="card span2"><h3>Evolución Últimos 13 Meses — Ventas y Fletes</h3><div class="chart-container" style="height:300px"><canvas id="chartEvolucion"></canvas></div></div>
@@ -322,15 +323,15 @@
           <button class="btn btn-success" onclick="abrirModalFlete(null)">+ Nuevo Flete</button>
         </div>
       </div>
-      <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><select id="fFleteAnio" onchange="poblarMesesFletes();filtrarFletes()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><select id="fFleteMes" onchange="filtrarFletes()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Fecha</label><input type="date" id="fFleteFecha" onchange="filtrarFletes()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Proveedor</label><input type="text" id="fFleteProveedor" oninput="filtrarFletes()" placeholder="Nombre del proveedor" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:200px"></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Chofer</label><input type="text" id="fFleteChofer" oninput="filtrarFletes()" placeholder="Nombre del chofer" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:200px"></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Estado</label><select id="fFleteEstado" onchange="filtrarFletes()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option><option value="PENDIENTE">PENDIENTE</option><option value="PAGADO">PAGADO</option><option value="ANULADO">ANULADO</option></select></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Detalle</label><input type="text" id="fFleteDetalle" oninput="filtrarFletes()" placeholder="Buscar en detalle" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:200px"></div>
-        <button class="btn" onclick="limpiarFiltrosFletes()" style="background:#6c757d;color:white;align-self:flex-end">Limpiar</button>
+      <div class="filtros-bar" style="display:flex;gap:6px;flex-wrap:nowrap;margin-bottom:15px;align-items:flex-end">
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><div class="dropdown-multi" id="dmFleteAnio"><button class="dm-btn" onclick="dmToggle('dmFleteAnio')" style="padding:4px 8px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmFleteAnioLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmFleteAnioPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmFleteAnioList',true)">Todos</button><button onclick="dmSelectAll('dmFleteAnioList',false)">Ninguno</button></div><div class="dm-list" id="dmFleteAnioList"></div></div></div></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><div class="dropdown-multi" id="dmFleteMes"><button class="dm-btn" onclick="dmToggle('dmFleteMes')" style="padding:4px 8px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmFleteMesLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmFleteMesPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmFleteMesList',true)">Todos</button><button onclick="dmSelectAll('dmFleteMesList',false)">Ninguno</button></div><div class="dm-list" id="dmFleteMesList"></div></div></div></div>
+        <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Fecha</label><input type="date" id="fFleteFecha" onchange="filtrarFletes()" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px"></div>
+        <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Proveedor</label><input type="text" id="fFleteProveedor" oninput="filtrarFletes()" placeholder="Proveedor" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:120px"></div>
+        <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Chofer</label><input type="text" id="fFleteChofer" oninput="filtrarFletes()" placeholder="Chofer" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:120px"></div>
+        <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Estado</label><div class="dropdown-multi" id="dmFleteEstado"><button class="dm-btn" onclick="dmToggle('dmFleteEstado')" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px"><span class="dm-lbl" id="dmFleteEstadoLbl">Todos</span><span style="color:#999;font-size:9px">▼</span></button><div class="dm-panel" id="dmFleteEstadoPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmFleteEstadoList',true)">Todos</button><button onclick="dmSelectAll('dmFleteEstadoList',false)">Ninguno</button></div><div class="dm-list" id="dmFleteEstadoList"></div></div></div></div>
+        <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Detalle</label><input type="text" id="fFleteDetalle" oninput="filtrarFletes()" placeholder="Detalle" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:120px"></div>
+        <button class="btn" onclick="limpiarFiltrosFletes()" style="background:#6c757d;color:white;align-self:flex-end;padding:4px 10px;font-size:12px;white-space:nowrap">Limpiar</button>
       </div>
       <div id="msgFletes"></div>
       <div class="table-container">
@@ -347,8 +348,8 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group"><label>Fecha *</label><input type="date" id="ffFecha"></div>
           <div class="form-group"><label>Estado</label><select id="ffEstado"><option value="PENDIENTE">PENDIENTE</option><option value="PAGADO">PAGADO</option></select></div>
-          <div class="form-group"><label>Proveedor</label><input type="text" id="ffProveedor"></div>
-          <div class="form-group"><label>Chofer</label><input type="text" id="ffChofer"></div>
+          <div class="form-group" style="position:relative"><label>Proveedor</label><input type="text" id="ffProveedor" oninput="buscarMatchProveedorFlete()" autocomplete="off"><input type="hidden" id="ffProveedorId"><div id="ffProveedorSugerencias" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 5px 5px;max-height:200px;overflow-y:auto;display:none;z-index:100;box-shadow:0 4px 8px rgba(0,0,0,0.1)"></div></div>
+          <div class="form-group" style="position:relative"><label>Chofer</label><input type="text" id="ffChofer" oninput="buscarMatchChoferFlete()" autocomplete="off"><input type="hidden" id="ffChoferId"><div id="ffChoferSugerencias" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 5px 5px;max-height:200px;overflow-y:auto;display:none;z-index:100;box-shadow:0 4px 8px rgba(0,0,0,0.1)"></div></div>
           <div class="form-group" style="grid-column:span 2"><label>Detalle</label><input type="text" id="ffDetalle"></div>
           <div class="form-group"><label>Remito</label><input type="text" id="ffRemito"></div>
           <div class="form-group"><label>Factura</label><input type="text" id="ffFactura"></div>
@@ -376,7 +377,14 @@
         <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Fecha</label><input type="date" id="fVentaFecha" onchange="filtrarVentas()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"></div>
         <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Comprobante</label><input type="text" id="fVentaComp" oninput="filtrarVentas()" placeholder="Ej: 01-000072" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:160px"></div>
         <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Cliente Match</label><select id="fVentaMatch" onchange="filtrarVentas()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option><option value="con">Con match</option><option value="sin">Sin match</option></select></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Estado</label><select id="fVentaEstado" onchange="filtrarVentas()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select></div>
+        <div class="dropdown-multi" id="dmVentaEstado">
+          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Estado</label>
+          <button class="dm-btn" onclick="dmToggle('dmVentaEstado')"><span class="dm-lbl" id="dmVentaEstadoLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button>
+          <div class="dm-panel" id="dmVentaEstadoPanel">
+            <div class="dm-actions"><button onclick="dmSelectAll('dmVentaEstado',true)">Todos</button><button onclick="dmSelectAll('dmVentaEstado',false)">Ninguno</button></div>
+            <div class="dm-list" id="dmVentaEstadoList"></div>
+          </div>
+        </div>
         <div class="dropdown-multi" id="dmVentaCliente">
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Cliente</label>
           <button class="dm-btn" onclick="dmToggle('dmVentaCliente')"><span class="dm-lbl" id="dmVentaClienteLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button>
@@ -461,6 +469,11 @@
       <div class="tabla-header" style="justify-content:flex-end">
         <div style="display:flex;gap:10px;align-items:center">
           <input type="text" id="buscarProveedor" placeholder="Buscar por nombre..." oninput="filtrarProveedores()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:260px">
+          <select id="filtroProveedorTipo" onchange="filtrarProveedores()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px">
+            <option value="">Todos los tipos</option>
+            <option value="Proveedor">Proveedor</option>
+            <option value="Chofer">Chofer</option>
+          </select>
           <button class="btn btn-success" onclick="abrirModalProveedor(null)">+ Nuevo Proveedor</button>
         </div>
       </div>
@@ -549,6 +562,7 @@
             <tbody id="cuerpoSelectorComprobantes"></tbody>
           </table>
         </div>
+        <div id="selectorComprobantesTotal" style="padding:12px;margin-top:8px;background:#f0f4ff;border-radius:5px;font-weight:600;text-align:right;color:#667eea">Total: $0.00</div>
         <div class="modal-footer">
           <button class="btn" onclick="cerrarSelectorComprobantes()" style="background:#6c757d;color:white">Cancelar</button>
           <button class="btn btn-success" onclick="confirmarSelectorComprobantes()">Confirmar</button>
@@ -563,7 +577,7 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group"><label>Fecha *</label><input type="date" id="ppFecha"></div>
           <div class="form-group"><label>Haber ($) *</label><input type="number" id="ppHaber" step="0.01" placeholder="0.00"></div>
-          <div class="form-group" style="grid-column:span 2"><label>Cliente</label><input type="text" id="ppCliente" placeholder="Nombre del cliente" oninput="buscarMatchClientePago()"></div>
+          <div class="form-group" style="grid-column:span 2;position:relative"><label>Cliente</label><input type="text" id="ppCliente" placeholder="Nombre del cliente" oninput="buscarMatchClientePago()" autocomplete="off"><div id="ppClienteSugerencias" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 5px 5px;max-height:200px;overflow-y:auto;display:none;z-index:100;box-shadow:0 4px 8px rgba(0,0,0,0.1)"></div></div>
           <div id="ppMatchInfo" style="grid-column:span 2;font-size:12px;margin-top:-8px;margin-bottom:4px;padding:6px 10px;border-radius:4px;display:none"></div>
           <div class="form-group" style="grid-column:span 2"><label>Cliente ID (automático)</label><input type="text" id="ppClienteId" readonly></div>
           <div style="grid-column:span 2">
@@ -612,14 +626,8 @@
         </div>
       </div>
       <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
-        <div>
-          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label>
-          <select id="fGastoAnio" onchange="cambioAnioGasto()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select>
-        </div>
-        <div>
-          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label>
-          <select id="fGastoMes" onchange="filtrarGastos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select>
-        </div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><div class="dropdown-multi" id="dmGastoAnio"><button class="dm-btn" onclick="dmToggle('dmGastoAnio')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmGastoAnioLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button><div class="dm-panel" id="dmGastoAnioPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmGastoAnioList',true)">Todos</button><button onclick="dmSelectAll('dmGastoAnioList',false)">Ninguno</button></div><div class="dm-list" id="dmGastoAnioList"></div></div></div></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><div class="dropdown-multi" id="dmGastoMes"><button class="dm-btn" onclick="dmToggle('dmGastoMes')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmGastoMesLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button><div class="dm-panel" id="dmGastoMesPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmGastoMesList',true)">Todos</button><button onclick="dmSelectAll('dmGastoMesList',false)">Ninguno</button></div><div class="dm-list" id="dmGastoMesList"></div></div></div></div>
         <div class="dropdown-multi" id="dmGastoProveedor">
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Proveedor</label>
           <button class="dm-btn" onclick="dmToggle('dmGastoProveedor')"><span class="dm-lbl" id="dmGastoProveedorLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button>
@@ -638,7 +646,7 @@
             <div class="dm-list" id="dmGastoRubroList"></div>
           </div>
         </div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Estado</label><select id="fGastoEstado" onchange="filtrarGastos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="PAGADO">Pagado</option></select></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Estado</label><div class="dropdown-multi" id="dmGastoEstado"><button class="dm-btn" onclick="dmToggle('dmGastoEstado')" style="min-width:140px"><span class="dm-lbl" id="dmGastoEstadoLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button><div class="dm-panel" id="dmGastoEstadoPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmGastoEstadoList',true)">Todos</button><button onclick="dmSelectAll('dmGastoEstadoList',false)">Ninguno</button></div><div class="dm-list" id="dmGastoEstadoList"></div></div></div></div>
         <button class="btn" onclick="limpiarFiltrosGastos()" style="background:#6c757d;color:white;align-self:flex-end">Limpiar</button>
       </div>
       <div id="msgGastos"></div>
@@ -928,9 +936,6 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="mostrarNormalizacionGuias()">📋 Normalización de Guías</button>
-      </div>
 
       <h3 style="margin:10px 0 15px;color:#333">Indicadores Generales</h3>
       <div class="charts-grid">
@@ -1027,10 +1032,29 @@ function dmRenderList(id, q) {
 }
 function dmSearch(id, v) { dmRenderList(id, v); }
 function dmSelectAll(id, v) {
-  var e = dmEstado[id]; if (!e) return;
-  e.seleccionados = v ? new Set(e.todos) : new Set();
-  var s = document.querySelector('#'+id+'Panel .dm-search');
-  dmRenderList(id, s ? s.value : ''); dmUpdateLabel(id); if (e.onchange) e.onchange();
+  var dmId=id.includes('List')?id.replace('List',''):id;
+  var listId=dmId+'List';
+  var e = dmEstado[dmId];
+
+  // Dropdowns multi-select (tienen dm-list)
+  var lista = document.getElementById(listId);
+  if(lista && lista.classList.contains('dm-list')) {
+    if (!e) return;
+    e.seleccionados = v ? new Set(e.todos) : new Set();
+    dmRenderList(dmId, '');
+    dmUpdateLabel(dmId);
+    if(v && e.onchange) e.onchange();
+    return;
+  }
+
+  // Checkboxes manuales (Año, Mes - sin dm-list)
+  var checks=document.querySelectorAll('#'+listId+' input[type=checkbox]');
+  if(checks.length>0){
+    checks.forEach(function(c){ c.checked=v; });
+    dmUpdateLabelMulti(dmId);
+    if(e && e.onchange) e.onchange();
+    return;
+  }
 }
 function dmUpdateLabel(id) {
   var e = dmEstado[id]; var lbl = document.getElementById(id+'Lbl'); if (!e||!lbl) return;
@@ -1039,8 +1063,9 @@ function dmUpdateLabel(id) {
 }
 function dmGetActivos(id) {
   var e = dmEstado[id];
-  if (!e || e.seleccionados.size === e.todos.length || e.seleccionados.size === 0) return null;
-  return e.seleccionados;
+  if (!e) return null;
+  if (e.seleccionados.size === e.todos.length) return null;  // Todos seleccionados = sin filtro
+  return e.seleccionados;  // Retorna Set (vacío o parcial)
 }
 function dmToggle(id) {
   var p = document.getElementById(id+'Panel'); if (!p) return;
@@ -1200,9 +1225,10 @@ function dbPoblarMeses() {
   var lista=document.getElementById('dmDbMesList'); lista.innerHTML='';
   Object.keys(meses).sort().forEach(function(m){
     var div=document.createElement('div');div.className='dm-item';
-    div.innerHTML='<input type="checkbox" id="dbm_'+m+'" data-mes="'+m+'" '+(dbMesesCheck[m]!==false?'checked':'')+'>'+
-                  '<label for="dbm_'+m+'" style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
-    div.querySelector('input').addEventListener('change',function(){dbMesesCheck[m]=this.checked;dbUpdateLabelMeses();actualizarDashboard();});
+    div.innerHTML='<input type="checkbox" id="dbm_'+m+'" data-mes="'+m+'"><label for="dbm_'+m+'" style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
+    var chk=div.querySelector('input');
+    if(dbMesesCheck[m]!==false)chk.checked=true;
+    chk.addEventListener('change',function(){dbMesesCheck[m]=this.checked;dbUpdateLabelMeses();actualizarDashboard();});
     lista.appendChild(div);
   });
   dbUpdateLabelMeses();
@@ -1229,19 +1255,26 @@ function renderVar(elId, cardId, actual, anterior) {
   if(card){card.classList.remove('positive','negative','warning');if(diff!==0)card.classList.add(bueno?'positive':'negative');}
 }
 function cargarDashboard() {
+  localStorage.clear();
+  sessionStorage.clear();
   gsRun('obtenerDashboardCompleto',[],function(res){
-    dbFletes=res.fletes||[];dbVentas=res.ventas||[];dbPagos=res.pagos||[];dbGastos=res.gastos||[];
+    dbFletes=res.fletes||[];dbVentas=res.ventas||[];dbPagos=res.pagos||[];dbGastos=res.gastos||[];todosCheques=res.cheques||[];
     dbMesesCheck={};dbPoblarAnios();dbPoblarMeses();actualizarDashboard();
   },function(err){mensaje('msgDashboard','Error: '+err.message,'error');});
 }
 function actualizarDashboard() {
   dbPoblarMeses();
+  var hoy=new Date(),mesActual=hoy.getMonth()+1,anioActual=hoy.getFullYear();
+  var getMesAnio=function(fecha){var f=(fecha||'').split('-');return {mes:parseInt(f[1],10),anio:parseInt(f[0],10)};};
+  var esMesAnio=function(fecha,m,a){var f=getMesAnio(fecha);return f.mes===m&&f.anio===a;};
   var fl=dbFiltrar(dbFletes,'fecha_flete'),vt=dbFiltrar(dbVentas,'fecha'),pg=dbFiltrar(dbPagos,'fecha'),gs=dbFiltrar(dbGastos,'fecha');
   var fA=dbFiltrarMesAnterior(dbFletes,'fecha_flete'),vA=dbFiltrarMesAnterior(dbVentas,'fecha'),pA=dbFiltrarMesAnterior(dbPagos,'fecha'),gA=dbFiltrarMesAnterior(dbGastos,'fecha');
   var sum=function(arr,k){return arr.reduce(function(s,r){return s+(parseFloat(r[k])||0);},0);};
   var tfl=sum(fl,'importe'),tfla=sum(fA,'importe'),tvt=sum(vt,'debe'),tvta=sum(vA,'debe');
   var tpg=sum(pg,'haber'),tpga=sum(pA,'haber'),tgs=sum(gs,'monto'),tgsa=sum(gA,'monto');
-  // Tarjetas Fletes/Gastos del Dashboard: solo lo PAGADO (no todo el período).
+  var anio=document.getElementById('dbAnio').value,meses=dbGetMesesActivos();
+  var mostrarTodo=!meses||meses.length===0;
+  if(mostrarTodo){fl=dbFletes;fA=[];gs=dbGastos;gA=[];}
   var flPag=fl.filter(function(f){return f.estado==='PAGADO';}), fAPag=fA.filter(function(f){return f.estado==='PAGADO';});
   var gsPag=gs.filter(function(g){return g.estado==='PAGADO';}), gAPag=gA.filter(function(g){return g.estado==='PAGADO';});
   var tflPag=sum(flPag,'importe'), tflPagA=sum(fAPag,'importe');
@@ -1251,9 +1284,8 @@ function actualizarDashboard() {
   // "Por Cobrar" = lo realmente cobrado (efectivo+transferencia+cheque); "Pendiente" = haber - cobrado.
   var tcobrado=pg.reduce(function(s,p){return s+cobroReal(p);},0), tcobradoA=pA.reduce(function(s,p){return s+cobroReal(p);},0);
   var pendienteCobros=tpg-tcobrado;
-  var ing=tvt,inga=tvta,cob=tcobrado,coba=tcobradoA;
-  var egr=tgsPag+tflPag,egra=tgsPagA+tflPagA,gan=cob-egr,gana=coba-egra,mar=cob>0?gan/cob*100:0,mara=coba>0?gana/coba*100:0;
-  var anio=document.getElementById('dbAnio').value,meses=dbGetMesesActivos();
+  var ing=tcobrado,inga=tcobradoA,cob=tcobrado,coba=tcobradoA;
+  var egr=tgsPag+tflPag,egra=tgsPagA+tflPagA,gan=ing-egr,gana=inga-egra,mar=ing>0?gan/ing*100:0,mara=inga>0?gana/inga*100:0;
   var label=(anio?anio:'Todos los años')+(meses&&meses.length?' — '+meses.map(function(m){return NOMBRES_MESES[parseInt(m,10)-1];}).join(', '):'');
   document.getElementById('dbPeriodoLabel').textContent=label;
   document.getElementById('totalFletes').textContent=pesos(cardFletesVal);
@@ -1263,6 +1295,11 @@ function actualizarDashboard() {
   document.getElementById('totalGastos').textContent=pesos(cardGastosVal);
   document.getElementById('gananciaNeta').textContent=pesos(gan);
   document.getElementById('margenNeto').textContent=mar.toFixed(1)+'%';
+  var hoy=new Date(),mesActual=hoy.getMonth()+1,anioActual=hoy.getFullYear();
+  var chequesVencen=todosCheques.filter(function(c){if(!c.fecha_vencimiento)return false;var f=c.fecha_vencimiento.split('-');return parseInt(f[0])==anioActual&&parseInt(f[1])==mesActual&&c.estado!=='Entregado';});
+  var totalChequesVencen=chequesVencen.reduce(function(s,c){return s+(parseFloat(c.importe)||0);},0);
+  document.getElementById('chequesVencen').textContent=pesos(totalChequesVencen);
+  renderVar('varChequesVencen','cardChequesVencen',totalChequesVencen,0);
   renderVar('varFletes','cardFletes',cardFletesVal,cardFletesValA);renderVar('varVentas','cardVentas',tvt,tvta);
   renderVar('varCobrar','cardCobrar',cob,coba);renderVar('varGastos','cardGastos',cardGastosVal,cardGastosValA);
   renderVar('varGanancia','cardGanancia',gan,gana);renderVar('varMargen','cardMargen',mar,mara);
@@ -1287,8 +1324,8 @@ function renderGraficoEvolucion() {
     ml.push(NOMBRES_MESES[d.getMonth()].substr(0,3)+' '+ay.substr(2));
     var vt=dbVentas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.debe)||0);},0);
     var cob=dbPagos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+cobroReal(r);},0);
-    var fl=dbFletes.filter(function(r){var f=r.fecha_flete||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.importe)||0);},0);
-    var gs=dbGastos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.monto)||0);},0);
+    var fl=dbFletes.filter(function(r){var f=r.fecha_flete||'';return f.substr(0,4)===ay&&f.substr(5,2)===am&&r.estado==='PAGADO';}).reduce(function(s,r){return s+(parseFloat(r.importe)||0);},0);
+    var gs=dbGastos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am&&r.estado==='PAGADO';}).reduce(function(s,r){return s+(parseFloat(r.monto)||0);},0);
     dv.push(vt);df.push(fl);dm.push(cob>0?parseFloat(((cob-fl-gs)/cob*100).toFixed(1)):0);
   }
   if(chartEvolucion)chartEvolucion.destroy();
@@ -1330,64 +1367,96 @@ function renderGraficoPendientesCliente(todasVentas,todosPagos) {
 // FLETES
 // ==========================================
 var todosFletes=[],fletesFiltrados=[],paginaFletes=1,porPaginaFletes=20,idFleteEdicion=null;
+var mapaProveedoresFletes={};
 var fletesFiltroInicializado=false;
 
 function mostrarFletes() {
-  gsRun('obtenerFletes',[],function(data){
-    todosFletes=data||[];fletesFiltrados=todosFletes;paginaFletes=1;
-    poblarAniosFletes();
-    if (!fletesFiltroInicializado) {
-      fletesFiltroInicializado=true;
-      var anios=todosFletes.map(function(f){return (f.fecha_flete||'').substr(0,4);}).filter(function(a){return a;}).sort().reverse();
-      var ultimoAnio=anios[0]||'';
-      var selectAnio=document.getElementById('fFleteAnio');
-      var existeUltimoAnio=Array.from(selectAnio.options).some(function(o){return o.value===ultimoAnio;});
-      if (existeUltimoAnio) selectAnio.value=ultimoAnio;
-      poblarMesesFletes();
-      var mesActual=String(new Date().getMonth()+1).padStart(2,'0');
-      var selectMes=document.getElementById('fFleteMes');
-      var existeMesActual=Array.from(selectMes.options).some(function(o){return o.value===mesActual;});
-      if (existeMesActual) selectMes.value=mesActual;
-    }
-    filtrarFletes();
+  gsRun('obtenerProveedores',[],function(provs){
+    mapaProveedoresFletes={};
+    (provs||[]).forEach(function(p){
+      if(p.tipo==='Proveedor'||p.tipo==='Chofer')mapaProveedoresFletes[normalizar(p.nombre)]=p;
+    });
+    gsRun('obtenerFletes',[],function(data){
+      todosFletes=data||[];fletesFiltrados=todosFletes;paginaFletes=1;
+      poblarAniosFletes();poblarEstadosFletes();renderizarFletes();
+    });
   });
 }
-function poblarAniosFletes() {
-  var sel=document.getElementById('fFleteAnio'),actual=sel.value,anios={};
-  todosFletes.forEach(function(f){var a=(f.fecha_flete||'').substr(0,4);if(a)anios[a]=true;});
-  sel.innerHTML='<option value="">Todos</option>';
-  Object.keys(anios).sort().reverse().forEach(function(a){var o=document.createElement('option');o.value=a;o.textContent=a;if(a===actual)o.selected=true;sel.appendChild(o);});
-  poblarMesesFletes();
-}
 function poblarMesesFletes() {
-  var anio=document.getElementById('fFleteAnio').value;
-  var sel=document.getElementById('fFleteMes'),actual=sel.value,meses={};
-  todosFletes.forEach(function(f){var ff=f.fecha_flete||'';if(anio&&ff.substr(0,4)!==anio)return;var m=ff.substr(5,2);if(m)meses[m]=true;});
-  sel.innerHTML='<option value="">Todos</option>';
-  Object.keys(meses).sort().forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=NOMBRES_MESES[parseInt(m,10)-1];if(m===actual)o.selected=true;sel.appendChild(o);});
+  var anios=dmGetCheckboxes('dmFleteAnioList');
+  var lista=document.getElementById('dmFleteMesList');lista.innerHTML='';
+  var meses={};
+  var mesActual=String(new Date().getMonth()+1).padStart(2,'0');
+  todosFletes.forEach(function(f){var ff=f.fecha_flete||'';if(anios.length>0&&anios.indexOf(ff.substr(0,4))===-1)return;var m=ff.substr(5,2);if(m)meses[m]=true;});
+  Object.keys(meses).sort().forEach(function(m){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+m+'" data-mes="'+m+'"><label style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
+    var chk=div.querySelector('input');
+    if(m===mesActual)chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmFleteMes');filtrarFletes();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmFleteMes');filtrarFletes();
 }
+function poblarAniosFletes(){
+  var lista=document.getElementById('dmFleteAnioList');lista.innerHTML='';
+  var anios={};
+  var anioActual=String(new Date().getFullYear());
+  todosFletes.forEach(function(f){var a=(f.fecha_flete||'').substr(0,4);if(a)anios[a]=true;});
+  Object.keys(anios).sort().reverse().forEach(function(a){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+a+'" data-anio="'+a+'"><label style="cursor:pointer">'+a+'</label>';
+    var chk=div.querySelector('input');
+    if(a===anioActual)chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmFleteAnio');poblarMesesFletes();filtrarFletes();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmFleteAnio');poblarMesesFletes();filtrarFletes();
+}
+function poblarEstadosFletes(){
+  var lista=document.getElementById('dmFleteEstadoList');lista.innerHTML='';
+  ['PENDIENTE','PAGADO','ANULADO'].forEach(function(e){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+e+'" data-estado="'+e+'"><label style="cursor:pointer">'+e+'</label>';
+    var chk=div.querySelector('input');
+    chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmFleteEstado');filtrarFletes();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmFleteEstado');filtrarFletes();
+}
+function dmUpdateLabelMulti(id){
+  var checks=document.querySelectorAll('#'+id+' input[type=checkbox]');
+  var activos=Array.from(checks).filter(function(c){return c.checked;});
+  var lbl=document.getElementById(id+'Lbl');if(!lbl)return;
+  if(activos.length===0){lbl.textContent='Ninguno';}else if(activos.length===checks.length){lbl.textContent='Todos';}else if(activos.length<=3){lbl.textContent=activos.map(function(c){var label=c.parentElement.querySelector('label');return label?label.textContent:c.value;}).join(', ');}else{lbl.textContent=activos.length+' selec.';}
+}
+function dmGetCheckboxes(id){var checks=document.querySelectorAll('#'+id+' input[type=checkbox]');return Array.from(checks).filter(function(c){return c.checked;}).map(function(c){return c.value;});}
 function filtrarFletes() {
-  var anio=document.getElementById('fFleteAnio').value,mes=document.getElementById('fFleteMes').value;
+  var anios=dmGetCheckboxes('dmFleteAnioList'),meses=dmGetCheckboxes('dmFleteMesList'),estados=dmGetCheckboxes('dmFleteEstadoList');
   var fecha=document.getElementById('fFleteFecha').value;
   var proveedor=document.getElementById('fFleteProveedor').value.toLowerCase().trim();
   var chofer=document.getElementById('fFleteChofer').value.toLowerCase().trim();
-  var estado=document.getElementById('fFleteEstado').value;
   var detalle=document.getElementById('fFleteDetalle').value.toLowerCase().trim();
   fletesFiltrados=todosFletes.filter(function(f){
-    return(!anio||(f.fecha_flete||'').substr(0,4)===anio)&&
-           (!mes||(f.fecha_flete||'').substr(5,2)===mes)&&
+    var fAnio=(f.fecha_flete||'').substr(0,4),fMes=(f.fecha_flete||'').substr(5,2);
+    return(anios.length===0||anios.indexOf(fAnio)!==-1)&&
+           (meses.length===0||meses.indexOf(fMes)!==-1)&&
            (!fecha||(f.fecha_flete||'').substr(0,10)===fecha)&&
            (!proveedor||(f.proveedor_nombre||'').toLowerCase().includes(proveedor))&&
            (!chofer||(f.chofer_nombre||'').toLowerCase().includes(chofer))&&
-           (!estado||(f.estado||'').toUpperCase()===estado)&&
+           (estados.length===0||estados.indexOf((f.estado||'').toUpperCase())!==-1)&&
            (!detalle||(f.detalle||'').toLowerCase().includes(detalle));
   });
   paginaFletes=1;renderizarFletes();
 }
 function limpiarFiltrosFletes(){
-  document.getElementById('fFleteAnio').value='';document.getElementById('fFleteMes').value='';
+  document.querySelectorAll('#dmFleteAnioList input[type=checkbox]').forEach(function(c){c.checked=false;});
+  document.querySelectorAll('#dmFleteMesList input[type=checkbox]').forEach(function(c){c.checked=false;});
+  document.querySelectorAll('#dmFleteEstadoList input[type=checkbox]').forEach(function(c){c.checked=false;});
   document.getElementById('fFleteFecha').value='';document.getElementById('fFleteProveedor').value='';document.getElementById('fFleteChofer').value='';
-  document.getElementById('fFleteEstado').value='';document.getElementById('fFleteDetalle').value='';
+  document.getElementById('fFleteDetalle').value='';
+  dmUpdateLabelMulti('dmFleteAnio');dmUpdateLabelMulti('dmFleteMes');dmUpdateLabelMulti('dmFleteEstado');
   poblarMesesFletes();fletesFiltrados=todosFletes;paginaFletes=1;renderizarFletes();
 }
 function renderizarFletes() {
@@ -1409,12 +1478,18 @@ function renderizarFletes() {
   div.innerHTML=tp<=1?'':'<button onclick="irPaginaFletes('+(paginaFletes-1)+')" '+(paginaFletes===1?'disabled':'')+'>&#8249;</button><span class="info-pag">'+(inicio+1)+'-'+Math.min(inicio+porPaginaFletes,total)+' de '+total+'</span><button onclick="irPaginaFletes('+(paginaFletes+1)+')" '+(paginaFletes===tp?'disabled':'')+'>&#8250;</button>';
 }
 function irPaginaFletes(n){var m=Math.ceil(fletesFiltrados.length/porPaginaFletes);if(n<1||n>m)return;paginaFletes=n;renderizarFletes();}
+function buscarMatchProveedorFlete(){var n=document.getElementById('ffProveedor').value.trim();var divSugerencias=document.getElementById('ffProveedorSugerencias');if(!n){divSugerencias.style.display='none';return;}var provsArr=Object.values(mapaProveedoresFletes).filter(function(p){return p.tipo==='Proveedor';});var nNormalizado=normalizar(n);var coincidentes=provsArr.filter(function(p){return normalizar(p.nombre).includes(nNormalizado)||(p.id&&String(p.id).includes(n));}).slice(0,8);if(coincidentes.length===0){divSugerencias.style.display='none';return;}divSugerencias.innerHTML=coincidentes.map(function(p){return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0" onclick="seleccionarProveedorFlete(\''+String(p.id).replace(/'/g,"\\'")+'\')">'+(p.nombre)+' ('+p.id+')'+'</div>';}).join('');divSugerencias.style.display='block';}
+function seleccionarProveedorFlete(provId){var provsArr=Object.values(mapaProveedoresFletes).filter(function(p){return p.tipo==='Proveedor';});var prov=provsArr.find(function(p){return p.id==provId;});if(prov){document.getElementById('ffProveedor').value=prov.nombre;document.getElementById('ffProveedorId').value=prov.id;document.getElementById('ffProveedorSugerencias').style.display='none';}}
+function buscarMatchChoferFlete(){var n=document.getElementById('ffChofer').value.trim();var divSugerencias=document.getElementById('ffChoferSugerencias');if(!n){divSugerencias.style.display='none';return;}var chofersArr=Object.values(mapaProveedoresFletes).filter(function(p){return p.tipo==='Chofer';});var nNormalizado=normalizar(n);var coincidentes=chofersArr.filter(function(c){return normalizar(c.nombre).includes(nNormalizado)||(c.id&&String(c.id).includes(n));}).slice(0,8);if(coincidentes.length===0){divSugerencias.style.display='none';return;}divSugerencias.innerHTML=coincidentes.map(function(c){return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0" onclick="seleccionarChoferFlete(\''+String(c.id).replace(/'/g,"\\'")+'\')">'+(c.nombre)+' ('+c.id+')'+'</div>';}).join('');divSugerencias.style.display='block';}
+function seleccionarChoferFlete(choferId){var chofersArr=Object.values(mapaProveedoresFletes).filter(function(p){return p.tipo==='Chofer';});var chofer=chofersArr.find(function(c){return c.id==choferId;});if(chofer){document.getElementById('ffChofer').value=chofer.nombre;document.getElementById('ffChoferId').value=chofer.id;document.getElementById('ffChoferSugerencias').style.display='none';}}
 function abrirModalFlete(idx) {
   var f=idx!==null&&idx!==undefined?todosFletes[idx]:null;idFleteEdicion=f?f.id:null;
   document.getElementById('modalTituloFlete').textContent=f?'Editar Flete':'Nuevo Flete';
   document.getElementById('ffFecha').value=f?f.fecha_flete||'':new Date().toISOString().substr(0,10);
   document.getElementById('ffProveedor').value=f?f.proveedor_nombre||'':'';
+  document.getElementById('ffProveedorId').value=f?f.proveedor_id||'':'';
   document.getElementById('ffChofer').value=f?f.chofer_nombre||'':'';
+  document.getElementById('ffChoferId').value=f?f.chofer_id||'':'';
   document.getElementById('ffDetalle').value=f?f.detalle||'':'';
   document.getElementById('ffRemito').value=f?f.remito||'':'';
   document.getElementById('ffFactura').value=f?f.factura||'':'';
@@ -1442,7 +1517,9 @@ function guardarFlete() {
   if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
   if(!imp){err.textContent='El importe es obligatorio.';err.style.display='block';return;}
   var iva=parseFloat(document.getElementById('ffIva').value)||0;
-  var datos={fecha_flete:fecha,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:imp+iva,estado:document.getElementById('ffEstado').value,cheque_numero:document.getElementById('ffCheque').value.trim(),fecha_pago:document.getElementById('ffFechaPago').value||null,observaciones:document.getElementById('ffObs').value.trim()};
+  var provId=document.getElementById('ffProveedorId').value.trim()?parseInt(document.getElementById('ffProveedorId').value):null;
+  var choferId=document.getElementById('ffChoferId').value.trim()?parseInt(document.getElementById('ffChoferId').value):null;
+  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:imp+iva,estado:document.getElementById('ffEstado').value,cheque_numero:document.getElementById('ffCheque').value.trim(),fecha_pago:document.getElementById('ffFechaPago').value||null,observaciones:document.getElementById('ffObs').value.trim()};
   gsRun('guardarFlete',[datos,idFleteEdicion],function(){cerrarModalFlete();mensaje('msgFletes',idFleteEdicion?'Flete actualizado.':'Flete agregado.','ok');mostrarFletes();},function(e){err.textContent='Error: '+e.message;err.style.display='block';});
 }
 document.getElementById('overlayFlete').addEventListener('click',function(e){if(e.target===this)cerrarModalFlete();});
@@ -1450,7 +1527,7 @@ document.getElementById('overlayFlete').addEventListener('click',function(e){if(
 // ==========================================
 // VENTAS
 // ==========================================
-var todasVentas=[],ventasFiltradas=[],paginaVentas=1,porPaginaVentas=20,idVentaEdicion=null,nombreOriginalVenta='',mapaClientesCache={},ventasFiltroInicializado=false;
+var todasVentas=[],ventasFiltradas=[],paginaVentas=1,porPaginaVentas=20,idVentaEdicion=null,nombreOriginalVenta='',mapaClientesCache={},ventasFiltroInicializado=false,ventasDropdownsInicializados=false;
 
 // Estados reales que trae la columna "Estado" del reporte de Ventas (Crystal Reports)
 var ESTADOS_VENTA = ['PENDIENTE', 'EN PISO PARA HOJA DE RUTA', 'EN TRANSITO DE REPARTO', 'EN PISO PARA REPARTO', 'ENTREGADA CONFORME', 'PAGADA'];
@@ -1483,18 +1560,16 @@ function mostrarVentas() {
       } else {
         poblarMesesVenta();
       }
-      dmInit('dmVentaCliente',todasVentas.map(function(v){return v.cliente_nombre||'';}).filter(function(n,i,a){return n&&a.indexOf(n)===i;}).sort(),filtrarVentas);
-      poblarSelectVentaEstado();
+      if(!ventasDropdownsInicializados){
+        ventasDropdownsInicializados=true;
+        var estados=ESTADOS_VENTA.slice();
+        todasVentas.forEach(function(v){if(v.estado&&estados.indexOf(v.estado)===-1)estados.push(v.estado);});
+        dmInit('dmVentaEstado',estados.sort(),filtrarVentas);
+        dmInit('dmVentaCliente',todasVentas.map(function(v){return v.cliente_nombre||'';}).filter(function(n,i,a){return n&&a.indexOf(n)===i;}).sort(),filtrarVentas);
+      }
       filtrarVentas();
     });
   });
-}
-function poblarSelectVentaEstado() {
-  var select=document.getElementById('fVentaEstado'), actual=select.value;
-  var estados=ESTADOS_VENTA.slice();
-  todasVentas.forEach(function(v){if(v.estado&&estados.indexOf(v.estado)===-1)estados.push(v.estado);});
-  select.innerHTML='<option value="">Todos</option>';
-  estados.forEach(function(e){var opt=document.createElement('option');opt.value=e;opt.textContent=e;if(e===actual)opt.selected=true;select.appendChild(opt);});
 }
 function poblarAniosVentas() {
   var sel=document.getElementById('fVentaAnio'),actual=sel.value,anios={};
@@ -1510,11 +1585,11 @@ function poblarMesesVenta() {
 }
 function cambioAnioVenta(){document.getElementById('fVentaMes').value='';poblarMesesVenta();filtrarVentas();}
 function filtrarVentas() {
-  var anio=document.getElementById('fVentaAnio').value,mes=document.getElementById('fVentaMes').value,fecha=document.getElementById('fVentaFecha').value,comp=document.getElementById('fVentaComp').value.toLowerCase().trim(),match=document.getElementById('fVentaMatch').value,estado=document.getElementById('fVentaEstado').value,cls=dmGetActivos('dmVentaCliente');
-  ventasFiltradas=todasVentas.filter(function(v){return(!anio||(v.fecha||'').substr(0,4)===anio)&&(!mes||(v.fecha||'').substr(5,2)===mes)&&(!fecha||(v.fecha||'').substr(0,10)===fecha)&&(!comp||(v.comprobante||'').toLowerCase().includes(comp))&&(match!=='con'||!!v.cliente_id)&&(match!=='sin'||!v.cliente_id)&&(!estado||(v.estado||'PENDIENTE')===estado)&&(!cls||cls.has(v.cliente_nombre||''));});
+  var anio=document.getElementById('fVentaAnio').value,mes=document.getElementById('fVentaMes').value,fecha=document.getElementById('fVentaFecha').value,comp=document.getElementById('fVentaComp').value.toLowerCase().trim(),match=document.getElementById('fVentaMatch').value,estados=dmGetActivos('dmVentaEstado'),cls=dmGetActivos('dmVentaCliente');
+  ventasFiltradas=todasVentas.filter(function(v){return(!anio||(v.fecha||'').substr(0,4)===anio)&&(!mes||(v.fecha||'').substr(5,2)===mes)&&(!fecha||(v.fecha||'').substr(0,10)===fecha)&&(!comp||(v.comprobante||'').toLowerCase().includes(comp))&&(match!=='con'||!!v.cliente_id)&&(match!=='sin'||!v.cliente_id)&&(!estados||estados.has(v.estado||'PENDIENTE'))&&(!cls||cls.has(v.cliente_nombre||''));});
   paginaVentas=1;renderizarVentas();
 }
-function limpiarFiltrosVentas(){document.getElementById('fVentaAnio').value='';poblarMesesVenta();document.getElementById('fVentaMes').value='';document.getElementById('fVentaFecha').value='';document.getElementById('fVentaComp').value='';document.getElementById('fVentaMatch').value='';document.getElementById('fVentaEstado').value='';dmSelectAll('dmVentaCliente',true);ventasFiltradas=todasVentas;paginaVentas=1;renderizarVentas();}
+function limpiarFiltrosVentas(){document.getElementById('fVentaAnio').value='';poblarMesesVenta();document.getElementById('fVentaMes').value='';document.getElementById('fVentaFecha').value='';document.getElementById('fVentaComp').value='';document.getElementById('fVentaMatch').value='';dmSelectAll('dmVentaEstado',true);dmSelectAll('dmVentaCliente',true);ventasFiltradas=todasVentas;paginaVentas=1;renderizarVentas();}
 function exportarClientesSinMatch() {
   var nombres = todasVentas
     .filter(function(v) { return !v.cliente_id && v.cliente_nombre; })
@@ -1680,7 +1755,12 @@ function mostrarProveedores() {
 }
 function filtrarProveedores() {
   var q=(document.getElementById('buscarProveedor').value||'').toLowerCase().trim();
-  proveedoresFiltrados=!q?todosProveedores:todosProveedores.filter(function(p){return (p.nombre||'').toLowerCase().includes(q);});
+  var tipo=(document.getElementById('filtroProveedorTipo').value||'').trim();
+  proveedoresFiltrados=todosProveedores.filter(function(p){
+    var coincideNombre=!q||(p.nombre||'').toLowerCase().includes(q);
+    var coincideTipo=!tipo||(p.tipo||'')===tipo;
+    return coincideNombre&&coincideTipo;
+  });
   paginaProveedor=1; renderizarProveedores();
 }
 function renderizarProveedores() {
@@ -1902,9 +1982,16 @@ function mostrarComprobantesSeleccionados(){
 }
 function abrirSelectorComprobantes(){
   var clienteId=document.getElementById('ppClienteId').value.trim();
-  if(!clienteId){mensaje('msgSelectorComprobantes','Selecciona un cliente primero','error');return;}
+  var clienteNombre=document.getElementById('ppCliente').value.trim();
+  if(!clienteId && !clienteNombre){mensaje('msgSelectorComprobantes','Selecciona un cliente primero','error');return;}
+  if(!clienteId && clienteNombre){
+    var match=mapaClientesPagos[normalizar(clienteNombre)];
+    if(match)clienteId=match.id;
+  }
+  if(!clienteId){mensaje('msgSelectorComprobantes','Cliente no encontrado en la base de datos','error');return;}
   gsRun('obtenerVentasNoPagadas',[clienteId,Array.from(comprobantesSeleccionados)],function(ventas){
     ventasDisponibles=ventas||[];
+    ventasDisponibles.sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
     var tbody=document.getElementById('cuerpoSelectorComprobantes');
     tbody.innerHTML='';
     if(!ventasDisponibles.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:12px;color:#999">No hay comprobantes pendientes de pago</td></tr>';document.getElementById('overlaySelectorComprobantes').classList.add('activo');return;}
@@ -1915,9 +2002,19 @@ function abrirSelectorComprobantes(){
       var tr=document.createElement('tr');
       tr.innerHTML='<td style="padding:8px;border-bottom:1px solid #eee">'+v.comprobante+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">'+v.fecha+'</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">$'+v.debe+'</td><td style="padding:8px;border-bottom:1px solid #eee;font-size:12px;color:#666">'+v.estado+'</td><td style="text-align:center;padding:8px;border-bottom:1px solid #eee"><input type="checkbox" data-comprobante="'+vId+'" data-monto="'+v.debe+'" '+checked+'></td>';
       tbody.appendChild(tr);
+      var chk=tr.querySelector('input[type="checkbox"]');
+      chk.addEventListener('change',actualizarTotalSelectorComprobantes);
     });
+    actualizarTotalSelectorComprobantes();
     document.getElementById('overlaySelectorComprobantes').classList.add('activo');
   },function(err){mensaje('msgSelectorComprobantes','Error: '+err.message,'error');});
+}
+function actualizarTotalSelectorComprobantes(){
+  var tbody=document.getElementById('cuerpoSelectorComprobantes');
+  var checkboxes=tbody.querySelectorAll('input[type="checkbox"]:checked');
+  var total=0;
+  checkboxes.forEach(function(cb){total+=parseFloat(cb.dataset.monto)||0;});
+  document.getElementById('selectorComprobantesTotal').textContent='Total: $'+total.toFixed(2);
 }
 function cerrarSelectorComprobantes(){document.getElementById('overlaySelectorComprobantes').classList.remove('activo');}
 function filtrarComprobantesSelector(){
@@ -1955,7 +2052,35 @@ function confirmarSelectorComprobantes(){
   }else{div.style.display='none';}
   cerrarSelectorComprobantes();
 }
-function buscarMatchClientePago(){var n=document.getElementById('ppCliente').value.trim(),m=mapaClientesPagos[normalizar(n)];document.getElementById('ppClienteId').value=m?m.id:'';actualizarMatchInfoPago(m?m.id:null,n);}
+function buscarMatchClientePago(){
+  var n=document.getElementById('ppCliente').value.trim();
+  var divSugerencias=document.getElementById('ppClienteSugerencias');
+
+  if(!n){divSugerencias.style.display='none';return;}
+
+  var clientesArr=Object.values(mapaClientesPagos);
+  var nNormalizado=normalizar(n);
+  var coincidentes=clientesArr.filter(function(c){
+    return normalizar(c.nombre).includes(nNormalizado) || c.id.includes(n);
+  }).slice(0,8);
+
+  if(coincidentes.length===0){divSugerencias.style.display='none';return;}
+
+  divSugerencias.innerHTML=coincidentes.map(function(c){
+    return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;hover:background:#f8f9fa" onclick="seleccionarClientePago(\''+c.id.replace(/'/g,"\\'")+'\')">'+(c.nombre)+' ('+c.id+')'+'</div>';
+  }).join('');
+  divSugerencias.style.display='block';
+}
+function seleccionarClientePago(clienteId){
+  var clientesArr=Object.values(mapaClientesPagos);
+  var cliente=clientesArr.find(function(c){return c.id===clienteId;});
+  if(cliente){
+    document.getElementById('ppCliente').value=cliente.nombre;
+    document.getElementById('ppClienteId').value=cliente.id;
+    actualizarMatchInfoPago(cliente.id,cliente.nombre);
+    document.getElementById('ppClienteSugerencias').style.display='none';
+  }
+}
 function actualizarMatchInfoPago(cid,nombre){var div=document.getElementById('ppMatchInfo');if(!nombre){div.style.display='none';return;}div.style.display='block';div.style.background=cid?'#d4edda':'#fff3cd';div.style.color=cid?'#155724':'#856404';div.textContent=cid?'✓ Match: '+cid:'⚠ Sin match — se guardará sin cliente_id';}
 function guardarPago() {
   var fecha=document.getElementById('ppFecha').value,haber=parseFloat(document.getElementById('ppHaber').value)||0,err=document.getElementById('modalErrorPago');
@@ -1977,7 +2102,7 @@ function guardarPago() {
   var banco=bancosUnicos.join(', ');
   var importeCheque=cheques.reduce(function(a,c){return a+(c.importe||0);},0);
 
-  var datos={fecha:fecha,cliente_nombre:document.getElementById('ppCliente').value.trim(),cliente_id:document.getElementById('ppClienteId').value.trim()||null,haber:haber,efectivo:parseFloat(document.getElementById('ppEfectivo').value)||0,transferencia:parseFloat(document.getElementById('ppTransferencia').value)||0,cheque_numero:chequeNumero,banco:banco,importe_cheque:importeCheque,observaciones:document.getElementById('ppObs').value.trim()};
+  var datos={fecha:fecha,cliente_nombre:document.getElementById('ppCliente').value.trim().toUpperCase(),cliente_id:document.getElementById('ppClienteId').value.trim()||null,haber:haber,efectivo:parseFloat(document.getElementById('ppEfectivo').value)||0,transferencia:parseFloat(document.getElementById('ppTransferencia').value)||0,cheque_numero:chequeNumero,banco:banco,importe_cheque:importeCheque,observaciones:document.getElementById('ppObs').value.trim()};
   var btnGuardar=document.getElementById('btnGuardarPago');
   if(btnGuardar.disabled)return;
   btnGuardar.disabled=true;
@@ -2023,18 +2148,7 @@ function mostrarGastos() {
         dmInit('dmGastoProveedor',proveedoresGasto,filtrarGastos);
         var rubrosGasto=todosGastos.map(function(g){return g.rubro||'';}).filter(function(n,i,a){return n&&a.indexOf(n)===i;}).sort();
         dmInit('dmGastoRubro',rubrosGasto,filtrarGastos);
-
-        if(!gastosFiltroInicializado){
-          gastosFiltroInicializado=true;
-          var hoy=new Date(), anioActual=String(hoy.getFullYear()), mesActual=String(hoy.getMonth()+1).padStart(2,'0');
-          var selectAnio=document.getElementById('fGastoAnio');
-          var existeAnioActual=Array.from(selectAnio.options).some(function(o){return o.value===anioActual;});
-          if(existeAnioActual)selectAnio.value=anioActual;
-          poblarMesesGasto();
-          var selectMes=document.getElementById('fGastoMes');
-          var existeMesActual=Array.from(selectMes.options).some(function(o){return o.value===mesActual;});
-          if(existeAnioActual&&existeMesActual)selectMes.value=mesActual;
-        }
+        dmInit('dmGastoEstado',['PENDIENTE','PAGADO'],filtrarGastos);
 
         filtrarGastos();
       });
@@ -2064,30 +2178,48 @@ function agregarRubroNuevo() {
   },function(e){alert('Error al crear el rubro: '+e.message);});
 }
 function poblarAniosGastos() {
-  var select=document.getElementById('fGastoAnio'), actual=select.value, anios={};
-  todosGastos.forEach(function(g){var a=(g.fecha||'').substr(0,4);if(a)anios[a]=true;});
+  var lista=document.getElementById('dmGastoAnioList');lista.innerHTML='';
+  var anios={};
   var anioActual=String(new Date().getFullYear());
+  todosGastos.forEach(function(g){var a=(g.fecha||'').substr(0,4);if(a)anios[a]=true;});
   anios[anioActual]=true;
-  select.innerHTML='<option value="">Todos</option>';
-  Object.keys(anios).sort().reverse().forEach(function(a){var o=document.createElement('option');o.value=a;o.textContent=a;if(a===actual)o.selected=true;select.appendChild(o);});
+  Object.keys(anios).sort().reverse().forEach(function(a){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+a+'" data-anio="'+a+'"><label style="cursor:pointer">'+a+'</label>';
+    var chk=div.querySelector('input');
+    if(a===anioActual)chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmGastoAnio');poblarMesesGasto();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmGastoAnio');
 }
 function poblarMesesGasto() {
-  var anio=document.getElementById('fGastoAnio').value, select=document.getElementById('fGastoMes'), mesActual=select.value, meses={};
-  todosGastos.forEach(function(g){var f=g.fecha||'';if(anio&&f.substr(0,4)!==anio)return;var m=f.substr(5,2);if(m)meses[m]=true;});
+  var anios=dmGetCheckboxes('dmGastoAnioList');
+  var lista=document.getElementById('dmGastoMesList');lista.innerHTML='';
+  var meses={};
   var hoy=new Date();
-  if(anio===String(hoy.getFullYear()))meses[String(hoy.getMonth()+1).padStart(2,'0')]=true;
-  select.innerHTML='<option value="">Todos</option>';
-  Object.keys(meses).sort().forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=NOMBRES_MESES[parseInt(m,10)-1];if(m===mesActual)o.selected=true;select.appendChild(o);});
+  var mesActual=String(hoy.getMonth()+1).padStart(2,'0');
+  var anioActual=String(hoy.getFullYear());
+  todosGastos.forEach(function(g){var f=g.fecha||'';if(anios.length>0&&anios.indexOf(f.substr(0,4))===-1)return;var m=f.substr(5,2);if(m)meses[m]=true;});
+  if(anios.length===0||anios.indexOf(anioActual)!==-1)meses[mesActual]=true;
+  Object.keys(meses).sort().forEach(function(m){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+m+'" data-mes="'+m+'"><label style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
+    var chk=div.querySelector('input');
+    if(m===mesActual)chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmGastoMes');filtrarGastos();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmGastoMes');filtrarGastos();
 }
-function cambioAnioGasto(){document.getElementById('fGastoMes').value='';poblarMesesGasto();filtrarGastos();}
 function filtrarGastos() {
-  var anio=document.getElementById('fGastoAnio').value, mes=document.getElementById('fGastoMes').value;
-  var estado=document.getElementById('fGastoEstado').value;
-  var proveedores=dmGetActivos('dmGastoProveedor'), rubros=dmGetActivos('dmGastoRubro');
+  var anios=dmGetCheckboxes('dmGastoAnioList'), meses=dmGetCheckboxes('dmGastoMesList');
+  var estados=dmGetActivos('dmGastoEstado'), proveedores=dmGetActivos('dmGastoProveedor'), rubros=dmGetActivos('dmGastoRubro');
   gastosFiltrados=todosGastos.filter(function(g){
-    if(anio&&(g.fecha||'').substr(0,4)!==anio)return false;
-    if(mes&&(g.fecha||'').substr(5,2)!==mes)return false;
-    if(estado&&(g.estado||'PENDIENTE')!==estado)return false;
+    var gAnio=(g.fecha||'').substr(0,4), gMes=(g.fecha||'').substr(5,2);
+    if(anios.length>0&&anios.indexOf(gAnio)===-1)return false;
+    if(meses.length>0&&meses.indexOf(gMes)===-1)return false;
+    if(estados&&!estados.has((g.estado||'PENDIENTE')))return false;
     if(proveedores&&!proveedores.has((g.proveedor||'').toUpperCase()))return false;
     if(rubros&&!rubros.has(g.rubro||''))return false;
     return true;
@@ -2095,9 +2227,10 @@ function filtrarGastos() {
   paginaGastos=1; renderizarGastos();
 }
 function limpiarFiltrosGastos() {
-  document.getElementById('fGastoAnio').value=''; poblarMesesGasto(); document.getElementById('fGastoMes').value='';
-  document.getElementById('fGastoEstado').value='';
-  dmSelectAll('dmGastoProveedor',true); dmSelectAll('dmGastoRubro',true);
+  document.querySelectorAll('#dmGastoAnioList input[type=checkbox]').forEach(function(c){c.checked=false;});
+  document.querySelectorAll('#dmGastoMesList input[type=checkbox]').forEach(function(c){c.checked=false;});
+  dmUpdateLabelMulti('dmGastoAnio');dmUpdateLabelMulti('dmGastoMes');
+  dmSelectAll('dmGastoEstado',true);dmSelectAll('dmGastoProveedor',true); dmSelectAll('dmGastoRubro',true);
   gastosFiltrados=todosGastos; paginaGastos=1; renderizarGastos();
 }
 function renderizarGastos() {
@@ -3180,6 +3313,7 @@ function poblarSelectBanco(selectId) {
   todosBancos.forEach(function(b) {
     var o = document.createElement('option');
     o.value = b.nombre; o.textContent = b.nombre;
+    if (b.id) o.dataset.id = b.id;
     if (b.nombre === actual) o.selected = true;
     select.appendChild(o);
   });
@@ -3205,6 +3339,7 @@ function agregarBancoNuevo(selectId) {
 var mapaClientesCheque = {};
 
 function mostrarCheques() {
+  document.getElementById('fChequeBanco').innerHTML = '<option value="">Todos</option>';
   gsRun('obtenerBancos', [], function(bancos) {
     todosBancos = bancos || [];
     poblarSelectBanco('chBanco');
@@ -3217,7 +3352,7 @@ function mostrarCheques() {
       gsRun('obtenerCheques', [], function(data) {
         todosCheques = data || [];
         paginaCheques = 1;
-        document.getElementById('infoCheques').textContent = todosCheques.length + ' cheques';
+        document.getElementById('infoCheques').textContent = '';
         poblarFiltrosAnioMesCheques();
         poblarFiltroBanco();
         document.getElementById('fChequeAnio').value = '2026';
@@ -3250,6 +3385,7 @@ function poblarFiltroBanco() {
   var bancos = [];
   todosCheques.forEach(function(c) { var b = (c.banco || '').trim(); if (b && bancos.indexOf(b) === -1) bancos.push(b); });
   bancos.sort();
+  console.log('poblarFiltroBanco - Bancos encontrados:', bancos);
   sel.innerHTML = '<option value="">Todos</option>';
   bancos.forEach(function(b) { var o = document.createElement('option'); o.value = b; o.textContent = b; if (b === valorActual) o.selected = true; sel.appendChild(o); });
 }
@@ -3288,7 +3424,6 @@ function actualizarPillsChequesConDatos(cheques) {
   document.getElementById('pillChequesVigorosos').style.display = vigPersp > 0 ? 'inline-block' : 'none';
   document.getElementById('pillChequesVigente').style.display = vigNo > 0 ? 'inline-block' : 'none';
   document.getElementById('pillChequesProximo').style.display = prox > 0 ? 'inline-block' : 'none';
-  document.getElementById('countCheques').textContent = cheques.length + ' registro' + (cheques.length !== 1 ? 's' : '');
 }
 function filtrarCheques() {
   var anio   = document.getElementById('fChequeAnio').value;
@@ -3338,6 +3473,7 @@ function limpiarFiltrosCheques() {
 }
 function renderizarCheques() {
   var total  = chequesFiltrados.length;
+  document.getElementById('countCheques').textContent=total+' registro'+(total!==1?'s':'')+(total!==todosCheques.length?' (filtrado de '+todosCheques.length+')':'');
   var inicio = (paginaCheques - 1) * porPaginaCheques;
   var pagina = chequesFiltrados.slice(inicio, inicio + porPaginaCheques);
   var tbody  = document.getElementById('cuerpoCheques');
@@ -3449,8 +3585,10 @@ function guardarCheque() {
   }
   var fechaPago = document.getElementById('chFechaPago').value;
   var dias      = parseInt(document.getElementById('chDias').value) || 0;
+  var selectBanco = document.getElementById('chBanco');
+  var bancoId = selectBanco.selectedOptions && selectBanco.selectedOptions[0] ? selectBanco.selectedOptions[0].dataset.id : null;
   var datos = {
-    banco: banco, numero: numero,
+    banco: banco, banco_id: bancoId ? parseInt(bancoId) : null, numero: numero,
     tipo: document.getElementById('chTipo').value,
     fecha_emision: document.getElementById('chFechaEmision').value || null,
     fecha_pago: fechaPago || null,
@@ -3774,59 +3912,8 @@ if (localStorage.getItem(LOGIN_STORAGE_KEY) === '1') {
   document.getElementById('loginPass').focus();
 }
 
-function mostrarNormalizacionGuias() {
-  gsRun('obtenerGuiasDeObservaciones', [], function(guias) {
-    var tbody = document.getElementById('tablaGuiasBody');
-    tbody.innerHTML = '';
-    if (!guias.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#999;padding:20px">No hay guías registradas</td></tr>';
-      document.getElementById('overlayNormalizacionGuias').classList.add('activo');
-      return;
-    }
-    guias.forEach(function(g) {
-      var tr = document.createElement('tr');
-      var foundBadge = g.encontrado === 'SÍ' ? '<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold">✓ Encontrado</span>' : '<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:3px;font-size:11px;font-weight:bold">✗ No encontrado</span>';
-      tr.innerHTML = '<td>' + g.cliente + '</td><td style="font-size:12px">' + g.fecha + '</td><td style="font-family:monospace;font-size:12px">' + g.guia + '</td><td style="font-family:monospace;font-size:11px">' + g.comprobante + '</td><td style="font-size:12px">' + (g.estadoVentas === '—' ? '—' : g.estadoVentas) + '</td><td style="text-align:center">' + foundBadge + '</td>';
-      tbody.appendChild(tr);
-    });
-    document.getElementById('overlayNormalizacionGuias').classList.add('activo');
-  });
-}
-
-function cerrarNormalizacionGuias() {
-  document.getElementById('overlayNormalizacionGuias').classList.remove('activo');
-}
 </script>
 
-<!-- MODAL: Normalización de Guías -->
-<div class="overlay" id="overlayNormalizacionGuias">
-  <div class="modal" style="width:900px;max-width:95%">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <h2 style="margin:0">Normalización de Guías desde Cobros</h2>
-      <button style="background:none;border:none;font-size:24px;cursor:pointer" onclick="cerrarNormalizacionGuias()">&times;</button>
-    </div>
-    <div class="table-container" style="max-height:500px;overflow-y:auto">
-      <table style="width:100%;border-collapse:collapse">
-        <thead style="position:sticky;top:0;background:#f8f9fa">
-          <tr>
-            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Cliente</th>
-            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Fecha Cobro</th>
-            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Guía (Obs.)</th>
-            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Comprobante</th>
-            <th style="text-align:left;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Estado Ventas</th>
-            <th style="text-align:center;padding:12px;border-bottom:2px solid #e9ecef;font-weight:600;color:#667eea">Coincide</th>
-          </tr>
-        </thead>
-        <tbody id="tablaGuiasBody">
-          <tr><td colspan="6" style="text-align:center;padding:20px;color:#999">Cargando...</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="margin-top:15px;text-align:right">
-      <button class="btn btn-primary" onclick="cerrarNormalizacionGuias()">Cerrar</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
