@@ -308,44 +308,98 @@ function gsRun(fnName, params, onSuccess, onError) {
     },
     'guardarFlete': ([datos, id]) => {
       if (id) {
-        return supabaseQuery('fletes', 'PATCH', datos, { id });
+        return supabaseQuery('fletes', 'PATCH', datos, { id }).then(res => {
+          console.log('Flete actualizado en Supabase:', id);
+          return res;
+        });
       } else {
-        return supabaseQuery('fletes', 'POST', [datos]).then(res => res ? res[0] : null);
+        return supabaseQuery('fletes', 'POST', [datos]).then(res => {
+          console.log('Nuevo flete insertado en Supabase:', res);
+          if (!res || !Array.isArray(res) || res.length === 0) {
+            throw new Error('No se pudo guardar el flete en la base de datos');
+          }
+          return res[0];
+        });
       }
     },
     'guardarGasto': ([datos, id, chequeIds, chequeEmitidoIds]) => {
       if (id) {
-        return supabaseQuery('gastos', 'PATCH', datos, { id });
+        return supabaseQuery('gastos', 'PATCH', datos, { id }).then(res => {
+          console.log('Gasto actualizado en Supabase:', id);
+          return res;
+        });
       } else {
-        return supabaseQuery('gastos', 'POST', [datos]).then(res => res ? res[0] : null);
+        return supabaseQuery('gastos', 'POST', [datos]).then(res => {
+          console.log('Nuevo gasto insertado en Supabase:', res);
+          if (!res || !Array.isArray(res) || res.length === 0) {
+            throw new Error('No se pudo guardar el gasto en la base de datos');
+          }
+          return res[0];
+        });
       }
     },
     'guardarCheque': ([datos, id, pagoId]) => {
       if (id) {
-        return supabaseQuery('cheques', 'PATCH', datos, { id });
+        return supabaseQuery('cheques', 'PATCH', datos, { id }).then(res => {
+          console.log('Cheque actualizado en Supabase:', id, res);
+          return res;
+        });
       } else {
-        return supabaseQuery('cheques', 'POST', [datos]).then(res => res ? res[0] : null);
+        return supabaseQuery('cheques', 'POST', [datos]).then(res => {
+          console.log('Nuevo cheque insertado en Supabase:', res);
+          if (!res || !Array.isArray(res) || res.length === 0) {
+            throw new Error('No se pudo guardar el cheque en la base de datos');
+          }
+          return res[0];
+        });
       }
     },
     'guardarCheqEm': ([datos, id]) => {
       if (id) {
-        return supabaseQuery('cheques_emitidos', 'PATCH', datos, { id });
+        return supabaseQuery('cheques_emitidos', 'PATCH', datos, { id }).then(res => {
+          console.log('Cheque emitido actualizado en Supabase:', id, res);
+          return res;
+        });
       } else {
-        return supabaseQuery('cheques_emitidos', 'POST', [datos]).then(res => res ? res[0] : null);
+        return supabaseQuery('cheques_emitidos', 'POST', [datos]).then(res => {
+          console.log('Nuevo cheque emitido insertado en Supabase:', res);
+          if (!res || !Array.isArray(res) || res.length === 0) {
+            throw new Error('No se pudo guardar el cheque emitido en la base de datos');
+          }
+          return res[0];
+        });
       }
     },
     'guardarCliente': ([datos, id]) => {
       if (id) {
-        return supabaseQuery('clientes', 'PATCH', datos, { id });
+        return supabaseQuery('clientes', 'PATCH', datos, { id }).then(res => {
+          console.log('Cliente actualizado en Supabase:', id);
+          return res;
+        });
       } else {
-        return supabaseQuery('clientes', 'POST', [datos]).then(res => res ? res[0] : null);
+        return supabaseQuery('clientes', 'POST', [datos]).then(res => {
+          console.log('Nuevo cliente insertado en Supabase:', res);
+          if (!res || !Array.isArray(res) || res.length === 0) {
+            throw new Error('No se pudo guardar el cliente en la base de datos');
+          }
+          return res[0];
+        });
       }
     },
     'guardarProveedor': ([datos, id]) => {
       if (id) {
-        return supabaseQuery('proveedores', 'PATCH', datos, { id });
+        return supabaseQuery('proveedores', 'PATCH', datos, { id }).then(res => {
+          console.log('Proveedor actualizado en Supabase:', id);
+          return res;
+        });
       } else {
-        return supabaseQuery('proveedores', 'POST', [datos]).then(res => res ? res[0] : null);
+        return supabaseQuery('proveedores', 'POST', [datos]).then(res => {
+          console.log('Nuevo proveedor insertado en Supabase:', res);
+          if (!res || !Array.isArray(res) || res.length === 0) {
+            throw new Error('No se pudo guardar el proveedor en la base de datos');
+          }
+          return res[0];
+        });
       }
     },
     'guardarRubro': ([nombre]) => {
