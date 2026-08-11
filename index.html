@@ -210,6 +210,8 @@ function supabaseQueryAll(table, rawQuery) {
       if (rawQuery) url += rawQuery + '&';
       url += 'limit=' + pageSize + '&offset=' + (page * pageSize);
 
+      console.log('[supabaseQueryAll]', table, '- URL:', url);
+
       fetch(url, {
         method: 'GET',
         headers: {
@@ -217,21 +219,36 @@ function supabaseQueryAll(table, rawQuery) {
           'Authorization': 'Bearer ' + SUPABASE_KEY
         }
       })
-      .then(res => res.json())
+      .then(res => {
+        console.log('[supabaseQueryAll] Response status:', res.status, res.statusText);
+        if(!res.ok) throw new Error('HTTP '+res.status+': '+res.statusText);
+        return res.json();
+      })
       .then(data => {
-        if (!Array.isArray(data) || data.length === 0) {
+        console.log('[supabaseQueryAll] Response data:', data, 'length:', data ? data.length : 0);
+        if (!Array.isArray(data)) {
+          console.warn('[supabaseQueryAll] Response is not array:', typeof data);
+          resolve(all);
+          return;
+        }
+        if (data.length === 0) {
+          console.log('[supabaseQueryAll] Empty page, resolved with', all.length, 'total records');
           resolve(all);
           return;
         }
         all = all.concat(data);
         if (data.length < pageSize) {
+          console.log('[supabaseQueryAll] Final page, resolved with', all.length, 'total records');
           resolve(all);
         } else {
           page++;
           fetchPage();
         }
       })
-      .catch(reject);
+      .catch(err => {
+        console.error('[supabaseQueryAll] Error:', err);
+        reject(err);
+      });
     }
 
     fetchPage();
