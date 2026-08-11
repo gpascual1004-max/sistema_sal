@@ -245,7 +245,21 @@ function gsRun(fnName, params, onSuccess, onError) {
       const pagoId = Array.isArray(params) ? params[0] : params;
       return supabaseQuery('cheques', { pago_id: pagoId });
     },
-    'obtenerChequesDisponiblesParaGasto': () => supabaseQueryAll('cheques', 'estado=eq.Vigente'),
+    'obtenerChequesDisponiblesParaGasto': ([gastoId]) => {
+      return Promise.all([
+        supabaseQueryAll('cheques', 'estado=eq.DISPONIBLE&order=fecha_vencimiento.asc'),
+        supabaseQueryAll('cheques_emitidos', 'estado=eq.PENDIENTE&order=fecha_pago.asc')
+      ]).then(([cheques, chequesEm]) => {
+        var yaAsignados = gastoId ? cheques.filter(c => c.gasto_id === gastoId) : [];
+        var yaAsignadosEm = gastoId ? chequesEm.filter(c => c.gasto_id === gastoId) : [];
+        return {
+          disponibles: cheques || [],
+          yaAsignadosIds: yaAsignados.map(c => c.id),
+          disponiblesEm: chequesEm || [],
+          yaAsignadosEmIds: yaAsignadosEm.map(c => c.id)
+        };
+      });
+    },
     'obtenerClientes': () => supabaseQueryAll('clientes', 'order=id.asc'),
     'obtenerProveedores': () => supabaseQueryAll('proveedores', 'order=nombre.asc'),
     'obtenerRubros': () => supabaseQueryAll('rubros', 'order=nombre.asc'),
@@ -285,22 +299,62 @@ function gsRun(fnName, params, onSuccess, onError) {
         return true;
       });
     },
-    'guardarFlete': () => Promise.resolve(true),
-    'guardarGasto': () => Promise.resolve(true),
-    'guardarCheque': () => Promise.resolve(true),
-    'guardarCheqEm': () => Promise.resolve(true),
-    'guardarCliente': () => Promise.resolve(true),
-    'guardarProveedor': () => Promise.resolve(true),
-    'guardarRubro': () => Promise.resolve(true),
-    'guardarBanco': () => Promise.resolve(true),
-    'eliminarVentaById': () => Promise.resolve(true),
-    'eliminarPagoById': () => Promise.resolve(true),
-    'eliminarFleteById': () => Promise.resolve(true),
-    'eliminarGastoById': () => Promise.resolve(true),
-    'eliminarChequeById': () => Promise.resolve(true),
-    'eliminarCheqEmById': () => Promise.resolve(true),
-    'eliminarClienteById': () => Promise.resolve(true),
-    'eliminarProveedorById': () => Promise.resolve(true),
+    'guardarFlete': ([datos, id]) => {
+      if (id) {
+        return supabaseQuery('fletes', 'PATCH', datos, { id });
+      } else {
+        return supabaseQuery('fletes', 'POST', [datos]).then(res => res ? res[0] : null);
+      }
+    },
+    'guardarGasto': ([datos, id, chequeIds, chequeEmitidoIds]) => {
+      if (id) {
+        return supabaseQuery('gastos', 'PATCH', datos, { id });
+      } else {
+        return supabaseQuery('gastos', 'POST', [datos]).then(res => res ? res[0] : null);
+      }
+    },
+    'guardarCheque': ([datos, id, pagoId]) => {
+      if (id) {
+        return supabaseQuery('cheques', 'PATCH', datos, { id });
+      } else {
+        return supabaseQuery('cheques', 'POST', [datos]).then(res => res ? res[0] : null);
+      }
+    },
+    'guardarCheqEm': ([datos, id]) => {
+      if (id) {
+        return supabaseQuery('cheques_emitidos', 'PATCH', datos, { id });
+      } else {
+        return supabaseQuery('cheques_emitidos', 'POST', [datos]).then(res => res ? res[0] : null);
+      }
+    },
+    'guardarCliente': ([datos, id]) => {
+      if (id) {
+        return supabaseQuery('clientes', 'PATCH', datos, { id });
+      } else {
+        return supabaseQuery('clientes', 'POST', [datos]).then(res => res ? res[0] : null);
+      }
+    },
+    'guardarProveedor': ([datos, id]) => {
+      if (id) {
+        return supabaseQuery('proveedores', 'PATCH', datos, { id });
+      } else {
+        return supabaseQuery('proveedores', 'POST', [datos]).then(res => res ? res[0] : null);
+      }
+    },
+    'guardarRubro': ([nombre]) => {
+      return supabaseQuery('rubros', 'POST', [{ nombre }]).then(res => res ? res[0] : null);
+    },
+    'guardarBanco': ([nombre]) => {
+      return supabaseQuery('bancos', 'POST', [{ nombre }]).then(res => res ? res[0] : null);
+    },
+    'eliminarVentaById': ([id]) => supabaseQuery('ventas', 'DELETE', null, { id }),
+    'eliminarPagoById': ([id]) => supabaseQuery('pagos', 'DELETE', null, { id }),
+    'eliminarFleteById': ([id]) => supabaseQuery('fletes', 'DELETE', null, { id }),
+    'eliminarGastoById': ([id]) => supabaseQuery('gastos', 'DELETE', null, { id }),
+    'eliminarChequeById': ([id]) => supabaseQuery('cheques', 'DELETE', null, { id }),
+    'eliminarCheqEmById': ([id]) => supabaseQuery('cheques_emitidos', 'DELETE', null, { id }),
+    'eliminarClienteById': ([id]) => supabaseQuery('clientes', 'DELETE', null, { id }),
+    'eliminarProveedorById': ([id]) => supabaseQuery('proveedores', 'DELETE', null, { id }),
     'insertarVentas': () => Promise.resolve(true),
     'insertarPagos': () => Promise.resolve(true),
     'insertarFletes': () => Promise.resolve(true),
@@ -849,7 +903,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
       <div id="msgGastos"></div>
       <div class="table-container">
-        <table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Rubro</th><th>Descripción</th><th>Monto</th><th>Método Pago</th><th>Cheque N°</th><th>Estado</th><th>Observaciones</th><th></th></tr></thead>
+        <table><thead><tr style="cursor:pointer"><th onclick="cambiarOrdenGastos('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="ordGastoFecha"></span></th><th onclick="cambiarOrdenGastos('proveedor')" style="cursor:pointer;user-select:none">Proveedor <span id="ordGastoProveedor"></span></th><th onclick="cambiarOrdenGastos('rubro')" style="cursor:pointer;user-select:none">Rubro <span id="ordGastoRubro"></span></th><th onclick="cambiarOrdenGastos('descripcion')" style="cursor:pointer;user-select:none">Descripción <span id="ordGastoDescripcion"></span></th><th onclick="cambiarOrdenGastos('monto')" style="cursor:pointer;user-select:none">Monto <span id="ordGastoMonto"></span></th><th onclick="cambiarOrdenGastos('metodo_pago')" style="cursor:pointer;user-select:none">Método Pago <span id="ordGastoMetodo"></span></th><th onclick="cambiarOrdenGastos('cheque_numero')" style="cursor:pointer;user-select:none">Cheque N° <span id="ordGastoCheque"></span></th><th onclick="cambiarOrdenGastos('estado')" style="cursor:pointer;user-select:none">Estado <span id="ordGastoEstado"></span></th><th onclick="cambiarOrdenGastos('observaciones')" style="cursor:pointer;user-select:none">Observaciones <span id="ordGastoObs"></span></th><th></th></tr></thead>
         <tbody id="cuerpoGastos"><tr><td colspan="10" class="loading">Cargando...</td></tr></tbody></table>
       </div>
       <div class="paginacion" id="paginacionGastos"></div>
@@ -2455,6 +2509,10 @@ document.getElementById('overlayPago').addEventListener('click',function(e){if(e
 // GASTOS
 // ==========================================
 var todosGastos=[], gastosFiltrados=[], paginaGastos=1, porPaginaGastos=20, idGastoEdicion=null, mapaProveedoresCache={};
+var ordenGastos={campo: null, dir: 'asc'};
+var ordenFletes={campo: null, dir: 'asc'};
+var ordenPagos={campo: null, dir: 'asc'};
+var ordenVentas={campo: null, dir: 'asc'};
 var gastosFiltroInicializado=false, todosRubros=[];
 var chequesGastoDisponibles=[], chequesGastoSeleccionados={}, chequesGastoOriginalIds=[];
 var chequesGastoEmDisponibles=[], chequesGastoEmSeleccionados={}, chequesGastoEmOriginalIds=[];
@@ -2564,12 +2622,42 @@ function limpiarFiltrosGastos() {
   dmSelectAll('dmGastoEstado',true);dmSelectAll('dmGastoProveedor',true); dmSelectAll('dmGastoRubro',true);
   gastosFiltrados=todosGastos; paginaGastos=1; renderizarGastos();
 }
+function cambiarOrdenGastos(campo) {
+  if (ordenGastos.campo === campo) {
+    ordenGastos.dir = ordenGastos.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenGastos.campo = campo;
+    ordenGastos.dir = 'asc';
+  }
+  paginaGastos = 1;
+  renderizarGastos();
+}
 function renderizarGastos() {
   var tbody=document.getElementById('cuerpoGastos'), total=gastosFiltrados.length;
-  var inicio=(paginaGastos-1)*porPaginaGastos, pagina=gastosFiltrados.slice(inicio,inicio+porPaginaGastos);
+
+  var datosOrdenados = gastosFiltrados.slice();
+  if (ordenGastos.campo) {
+    datosOrdenados.sort(function(a, b) {
+      var valA = a[ordenGastos.campo], valB = b[ordenGastos.campo];
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return ordenGastos.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  var inicio=(paginaGastos-1)*porPaginaGastos, pagina=datosOrdenados.slice(inicio,inicio+porPaginaGastos);
   var totalMonto=gastosFiltrados.reduce(function(s,g){return s+(parseFloat(g.monto)||0);},0);
   var totalPagado=gastosFiltrados.filter(function(g){return g.estado==='PAGADO';}).reduce(function(s,g){return s+(parseFloat(g.monto)||0);},0);
   var pctPagado=totalMonto>0?(totalPagado/totalMonto*100):0;
+  var campos = ['fecha', 'proveedor', 'rubro', 'descripcion', 'monto', 'metodo_pago', 'cheque_numero', 'estado', 'observaciones'];
+  campos.forEach(function(c) {
+    var span = document.getElementById('ordGasto' + c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ''));
+    if (span) span.textContent = ordenGastos.campo === c ? (ordenGastos.dir === 'asc' ? '▲' : '▼') : '';
+  });
+
   document.getElementById('countGastos').textContent=total+' registro'+(total!==1?'s':'')+(total!==todosGastos.length?' (filtrado de '+todosGastos.length+')':'');
   document.getElementById('infoGastos').textContent='Total: '+pesos(totalMonto)+' · '+pctPagado.toFixed(1)+'% pagado';
   document.getElementById('pillGastoPendiente').textContent='Pendiente: '+pesos(totalMonto-totalPagado);

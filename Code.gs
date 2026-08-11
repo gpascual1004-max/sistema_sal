@@ -142,46 +142,56 @@ function invalidarCachePagos() {
 }
 
 function supabaseQuery(table, method, data, filters, rawQuery) {
-  method = method || 'GET';
-  var url = SUPABASE_URL + '/rest/v1/' + table;
+  Utilities.sleep(100); // Pequeña pausa para sincronización
+  Logger.log('>>> supabaseQuery LLAMADA: table=' + table + ', method=' + method);
 
+  if (!table) throw new Error('supabaseQuery: table is required');
+  if (!method) method = 'GET';
+
+  var url = SUPABASE_URL + '/rest/v1/' + table;
   var qparts = [];
+
   if (filters) {
     Object.keys(filters).forEach(function(k) {
-      qparts.push(k + '=eq.' + encodeURIComponent(filters[k]));
+      qparts.push(k + '=eq.' + encodeURIComponent(String(filters[k])));
     });
   }
   if (rawQuery) qparts.push(rawQuery);
   if (qparts.length) url += '?' + qparts.join('&');
+
+  var payload = null;
+  if (data) {
+    payload = JSON.stringify(data);
+  }
 
   var options = {
     method: method,
     headers: {
       'apikey': SUPABASE_KEY,
       'Authorization': 'Bearer ' + SUPABASE_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
+      'Content-Type': 'application/json'
     },
-    muteHttpExceptions: true
+    muteHttpExceptions: false
   };
-  if (data) options.payload = JSON.stringify(data);
 
-  try {
-    var response = UrlFetchApp.fetch(url, options);
-    var status = response.getResponseCode();
-    var text = response.getContentText();
-
-    Logger.log('supabaseQuery [' + method + '] ' + table + ' status=' + status + ' response=' + text.substring(0, 200));
-
-    if (status < 200 || status >= 300) {
-      throw new Error('Supabase error ' + status + ': ' + text);
-    }
-
-    return text ? JSON.parse(text) : null;
-  } catch (e) {
-    Logger.log('ERROR en supabaseQuery: ' + e.toString());
-    throw e;
+  if (payload) {
+    options.payload = payload;
   }
+
+  if (method === 'POST' || method === 'PATCH' || method === 'PUT') {
+    options.headers['Prefer'] = 'return=representation';
+  }
+
+  var response = UrlFetchApp.fetch(url, options);
+  var status = response.getResponseCode();
+  var text = response.getContentText();
+
+  if (status < 200 || status >= 300) {
+    throw new Error('Supabase error ' + status + ': ' + text);
+  }
+
+  if (!text) return null;
+  return JSON.parse(text);
 }
 
 function supabaseDelete(table, id) {
@@ -675,12 +685,17 @@ var TIPOS_CHEQUE_EMITIDO_PAGABLES = ['CHEQUE PROPIO', 'ECHEQ', 'CHEQUE TERCERO']
 // para lo mismo. Los que se agreguen quedan "entregados"; los que se saquen vuelven a estar
 // disponibles (DISPONIBLE en cheques recibidos, PENDIENTE en cheques emitidos).
 function guardarGasto(datos, id, chequeIds, chequeEmitidoIds) {
+  Logger.log('=== INICIANDO guardarGasto ===');
+  Logger.log('datos: ' + JSON.stringify(datos).substring(0, 200));
+  Logger.log('id: ' + id);
+
   var gastoId = id;
   if (id) {
+    Logger.log('PATCH a gasto existente');
     var patchRes = supabaseQuery('gastos', 'PATCH', datos, { id: id });
     Logger.log('Gasto PATCH result: ' + JSON.stringify(patchRes));
   } else {
-    Logger.log('Guardando nuevo gasto: ' + JSON.stringify(datos));
+    Logger.log('POST de nuevo gasto');
     var res = supabaseQuery('gastos', 'POST', [datos]);
     Logger.log('Gasto POST result: ' + JSON.stringify(res));
     gastoId = (res && res[0] && res[0].id) ? res[0].id : null;
@@ -689,6 +704,7 @@ function guardarGasto(datos, id, chequeIds, chequeEmitidoIds) {
   if (!gastoId && !id) {
     throw new Error('No se pudo crear el gasto - no hay ID retornado');
   }
+  Logger.log('Invalidando cache...');
   invalidarCacheTabla('gastos', QUERY_GASTOS);
 
   chequeIds = (chequeIds || []).map(function(x) { return parseInt(x, 10); });
