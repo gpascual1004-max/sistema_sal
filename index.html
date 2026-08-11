@@ -305,8 +305,8 @@ function gsRun(fnName, params, onSuccess, onError) {
                 });
               });
 
-              // Guardar/actualizar cheques nuevos
-              (cheques || []).forEach(c => {
+              // Guardar/actualizar cheques nuevos - ESPERAR A QUE TERMINEN TODOS
+              var promesasCheques = (cheques || []).map(c => {
                 var chDatos = {
                   pago_id: pagoId,
                   cliente_nombre: datos.cliente_nombre,
@@ -314,22 +314,33 @@ function gsRun(fnName, params, onSuccess, onError) {
                   numero: c.numero,
                   banco: c.banco,
                   importe: c.importe,
-                  tipo: c.tipo,
+                  tipo: c.tipo || 'cartera',
                   fecha_emision: c.fecha_emision || null,
                   fecha_pago: c.fecha_pago || null,
                   dias: c.dias || 0,
-                  fecha_vencimiento: c.fecha_vencimiento || null
+                  fecha_vencimiento: c.fecha_vencimiento || null,
+                  estado: 'DISPONIBLE'
                 };
+                console.log('Intentando guardar cheque:', JSON.stringify(chDatos, null, 2));
                 if(c.id){
-                  supabaseQuery('cheques', 'PATCH', chDatos, { id: c.id }).then(res => {
-                    console.log('Cheque actualizado:', c.id);
+                  return supabaseQuery('cheques', 'PATCH', chDatos, { id: c.id }).then(res => {
+                    console.log('✓ Cheque actualizado:', c.id, res);
+                    return res;
+                  }).catch(err => {
+                    console.error('✗ Error actualizando cheque:', c.id, err);
+                    throw err;
                   });
                 } else {
-                  supabaseQuery('cheques', 'POST', [chDatos]).then(res => {
-                    console.log('Nuevo cheque creado:', res);
+                  return supabaseQuery('cheques', 'POST', [chDatos]).then(res => {
+                    console.log('✓ Nuevo cheque creado:', res);
+                    return res;
+                  }).catch(err => {
+                    console.error('✗ Error creando cheque:', err);
+                    throw err;
                   });
                 }
               });
+              return Promise.all(promesasCheques);
             }).then(() => {
               // Manejar comprobantes después de procesar cheques
               if(comprobantesArr && comprobantesArr.length > 0){
