@@ -3,8 +3,8 @@
 // Backend + conexión Supabase
 // ============================================
 
-const SUPABASE_URL = 'https://mlgvalvuacdfjscelpnm.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_xqJh9IwGfjKDBkYUDeuaVg_9c3EQZ0Q';
+const SUPABASE_URL = 'https://ufycqawdocnpgbvfyqch.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmeWNxYXdkb2NucGdidmZ5cWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODcyNTk5MTgsImV4cCI6MjAwMjgzNTkxOH0.nWE9n-eLwqJlqIQXSdpxQQFcwQAXTKu8N3hRgPQvO-M';
 
 // Query fija de cada tabla — se usa tanto para pedir los datos como para saber
 // qué clave de caché invalidar después de un guardado/borrado. Si se cambia el

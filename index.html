@@ -2665,6 +2665,10 @@ function toggleSeccionChequeGasto() {
 function cargarChequesDisponiblesGasto() {
   document.getElementById('gChequesLista').innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">Cargando cheques disponibles...</div>';
   gsRun('obtenerChequesDisponiblesParaGasto', [idGastoEdicion], function(res) {
+    if (!res || typeof res !== 'object') {
+      document.getElementById('gChequesLista').innerHTML = '<div style="color:#dc3545;font-size:12px">Error: respuesta inválida del servidor</div>';
+      return;
+    }
     chequesGastoDisponibles = res.disponibles || [];
     chequesGastoOriginalIds = res.yaAsignadosIds || [];
     chequesGastoSeleccionados = {};
@@ -2678,7 +2682,8 @@ function cargarChequesDisponiblesGasto() {
     actualizarBotonesFuenteChequesGasto();
     renderizarChequesGasto();
   }, function(err) {
-    document.getElementById('gChequesLista').innerHTML = '<div style="color:#dc3545;font-size:12px">Error al cargar cheques: ' + err.message + '</div>';
+    console.error('Error cargando cheques para gasto:', err);
+    document.getElementById('gChequesLista').innerHTML = '<div style="color:#dc3545;font-size:12px">Error al cargar cheques: ' + (err.message || err) + '</div>';
   });
 }
 var GRID_CHEQUES_GASTO = '26px 1fr 110px 80px 110px';
