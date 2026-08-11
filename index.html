@@ -387,18 +387,27 @@ function gsRun(fnName, params, onSuccess, onError) {
       }
     },
     'guardarCheque': ([datos, id, pagoId]) => {
+      console.log('guardarCheque - datos:', datos, 'id:', id);
       if (id) {
         return supabaseQuery('cheques', 'PATCH', datos, { id }).then(res => {
           console.log('Cheque actualizado en Supabase:', id, res);
           return res;
+        }).catch(err => {
+          console.error('Error al actualizar cheque:', err);
+          throw new Error('Error al actualizar cheque: ' + (err.message || err));
         });
       } else {
         return supabaseQuery('cheques', 'POST', [datos]).then(res => {
-          console.log('Nuevo cheque insertado en Supabase:', res);
+          console.log('Respuesta de POST cheques:', res, 'tipo:', typeof res);
           if (!res || !Array.isArray(res) || res.length === 0) {
-            throw new Error('No se pudo guardar el cheque en la base de datos');
+            console.error('Respuesta inválida de cheques POST:', { res, esArray: Array.isArray(res), tiene_largo: res ? res.length : 'no es array' });
+            throw new Error('La base de datos no aceptó el cheque. Verifica que todos los campos sean válidos.');
           }
+          console.log('Nuevo cheque insertado en Supabase:', res[0]);
           return res[0];
+        }).catch(err => {
+          console.error('Error al crear cheque:', err);
+          throw new Error('Error al crear cheque: ' + (err.message || err));
         });
       }
     },
@@ -4311,22 +4320,22 @@ function guardarCheque() {
   var selectBanco = document.getElementById('chBanco');
   var bancoId = selectBanco.selectedOptions && selectBanco.selectedOptions[0] ? selectBanco.selectedOptions[0].dataset.id : null;
   var datos = {
-    banco: banco, banco_id: bancoId ? parseInt(bancoId) : null, numero: numero,
-    tipo: document.getElementById('chTipo').value,
+    banco: banco,
+    numero: numero,
+    tipo: document.getElementById('chTipo').value || 'cartera',
     fecha_emision: document.getElementById('chFechaEmision').value || null,
     fecha_pago: fechaPago || null,
     importe: parseFloat(document.getElementById('chImporte').value) || 0,
     dias: dias,
-    fecha_vencimiento: fechaPago ? sumarDias(fechaPago, dias) : null
+    fecha_vencimiento: fechaPago ? sumarDias(fechaPago, dias) : null,
+    cliente_nombre: clienteNombre || null,
+    cliente_id: document.getElementById('chClienteId').value || null,
+    estado: document.getElementById('chEntregado').checked ? 'ENTREGADO' : 'DISPONIBLE',
+    monto_salida: parseFloat(document.getElementById('chMontoSalida').value) || null,
+    fecha_salida: document.getElementById('chFechaSalida').value || null
   };
-  if (clienteEditable) {
-    datos.cliente_nombre = clienteNombre || null;
-    datos.cliente_id     = document.getElementById('chClienteId').value || null;
-  }
-  if (!document.getElementById('chEntregado').disabled) {
-    datos.estado       = document.getElementById('chEntregado').checked ? 'ENTREGADO' : 'DISPONIBLE';
-    datos.monto_salida = parseFloat(document.getElementById('chMontoSalida').value) || null;
-    datos.fecha_salida = document.getElementById('chFechaSalida').value || null;
+  if (bancoId) {
+    datos.banco_id = parseInt(bancoId);
   }
   var btnGuardarCh = document.getElementById('btnGuardarCheque');
   if (btnGuardarCh.disabled) return;
