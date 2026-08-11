@@ -288,21 +288,69 @@ function gsRun(fnName, params, onSuccess, onError) {
         }
 
         return pagoPromise.then(pagoRes => {
-          if(comprobantesArr && comprobantesArr.length > 0){
-            comprobantesArr.forEach(cId => {
-              supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: parseInt(cId, 10) }).then(res => {
-                console.log('Marcado como PAGADA:', cId);
+          var pagoId = pagoRes.id;
+
+          // Manejar cheques: actualizar existentes y borrar los que se quitaron
+          if(pagoId){
+            return supabaseQuery('cheques', 'GET', null, { pago_id: pagoId }).then(chequesExistentes => {
+              var chequeIds = (cheques || []).map(c => c.id).filter(id => id);
+              var chequesABorrar = (chequesExistentes || []).filter(c => !chequeIds.includes(c.id));
+
+              console.log('Cheques existentes:', chequesExistentes.length, 'Cheques nuevos:', cheques.length, 'A borrar:', chequesABorrar.length);
+
+              // Borrar cheques que se quitaron
+              chequesABorrar.forEach(c => {
+                supabaseQuery('cheques', 'DELETE', null, { id: c.id }).then(res => {
+                  console.log('Cheque borrado (desvinculado del cobro):', c.id);
+                });
               });
-            });
-          }
-          if(comprobantesDeseleccionados && comprobantesDeseleccionados.length > 0){
-            comprobantesDeseleccionados.forEach(cId => {
-              supabaseQuery('ventas', 'PATCH', { estado: 'ENTREGADA CONFORME' }, { id: parseInt(cId, 10) }).then(res => {
-                console.log('Revertido a ENTREGADA CONFORME:', cId);
+
+              // Guardar/actualizar cheques nuevos
+              (cheques || []).forEach(c => {
+                var chDatos = {
+                  pago_id: pagoId,
+                  cliente_nombre: datos.cliente_nombre,
+                  cliente_id: datos.cliente_id,
+                  numero: c.numero,
+                  banco: c.banco,
+                  importe: c.importe,
+                  tipo: c.tipo,
+                  fecha_emision: c.fecha_emision || null,
+                  fecha_pago: c.fecha_pago || null,
+                  dias: c.dias || 0,
+                  fecha_vencimiento: c.fecha_vencimiento || null
+                };
+                if(c.id){
+                  supabaseQuery('cheques', 'PATCH', chDatos, { id: c.id }).then(res => {
+                    console.log('Cheque actualizado:', c.id);
+                  });
+                } else {
+                  supabaseQuery('cheques', 'POST', [chDatos]).then(res => {
+                    console.log('Nuevo cheque creado:', res);
+                  });
+                }
               });
+            }).then(() => {
+              // Manejar comprobantes después de procesar cheques
+              if(comprobantesArr && comprobantesArr.length > 0){
+                comprobantesArr.forEach(cId => {
+                  supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: parseInt(cId, 10) }).then(res => {
+                    console.log('Marcado como PAGADA:', cId);
+                  });
+                });
+              }
+              if(comprobantesDeseleccionados && comprobantesDeseleccionados.length > 0){
+                comprobantesDeseleccionados.forEach(cId => {
+                  supabaseQuery('ventas', 'PATCH', { estado: 'ENTREGADA CONFORME' }, { id: parseInt(cId, 10) }).then(res => {
+                    console.log('Revertido a ENTREGADA CONFORME:', cId);
+                  });
+                });
+              }
+              return pagoRes;
             });
+          } else {
+            return pagoRes;
           }
-          return pagoRes;
         });
       });
     },
