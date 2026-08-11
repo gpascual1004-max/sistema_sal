@@ -21,6 +21,10 @@ var QUERY_CHEQUES    = 'order=fecha_pago.desc';
 var QUERY_CHEQUES_EM = 'order=fecha_pago.desc';
 var QUERY_RESUMEN    = 'order=cliente_nombre.asc,anio.asc,mes.asc';
 
+// Supabase alternativa para consultas del proyecto SAL
+const SUPABASE_URL_SAL = 'https://ufycqawdocnpgbvfyqch.supabase.co';
+const SUPABASE_KEY_SAL = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmeWNxYXdkb2NucGdidmZ5cWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODcyNTk5MTgsImV4cCI6MjAwMjgzNTkxOH0.nWE9n-eLwqJlqIQXSdpxQQFcwQAXTKu8N3hRgPQvO-M';
+
 // ============================================
 // UTILIDADES - SUPABASE
 // ============================================
@@ -234,7 +238,8 @@ function obtenerDashboardCompleto() {
     fletes: obtenerFletes(),
     ventas: obtenerVentas(),
     pagos:  obtenerPagos(),
-    gastos: obtenerGastos()
+    gastos: obtenerGastos(),
+    bancos: obtenerBancos()
   };
 }
 
