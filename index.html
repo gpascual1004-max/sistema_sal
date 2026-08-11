@@ -387,7 +387,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       }
     },
     'guardarCheque': ([datos, id, pagoId]) => {
-      console.log('guardarCheque - datos:', datos, 'id:', id);
+      console.log('guardarCheque - datos completos:', JSON.stringify(datos, null, 2), 'id:', id);
       if (id) {
         return supabaseQuery('cheques', 'PATCH', datos, { id }).then(res => {
           console.log('Cheque actualizado en Supabase:', id, res);
@@ -397,17 +397,27 @@ function gsRun(fnName, params, onSuccess, onError) {
           throw new Error('Error al actualizar cheque: ' + (err.message || err));
         });
       } else {
+        console.log('Intentando crear cheque con POST a tabla "cheques"');
         return supabaseQuery('cheques', 'POST', [datos]).then(res => {
-          console.log('Respuesta de POST cheques:', res, 'tipo:', typeof res);
+          console.log('Respuesta de POST cheques:', res, 'tipo:', typeof res, 'esArray:', Array.isArray(res));
+          console.log('Respuesta completa JSON:', JSON.stringify(res, null, 2));
+
+          // Si es error de Supabase (objeto con "code" o "message")
+          if (res && typeof res === 'object' && (res.code || res.message) && !Array.isArray(res)) {
+            console.error('Supabase rechazó los datos:', res);
+            var mensajeError = res.message || res.error_description || res.code || 'Error desconocido de base de datos';
+            throw new Error('Base de datos rechazó el cheque: ' + mensajeError);
+          }
+
           if (!res || !Array.isArray(res) || res.length === 0) {
-            console.error('Respuesta inválida de cheques POST:', { res, esArray: Array.isArray(res), tiene_largo: res ? res.length : 'no es array' });
-            throw new Error('La base de datos no aceptó el cheque. Verifica que todos los campos sean válidos.');
+            console.error('Respuesta inválida de cheques POST:', { res, esArray: Array.isArray(res), tipo: typeof res });
+            throw new Error('La base de datos no aceptó el cheque. Respuesta vacía o inválida.');
           }
           console.log('Nuevo cheque insertado en Supabase:', res[0]);
           return res[0];
         }).catch(err => {
-          console.error('Error al crear cheque:', err);
-          throw new Error('Error al crear cheque: ' + (err.message || err));
+          console.error('Error completo al crear cheque:', err);
+          throw new Error('Error al crear cheque: ' + (err.message || JSON.stringify(err)));
         });
       }
     },
