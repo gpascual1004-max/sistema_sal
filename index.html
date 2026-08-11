@@ -2157,10 +2157,11 @@ function poblarDropdownMeses() {
   todosPagos.forEach(function(p){var f=p.fecha||'';if(anio&&f.substr(0,4)!==anio)return;var m=f.substr(5,2);if(m)meses[m]=true;});
   var lista=document.getElementById('listaMeses');lista.innerHTML='';
   Object.keys(meses).sort().forEach(function(m){
+    var claveAnioMes=anio+'-'+m;
     var div=document.createElement('div');div.style.cssText='padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px';
     div.onmouseenter=function(){this.style.background='#f8f9fa';};div.onmouseleave=function(){this.style.background='';};
-    div.innerHTML='<input type="checkbox" id="mes_'+m+'" '+(mesesSeleccionados[m]!==false?'checked':'')+' style="cursor:pointer"><label for="mes_'+m+'" style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
-    div.querySelector('input').addEventListener('change',function(){mesesSeleccionados[m]=this.checked;actualizarLabelMeses();filtrarPagos();});
+    div.innerHTML='<input type="checkbox" id="mes_'+m+'" '+(mesesSeleccionados[claveAnioMes]!==false?'checked':'')+' style="cursor:pointer"><label for="mes_'+m+'" style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
+    div.querySelector('input').addEventListener('change',function(){mesesSeleccionados[claveAnioMes]=this.checked;actualizarLabelMeses();filtrarPagos();});
     lista.appendChild(div);
   });
   actualizarLabelMeses();
