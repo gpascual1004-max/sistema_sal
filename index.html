@@ -401,34 +401,48 @@ function gsRun(fnName, params, onSuccess, onError) {
       console.log('guardarCheque - datos completos:', JSON.stringify(datos, null, 2), 'id:', id);
       if (id) {
         return supabaseQuery('cheques', 'PATCH', datos, { id }).then(res => {
-          console.log('Cheque actualizado en Supabase:', id, res);
+          console.log('✓ Cheque actualizado en Supabase:', id);
           return res;
         }).catch(err => {
-          console.error('Error al actualizar cheque:', err);
+          console.error('✗ Error al actualizar cheque:', err);
           throw new Error('Error al actualizar cheque: ' + (err.message || err));
         });
       } else {
-        console.log('Intentando crear cheque con POST a tabla "cheques"');
+        console.log('Creando cheque NUEVO en tabla "cheques"');
         return supabaseQuery('cheques', 'POST', [datos]).then(res => {
-          console.log('Respuesta de POST cheques:', res, 'tipo:', typeof res, 'esArray:', Array.isArray(res));
-          console.log('Respuesta completa JSON:', JSON.stringify(res, null, 2));
+          console.log('Respuesta de POST:', res, 'tipo:', typeof res);
 
-          // Si es error de Supabase (objeto con "code" o "message")
-          if (res && typeof res === 'object' && (res.code || res.message) && !Array.isArray(res)) {
-            console.error('Supabase rechazó los datos:', res);
-            var mensajeError = res.message || res.error_description || res.code || 'Error desconocido de base de datos';
-            throw new Error('Base de datos rechazó el cheque: ' + mensajeError);
+          // Si es error de Supabase (objeto con "code" o "message" pero no es array)
+          if (res && typeof res === 'object' && !Array.isArray(res) && (res.code || res.message || res.error)) {
+            console.error('✗ Supabase rechazó los datos:', res);
+            var msg = res.message || res.error_description || res.error || res.code || 'Error desconocido';
+            throw new Error('Base de datos rechazó: ' + msg);
           }
 
-          if (!res || !Array.isArray(res) || res.length === 0) {
-            console.error('Respuesta inválida de cheques POST:', { res, esArray: Array.isArray(res), tipo: typeof res });
-            throw new Error('La base de datos no aceptó el cheque. Respuesta vacía o inválida.');
+          // Si la respuesta es un array pero está vacía = error silencioso
+          if (Array.isArray(res) && res.length === 0) {
+            console.warn('⚠ Respuesta vacía - posible error silencioso');
+            throw new Error('El cheque se rechazó (respuesta vacía)');
           }
-          console.log('Nuevo cheque insertado en Supabase:', res[0]);
-          return res[0];
+
+          // Si NO es array pero es un objeto (puede ser que Supabase retorne de otra forma)
+          if (res && typeof res === 'object' && !Array.isArray(res) && res.id) {
+            console.log('✓ Cheque creado (respuesta como objeto):', res.id);
+            return res;
+          }
+
+          // Si es array normal
+          if (Array.isArray(res) && res.length > 0) {
+            console.log('✓ Cheque creado (respuesta como array):', res[0].id);
+            return res[0];
+          }
+
+          // Cualquier otra cosa = respuesta inesperada
+          console.error('⚠ Respuesta inesperada:', res);
+          throw new Error('Respuesta inesperada de la base de datos');
         }).catch(err => {
-          console.error('Error completo al crear cheque:', err);
-          throw new Error('Error al crear cheque: ' + (err.message || JSON.stringify(err)));
+          console.error('✗ Error al crear cheque:', err);
+          throw err;
         });
       }
     },
