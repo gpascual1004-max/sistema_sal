@@ -3,8 +3,8 @@
 // Backend + conexión Supabase
 // ============================================
 
-const SUPABASE_URL = 'https://ufycqawdocnpgbvfyqch.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmeWNxYXdkb2NucGdidmZ5cWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODcyNTk5MTgsImV4cCI6MjAwMjgzNTkxOH0.nWE9n-eLwqJlqIQXSdpxQQFcwQAXTKu8N3hRgPQvO-M';
+const SUPABASE_URL = 'https://mlgvalvuacdfjscelpnm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xqJh9IwGfjKDBkYUDeuaVg_9c3EQZ0Q';
 
 // Query fija de cada tabla — se usa tanto para pedir los datos como para saber
 // qué clave de caché invalidar después de un guardado/borrado. Si se cambia el
@@ -166,9 +166,22 @@ function supabaseQuery(table, method, data, filters, rawQuery) {
   };
   if (data) options.payload = JSON.stringify(data);
 
-  var response = UrlFetchApp.fetch(url, options);
-  var text = response.getContentText();
-  return text ? JSON.parse(text) : null;
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    var status = response.getResponseCode();
+    var text = response.getContentText();
+
+    Logger.log('supabaseQuery [' + method + '] ' + table + ' status=' + status + ' response=' + text.substring(0, 200));
+
+    if (status < 200 || status >= 300) {
+      throw new Error('Supabase error ' + status + ': ' + text);
+    }
+
+    return text ? JSON.parse(text) : null;
+  } catch (e) {
+    Logger.log('ERROR en supabaseQuery: ' + e.toString());
+    throw e;
+  }
 }
 
 function supabaseDelete(table, id) {
@@ -664,10 +677,17 @@ var TIPOS_CHEQUE_EMITIDO_PAGABLES = ['CHEQUE PROPIO', 'ECHEQ', 'CHEQUE TERCERO']
 function guardarGasto(datos, id, chequeIds, chequeEmitidoIds) {
   var gastoId = id;
   if (id) {
-    supabaseQuery('gastos', 'PATCH', datos, { id: id });
+    var patchRes = supabaseQuery('gastos', 'PATCH', datos, { id: id });
+    Logger.log('Gasto PATCH result: ' + JSON.stringify(patchRes));
   } else {
+    Logger.log('Guardando nuevo gasto: ' + JSON.stringify(datos));
     var res = supabaseQuery('gastos', 'POST', [datos]);
+    Logger.log('Gasto POST result: ' + JSON.stringify(res));
     gastoId = (res && res[0] && res[0].id) ? res[0].id : null;
+    Logger.log('New gastoId: ' + gastoId);
+  }
+  if (!gastoId && !id) {
+    throw new Error('No se pudo crear el gasto - no hay ID retornado');
   }
   invalidarCacheTabla('gastos', QUERY_GASTOS);
 
