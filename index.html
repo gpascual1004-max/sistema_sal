@@ -582,7 +582,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
       <div id="msgFletes"></div>
       <div class="table-container">
-        <table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Chofer</th><th>Detalle</th><th>Importe</th><th>IVA</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+        <table><thead><tr style="cursor:pointer"><th onclick="cambiarOrdenFletes('fecha_flete')" style="cursor:pointer;user-select:none">Fecha <span id="ordFletesFecha"></span></th><th onclick="cambiarOrdenFletes('proveedor_nombre')" style="cursor:pointer;user-select:none">Proveedor <span id="ordFletesProv"></span></th><th onclick="cambiarOrdenFletes('chofer_nombre')" style="cursor:pointer;user-select:none">Chofer <span id="ordFletesCho"></span></th><th onclick="cambiarOrdenFletes('detalle')" style="cursor:pointer;user-select:none">Detalle <span id="ordFletesDet"></span></th><th onclick="cambiarOrdenFletes('importe')" style="cursor:pointer;user-select:none">Importe <span id="ordFletesImp"></span></th><th onclick="cambiarOrdenFletes('iva')" style="cursor:pointer;user-select:none">IVA <span id="ordFletesIva"></span></th><th onclick="cambiarOrdenFletes('total')" style="cursor:pointer;user-select:none">Total <span id="ordFletesTot"></span></th><th onclick="cambiarOrdenFletes('estado')" style="cursor:pointer;user-select:none">Estado <span id="ordFletesEst"></span></th><th></th></tr></thead>
         <tbody id="cuerpoFletes"><tr><td colspan="9" class="loading">Cargando...</td></tr></tbody></table>
       </div>
       <div class="paginacion" id="paginacionFletes"></div>
@@ -645,7 +645,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
       <div id="msgVentas"></div>
       <div class="table-container">
-        <table><thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>Cliente ID</th><th>Debe</th><th>Estado</th><th>Observaciones</th><th></th></tr></thead>
+        <table><thead><tr style="cursor:pointer"><th onclick="cambiarOrdenVentas('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="ordVentasFecha"></span></th><th onclick="cambiarOrdenVentas('comprobante')" style="cursor:pointer;user-select:none">Comprobante <span id="ordVentasComp"></span></th><th onclick="cambiarOrdenVentas('cliente_nombre')" style="cursor:pointer;user-select:none">Cliente <span id="ordVentasCli"></span></th><th onclick="cambiarOrdenVentas('cliente_id')" style="cursor:pointer;user-select:none">Cliente ID <span id="ordVentasCliId"></span></th><th onclick="cambiarOrdenVentas('debe')" style="cursor:pointer;user-select:none">Debe <span id="ordVentasDebe"></span></th><th onclick="cambiarOrdenVentas('estado')" style="cursor:pointer;user-select:none">Estado <span id="ordVentasEst"></span></th><th onclick="cambiarOrdenVentas('observaciones')" style="cursor:pointer;user-select:none">Observaciones <span id="ordVentasObs"></span></th><th></th></tr></thead>
         <tbody id="cuerpoVentas"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody></table>
       </div>
       <div class="paginacion" id="paginacionVentas"></div>
@@ -789,7 +789,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
       <div id="msgPagos"></div>
       <div class="table-container">
-        <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Cliente ID</th><th>Haber</th><th>Efectivo</th><th>Transferencia</th><th>Cheque N°</th><th>Banco</th><th>Imp. Cheque</th><th>Observaciones</th><th></th></tr></thead>
+        <table><thead><tr style="cursor:pointer"><th onclick="cambiarOrdenPagos('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="ordPagosFecha"></span></th><th onclick="cambiarOrdenPagos('cliente_nombre')" style="cursor:pointer;user-select:none">Cliente <span id="ordPagosCli"></span></th><th onclick="cambiarOrdenPagos('cliente_id')" style="cursor:pointer;user-select:none">Cliente ID <span id="ordPagosCliId"></span></th><th onclick="cambiarOrdenPagos('haber')" style="cursor:pointer;user-select:none">Haber <span id="ordPagosHab"></span></th><th onclick="cambiarOrdenPagos('efectivo')" style="cursor:pointer;user-select:none">Efectivo <span id="ordPagosEf"></span></th><th onclick="cambiarOrdenPagos('transferencia')" style="cursor:pointer;user-select:none">Transferencia <span id="ordPagosTrans"></span></th><th onclick="cambiarOrdenPagos('cheque_numero')" style="cursor:pointer;user-select:none">Cheque N° <span id="ordPagosCh"></span></th><th onclick="cambiarOrdenPagos('banco')" style="cursor:pointer;user-select:none">Banco <span id="ordPagosBan"></span></th><th onclick="cambiarOrdenPagos('importe_cheque')" style="cursor:pointer;user-select:none">Imp. Cheque <span id="ordPagosImpCh"></span></th><th onclick="cambiarOrdenPagos('observaciones')" style="cursor:pointer;user-select:none">Observaciones <span id="ordPagosObs"></span></th><th></th></tr></thead>
         <tbody id="cuerpoPagos"><tr><td colspan="11" class="loading">Cargando...</td></tr></tbody></table>
       </div>
       <div class="paginacion" id="paginacionPagos"></div>
@@ -1714,7 +1714,28 @@ function limpiarFiltrosFletes(){
 }
 function renderizarFletes() {
   var tbody=document.getElementById('cuerpoFletes'),total=fletesFiltrados.length;
-  var inicio=(paginaFletes-1)*porPaginaFletes,pagina=fletesFiltrados.slice(inicio,inicio+porPaginaFletes);
+
+  var datosOrdenados = fletesFiltrados.slice();
+  if (ordenFletes.campo) {
+    datosOrdenados.sort(function(a, b) {
+      var valA = a[ordenFletes.campo], valB = b[ordenFletes.campo];
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return ordenFletes.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  var campos = ['fecha_flete', 'proveedor_nombre', 'chofer_nombre', 'detalle', 'importe', 'iva', 'total', 'estado'];
+  campos.forEach(function(c) {
+    var span = document.getElementById('ordFletes' + c.split('_')[0].charAt(0).toUpperCase() + c.split('_')[0].slice(1));
+    if (!span) return;
+    span.textContent = ordenFletes.campo === c ? (ordenFletes.dir === 'asc' ? '▲' : '▼') : '';
+  });
+
+  var inicio=(paginaFletes-1)*porPaginaFletes,pagina=datosOrdenados.slice(inicio,inicio+porPaginaFletes);
   var totalMonto=fletesFiltrados.reduce(function(s,f){return s+(parseFloat(f.total)||0);},0);
   var totalPagado=fletesFiltrados.filter(function(f){return f.estado==='PAGADO';}).reduce(function(s,f){return s+(parseFloat(f.total)||0);},0);
   var pctPagado=totalMonto>0?(totalPagado/totalMonto*100):0;
@@ -1902,7 +1923,28 @@ function exportarClientesSinMatch() {
 }
 function renderizarVentas() {
   var tbody=document.getElementById('cuerpoVentas'),total=ventasFiltradas.length;
-  var inicio=(paginaVentas-1)*porPaginaVentas,pagina=ventasFiltradas.slice(inicio,inicio+porPaginaVentas);
+
+  var datosOrdenados = ventasFiltradas.slice();
+  if (ordenVentas.campo) {
+    datosOrdenados.sort(function(a, b) {
+      var valA = a[ordenVentas.campo], valB = b[ordenVentas.campo];
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return ordenVentas.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  var campos = ['fecha', 'comprobante', 'cliente_nombre', 'cliente_id', 'debe', 'estado', 'observaciones'];
+  campos.forEach(function(c) {
+    var span = document.getElementById('ordVentas' + (c === 'cliente_nombre' ? 'Cli' : c === 'cliente_id' ? 'CliId' : c === 'comprobante' ? 'Comp' : c.charAt(0).toUpperCase() + c.slice(1)));
+    if (!span) return;
+    span.textContent = ordenVentas.campo === c ? (ordenVentas.dir === 'asc' ? '▲' : '▼') : '';
+  });
+
+  var inicio=(paginaVentas-1)*porPaginaVentas,pagina=datosOrdenados.slice(inicio,inicio+porPaginaVentas);
   var totalDebe=ventasFiltradas.reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
   document.getElementById('countVentas').textContent=total+' registro'+(total!==1?'s':'')+(total!==todasVentas.length?' (filtrado de '+todasVentas.length+')':'');
   document.getElementById('infoVentas').textContent='Total: '+pesos(totalDebe);
@@ -2187,7 +2229,28 @@ function filtrarPagos() {
 function limpiarFiltrosPagos(){document.getElementById('fPagoAnio').value='';document.getElementById('fPagoFecha').value='';document.getElementById('fPagoObs').value='';mesesSeleccionados={};poblarDropdownMeses();dmSelectAll('dmPagoCliente',true);pagosFiltrados=todosPagos;paginaPagos=1;renderizarPagos();}
 function renderizarPagos() {
   var tbody=document.getElementById('cuerpoPagos'),total=pagosFiltrados.length;
-  var inicio=(paginaPagos-1)*porPaginaPagos,pagina=pagosFiltrados.slice(inicio,inicio+porPaginaPagos);
+
+  var datosOrdenados = pagosFiltrados.slice();
+  if (ordenPagos.campo) {
+    datosOrdenados.sort(function(a, b) {
+      var valA = a[ordenPagos.campo], valB = b[ordenPagos.campo];
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return ordenPagos.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+
+  var campos = ['fecha', 'cliente_nombre', 'cliente_id', 'haber', 'efectivo', 'transferencia', 'cheque_numero', 'banco', 'importe_cheque', 'observaciones'];
+  campos.forEach(function(c) {
+    var span = document.getElementById('ordPagos' + (c === 'cliente_nombre' ? 'Cli' : c === 'cliente_id' ? 'CliId' : c === 'efectivo' ? 'Ef' : c === 'transferencia' ? 'Trans' : c === 'importe_cheque' ? 'ImpCh' : c === 'cheque_numero' ? 'Ch' : c === 'banco' ? 'Ban' : c.charAt(0).toUpperCase() + c.slice(1)));
+    if (!span) return;
+    span.textContent = ordenPagos.campo === c ? (ordenPagos.dir === 'asc' ? '▲' : '▼') : '';
+  });
+
+  var inicio=(paginaPagos-1)*porPaginaPagos,pagina=datosOrdenados.slice(inicio,inicio+porPaginaPagos);
   var totalHaber=pagosFiltrados.reduce(function(s,p){return s+(parseFloat(p.haber)||0);},0);
   var totalCobrado=pagosFiltrados.reduce(function(s,p){return s+cobroReal(p);},0);
   var pctCobrado=totalHaber>0?(totalCobrado/totalHaber*100):0;
@@ -2631,6 +2694,36 @@ function cambiarOrdenGastos(campo) {
   }
   paginaGastos = 1;
   renderizarGastos();
+}
+function cambiarOrdenFletes(campo) {
+  if (ordenFletes.campo === campo) {
+    ordenFletes.dir = ordenFletes.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenFletes.campo = campo;
+    ordenFletes.dir = 'asc';
+  }
+  paginaFletes = 1;
+  renderizarFletes();
+}
+function cambiarOrdenVentas(campo) {
+  if (ordenVentas.campo === campo) {
+    ordenVentas.dir = ordenVentas.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenVentas.campo = campo;
+    ordenVentas.dir = 'asc';
+  }
+  paginaVentas = 1;
+  renderizarVentas();
+}
+function cambiarOrdenPagos(campo) {
+  if (ordenPagos.campo === campo) {
+    ordenPagos.dir = ordenPagos.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenPagos.campo = campo;
+    ordenPagos.dir = 'asc';
+  }
+  paginaPagos = 1;
+  renderizarPagos();
 }
 function renderizarGastos() {
   var tbody=document.getElementById('cuerpoGastos'), total=gastosFiltrados.length;

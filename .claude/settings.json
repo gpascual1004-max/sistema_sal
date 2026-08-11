@@ -66,7 +66,8 @@
       "Bash(grep -E \"\\\\.js$|\\\\.json$\")",
       "Bash(grep -E \"\\\\.js$|\\\\.html$\")",
       "Bash(git commit -m 'Restore: Recover test_local.html with previous improvements *)",
-      "Bash(git commit -m 'Feature: Add sortable columns to Gastos table *)"
+      "Bash(git commit -m 'Feature: Add sortable columns to Gastos table *)",
+      "Bash(git commit -m 'Feature: Add sortable columns to all tables *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\gpasc\\Documents\\Repositorio_VSCODE\\sistema_sal\\sistema_sal",
