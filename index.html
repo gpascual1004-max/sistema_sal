@@ -1046,7 +1046,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       <div id="msgCheques"></div>
       <div class="table-container">
         <table>
-          <thead><tr><th>Estado</th><th>Tipo</th><th>Banco</th><th>Fecha Emisión</th><th>Fecha Pago</th><th>N° Cheque</th><th>Importe</th><th>Días</th><th>Fecha Venc.</th><th>Monto Salida</th><th>Fecha Salida</th><th>Cliente</th><th></th></tr></thead>
+          <thead><tr style="cursor:pointer"><th onclick="cambiarOrdenCheques('estado')" style="cursor:pointer;user-select:none">Estado <span id="ordChequeEstado"></span></th><th onclick="cambiarOrdenCheques('tipo')" style="cursor:pointer;user-select:none">Tipo <span id="ordChequeTipo"></span></th><th onclick="cambiarOrdenCheques('banco')" style="cursor:pointer;user-select:none">Banco <span id="ordChequeBanco"></span></th><th onclick="cambiarOrdenCheques('fecha_emision')" style="cursor:pointer;user-select:none">Fecha Emisión <span id="ordChequeFechaEmision"></span></th><th onclick="cambiarOrdenCheques('fecha_pago')" style="cursor:pointer;user-select:none">Fecha Pago <span id="ordChequeFechaPago"></span></th><th onclick="cambiarOrdenCheques('numero')" style="cursor:pointer;user-select:none">N° Cheque <span id="ordChequeNumero"></span></th><th onclick="cambiarOrdenCheques('importe')" style="cursor:pointer;user-select:none">Importe <span id="ordChequeImporte"></span></th><th onclick="cambiarOrdenCheques('dias')" style="cursor:pointer;user-select:none">Días <span id="ordChequeDias"></span></th><th onclick="cambiarOrdenCheques('fecha_vencimiento')" style="cursor:pointer;user-select:none">Fecha Venc. <span id="ordChequeFechaVencimiento"></span></th><th onclick="cambiarOrdenCheques('monto_salida')" style="cursor:pointer;user-select:none">Monto Salida <span id="ordChequeMontoSalida"></span></th><th onclick="cambiarOrdenCheques('fecha_salida')" style="cursor:pointer;user-select:none">Fecha Salida <span id="ordChequeFechaSalida"></span></th><th onclick="cambiarOrdenCheques('cliente_nombre')" style="cursor:pointer;user-select:none">Cliente <span id="ordChequeCliente"></span></th><th></th></tr></thead>
           <tbody id="cuerpoCheques"><tr><td colspan="13" class="loading">Cargando...</td></tr></tbody>
         </table>
       </div>
@@ -1123,7 +1123,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       <div id="msgCheqEm"></div>
       <div class="table-container">
         <table>
-          <thead><tr><th>Fecha</th><th>Operación</th><th>Cliente/Prov</th><th>Descripción</th><th>Detalle</th><th>Cheque/Débito</th><th>Banco</th><th>Importe</th><th>Fecha Emis.</th><th>Fecha Pago</th><th>Tipo</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr style="cursor:pointer"><th onclick="cambiarOrdenChequeEm('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="ordCheqEmFecha"></span></th><th onclick="cambiarOrdenChequeEm('operacion')" style="cursor:pointer;user-select:none">Operación <span id="ordCheqEmOperacion"></span></th><th onclick="cambiarOrdenChequeEm('cliente_proveed')" style="cursor:pointer;user-select:none">Cliente/Prov <span id="ordCheqEmClienteProveed"></span></th><th onclick="cambiarOrdenChequeEm('descripcion')" style="cursor:pointer;user-select:none">Descripción <span id="ordCheqEmDescripcion"></span></th><th onclick="cambiarOrdenChequeEm('detalle')" style="cursor:pointer;user-select:none">Detalle <span id="ordCheqEmDetalle"></span></th><th onclick="cambiarOrdenChequeEm('numero_cheque')" style="cursor:pointer;user-select:none">Cheque/Débito <span id="ordCheqEmNumeroCheque"></span></th><th onclick="cambiarOrdenChequeEm('banco')" style="cursor:pointer;user-select:none">Banco <span id="ordCheqEmBanco"></span></th><th onclick="cambiarOrdenChequeEm('importe_cheque')" style="cursor:pointer;user-select:none">Importe <span id="ordCheqEmImporte"></span></th><th onclick="cambiarOrdenChequeEm('fecha_emis')" style="cursor:pointer;user-select:none">Fecha Emis. <span id="ordCheqEmFechaEmis"></span></th><th onclick="cambiarOrdenChequeEm('fecha_pago')" style="cursor:pointer;user-select:none">Fecha Pago <span id="ordCheqEmFechaPago"></span></th><th onclick="cambiarOrdenChequeEm('tipo_cheque')" style="cursor:pointer;user-select:none">Tipo <span id="ordCheqEmTipo"></span></th><th onclick="cambiarOrdenChequeEm('estado')" style="cursor:pointer;user-select:none">Estado <span id="ordCheqEmEstado"></span></th><th></th></tr></thead>
           <tbody id="cuerpoCheqEm"><tr><td colspan="13" class="loading">Cargando...</td></tr></tbody>
         </table>
       </div>
@@ -2577,6 +2577,8 @@ var ordenGastos={campo: null, dir: 'asc'};
 var ordenFletes={campo: null, dir: 'asc'};
 var ordenPagos={campo: null, dir: 'asc'};
 var ordenVentas={campo: null, dir: 'asc'};
+var ordenCheques={campo: null, dir: 'asc'};
+var ordenChequeEm={campo: null, dir: 'asc'};
 var gastosFiltroInicializado=false, todosRubros=[];
 var chequesGastoDisponibles=[], chequesGastoSeleccionados={}, chequesGastoOriginalIds=[];
 var chequesGastoEmDisponibles=[], chequesGastoEmSeleccionados={}, chequesGastoEmOriginalIds=[];
@@ -3965,8 +3967,10 @@ function poblarFiltrosAnioMesCheques() {
     if (vencStr) { anios.add(vencStr.substr(0,4)); meses.add(vencStr.substr(5,2)); }
   });
   var selA = document.getElementById('fChequeAnio');
+  selA.innerHTML = '<option value="">Todos</option>';
   Array.from(anios).sort().reverse().forEach(function(a) { var o = document.createElement('option'); o.value = a; o.textContent = a; selA.appendChild(o); });
   var selM = document.getElementById('fChequeMes');
+  selM.innerHTML = '<option value="">Todos</option>';
   var mesesNom = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   Array.from(meses).sort().forEach(function(m) { var o = document.createElement('option'); o.value = m; o.textContent = mesesNom[parseInt(m)-1]; selM.appendChild(o); });
 }
@@ -4040,11 +4044,38 @@ function limpiarFiltrosCheques() {
   document.getElementById('fChequeTipo').value   = '';
   filtrarCheques();
 }
+function cambiarOrdenCheques(campo) {
+  if (ordenCheques.campo === campo) {
+    ordenCheques.dir = ordenCheques.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenCheques.campo = campo;
+    ordenCheques.dir = 'asc';
+  }
+  paginaCheques = 1;
+  renderizarCheques();
+}
 function renderizarCheques() {
+  var datosOrdenados = chequesFiltrados.slice();
+  if (ordenCheques.campo) {
+    datosOrdenados.sort(function(a, b) {
+      var valA = a[ordenCheques.campo], valB = b[ordenCheques.campo];
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return ordenCheques.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+  var campos = ['estado', 'tipo', 'banco', 'fecha_emision', 'fecha_pago', 'numero', 'importe', 'dias', 'fecha_vencimiento', 'monto_salida', 'fecha_salida', 'cliente_nombre'];
+  campos.forEach(function(c) {
+    var span = document.getElementById('ordCheque' + c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ''));
+    if (span) span.textContent = ordenCheques.campo === c ? (ordenCheques.dir === 'asc' ? '▲' : '▼') : '';
+  });
   var total  = chequesFiltrados.length;
   document.getElementById('countCheques').textContent=total+' registro'+(total!==1?'s':'')+(total!==todosCheques.length?' (filtrado de '+todosCheques.length+')':'');
   var inicio = (paginaCheques - 1) * porPaginaCheques;
-  var pagina = chequesFiltrados.slice(inicio, inicio + porPaginaCheques);
+  var pagina = datosOrdenados.slice(inicio, inicio + porPaginaCheques);
   var tbody  = document.getElementById('cuerpoCheques');
   tbody.innerHTML = '';
   if (!total) {
@@ -4297,10 +4328,37 @@ function limpiarFiltrosCheqEm() {
   ['fCeqBanco','fCeqEstado','fCeqTipo','fCeqFecha','fCeqNumero','fCeqTexto'].forEach(function(id){ document.getElementById(id).value=''; });
   filtrarCheqEm();
 }
+function cambiarOrdenChequeEm(campo) {
+  if (ordenChequeEm.campo === campo) {
+    ordenChequeEm.dir = ordenChequeEm.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenChequeEm.campo = campo;
+    ordenChequeEm.dir = 'asc';
+  }
+  paginaCheqEm = 1;
+  renderizarCheqEm();
+}
 function renderizarCheqEm() {
+  var datosOrdenados = cheqEmFiltrados.slice();
+  if (ordenChequeEm.campo) {
+    datosOrdenados.sort(function(a, b) {
+      var valA = a[ordenChequeEm.campo], valB = b[ordenChequeEm.campo];
+      if (valA === null || valA === undefined) valA = '';
+      if (valB === null || valB === undefined) valB = '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return ordenChequeEm.dir === 'asc' ? cmp : -cmp;
+    });
+  }
+  var campos = ['fecha', 'operacion', 'cliente_proveed', 'descripcion', 'detalle', 'numero_cheque', 'banco', 'importe_cheque', 'fecha_emis', 'fecha_pago', 'tipo_cheque', 'estado'];
+  campos.forEach(function(c) {
+    var span = document.getElementById('ordCheqEm' + c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ''));
+    if (span) span.textContent = ordenChequeEm.campo === c ? (ordenChequeEm.dir === 'asc' ? '▲' : '▼') : '';
+  });
   var total  = cheqEmFiltrados.length;
   var inicio = (paginaCheqEm - 1) * porPaginaCheqEm;
-  var pagina = cheqEmFiltrados.slice(inicio, inicio + porPaginaCheqEm);
+  var pagina = datosOrdenados.slice(inicio, inicio + porPaginaCheqEm);
   var tbody  = document.getElementById('cuerpoCheqEm');
   tbody.innerHTML = '';
   if (!total) {
