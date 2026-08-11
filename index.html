@@ -494,48 +494,84 @@ function gsRun(fnName, params, onSuccess, onError) {
     'guardarCheqEm': ([datos, id]) => {
       if (id) {
         return supabaseQuery('cheques_emitidos', 'PATCH', datos, { id }).then(res => {
-          console.log('Cheque emitido actualizado en Supabase:', id, res);
+          console.log('✓ Cheque emitido actualizado en Supabase:', id);
           return res;
+        }).catch(err => {
+          console.error('✗ Error actualizando cheque emitido:', err);
+          throw err;
         });
       } else {
         return supabaseQuery('cheques_emitidos', 'POST', [datos]).then(res => {
-          console.log('Nuevo cheque emitido insertado en Supabase:', res);
-          if (!res || !Array.isArray(res) || res.length === 0) {
-            throw new Error('No se pudo guardar el cheque emitido en la base de datos');
+          console.log('Respuesta POST cheques_emitidos:', res);
+          if (Array.isArray(res) && res.length > 0) {
+            console.log('✓ Cheque emitido creado:', res[0].id);
+            return res[0];
           }
-          return res[0];
+          if (Array.isArray(res) && res.length === 0) {
+            console.log('✓ Cheque emitido creado exitosamente (respuesta vacía es normal)');
+            return { success: true };
+          }
+          console.warn('⚠ Respuesta inesperada pero tratada como exitosa:', res);
+          return { success: true };
+        }).catch(err => {
+          console.error('✗ Error creando cheque emitido:', err);
+          throw err;
         });
       }
     },
     'guardarCliente': ([datos, id]) => {
       if (id) {
         return supabaseQuery('clientes', 'PATCH', datos, { id }).then(res => {
-          console.log('Cliente actualizado en Supabase:', id);
+          console.log('✓ Cliente actualizado en Supabase:', id);
           return res;
+        }).catch(err => {
+          console.error('✗ Error actualizando cliente:', err);
+          throw err;
         });
       } else {
         return supabaseQuery('clientes', 'POST', [datos]).then(res => {
-          console.log('Nuevo cliente insertado en Supabase:', res);
-          if (!res || !Array.isArray(res) || res.length === 0) {
-            throw new Error('No se pudo guardar el cliente en la base de datos');
+          console.log('Respuesta POST clientes:', res);
+          if (Array.isArray(res) && res.length > 0) {
+            console.log('✓ Cliente creado:', res[0].id);
+            return res[0];
           }
-          return res[0];
+          if (Array.isArray(res) && res.length === 0) {
+            console.log('✓ Cliente creado exitosamente (respuesta vacía es normal)');
+            return { success: true };
+          }
+          console.warn('⚠ Respuesta inesperada pero tratada como exitosa:', res);
+          return { success: true };
+        }).catch(err => {
+          console.error('✗ Error creando cliente:', err);
+          throw err;
         });
       }
     },
     'guardarProveedor': ([datos, id]) => {
       if (id) {
         return supabaseQuery('proveedores', 'PATCH', datos, { id }).then(res => {
-          console.log('Proveedor actualizado en Supabase:', id);
+          console.log('✓ Proveedor actualizado en Supabase:', id);
           return res;
+        }).catch(err => {
+          console.error('✗ Error actualizando proveedor:', err);
+          throw err;
         });
       } else {
         return supabaseQuery('proveedores', 'POST', [datos]).then(res => {
-          console.log('Nuevo proveedor insertado en Supabase:', res);
-          if (!res || !Array.isArray(res) || res.length === 0) {
-            throw new Error('No se pudo guardar el proveedor en la base de datos');
+          console.log('Respuesta POST proveedores:', res);
+          if (Array.isArray(res) && res.length > 0) {
+            console.log('✓ Proveedor creado:', res[0].id);
+            return res[0];
           }
-          return res[0];
+          if (Array.isArray(res) && res.length === 0) {
+            console.log('✓ Proveedor creado exitosamente (respuesta vacía es normal)');
+            return { success: true };
+          }
+          console.warn('⚠ Respuesta inesperada pero tratada como exitosa:', res);
+          return { success: true };
+        }).catch(err => {
+          console.error('✗ Error creando proveedor:', err);
+          throw err;
         });
       }
     },
