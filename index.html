@@ -160,6 +160,8 @@ function supabaseQuery(table, methodOrFilters, dataOrFiltersOrQuery, filtersOrQu
     if (query) url += query + '&';
     if(method === 'GET') url += 'limit=10000';
 
+    console.log('[supabaseQuery]', method, table, '- URL:', url, 'data:', data);
+
     let options = {
       method: method,
       headers: {
@@ -173,13 +175,29 @@ function supabaseQuery(table, methodOrFilters, dataOrFiltersOrQuery, filtersOrQu
 
     fetch(url, options)
     .then(res => {
+      console.log('[supabaseQuery] Response status:', res.status, res.statusText);
       if(!res.ok) throw new Error('HTTP '+res.status+': '+res.statusText);
       const contentType = res.headers.get('content-type');
       if(contentType && contentType.includes('application/json')) return res.json();
       return res.text().then(text => text ? JSON.parse(text) : null);
     })
-    .then(data => resolve(Array.isArray(data) ? data : (data || null)))
-    .catch(reject);
+    .then(responseData => {
+      console.log('[supabaseQuery] Response data:', responseData);
+
+      // Para POST/PATCH/DELETE, si retorna array, usarlo. Si retorna objeto único o nulo, también aceptar
+      if(method !== 'GET') {
+        if(Array.isArray(responseData)) return resolve(responseData);
+        if(responseData !== null && typeof responseData === 'object') return resolve([responseData]);
+        if(responseData === null) return resolve([]);
+      }
+
+      // Para GET, retornar array como está
+      resolve(Array.isArray(responseData) ? responseData : (responseData ? [responseData] : []));
+    })
+    .catch(err => {
+      console.error('[supabaseQuery] Error:', err);
+      reject(err);
+    });
   });
 }
 
