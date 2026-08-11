@@ -272,31 +272,38 @@ function gsRun(fnName, params, onSuccess, onError) {
     'guardarVenta': () => Promise.resolve(true),
     'guardarPagoConCheques': ([datos, idPagoEdicion, cheques, comprobantesArr, comprobantesDeseleccionados]) => {
       return Promise.resolve().then(() => {
-        if(comprobantesArr && comprobantesArr.length > 0){
-          comprobantesArr.forEach(cId => {
-            supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: parseInt(cId, 10) }).then(res => {
-              console.log('Marcado como PAGADA:', cId);
-            });
-          });
-        }
-        if(comprobantesDeseleccionados && comprobantesDeseleccionados.length > 0){
-          comprobantesDeseleccionados.forEach(cId => {
-            supabaseQuery('ventas', 'PATCH', { estado: 'ENTREGADA CONFORME' }, { id: parseInt(cId, 10) }).then(res => {
-              console.log('Revertido a ENTREGADA CONFORME:', cId);
-            });
-          });
-        }
+        datos.comprobantes_ids = JSON.stringify(comprobantesArr || []);
+
+        var pagoPromise;
         if(idPagoEdicion){
-          var pago=todosPagos.find(p => p.id === idPagoEdicion);
-          if(pago){
-            pago.comprobantes_ids=JSON.stringify(comprobantesArr);
-            datos.comprobantes_ids=JSON.stringify(comprobantesArr);
-            supabaseQuery('pagos', 'PATCH', datos, { id: idPagoEdicion }).then(res => {
-              console.log('Actualizado pago en Supabase',idPagoEdicion,'con',comprobantesArr.length,'comprobantes');
+          pagoPromise = supabaseQuery('pagos', 'PATCH', datos, { id: idPagoEdicion }).then(res => {
+            console.log('Actualizado pago en Supabase',idPagoEdicion);
+            return { ok: true, id: idPagoEdicion };
+          });
+        } else {
+          pagoPromise = supabaseQuery('pagos', 'POST', [datos]).then(res => {
+            console.log('Nuevo pago insertado en Supabase', res);
+            return { ok: true, id: (res && res[0] && res[0].id) ? res[0].id : null };
+          });
+        }
+
+        return pagoPromise.then(pagoRes => {
+          if(comprobantesArr && comprobantesArr.length > 0){
+            comprobantesArr.forEach(cId => {
+              supabaseQuery('ventas', 'PATCH', { estado: 'PAGADA' }, { id: parseInt(cId, 10) }).then(res => {
+                console.log('Marcado como PAGADA:', cId);
+              });
             });
           }
-        }
-        return true;
+          if(comprobantesDeseleccionados && comprobantesDeseleccionados.length > 0){
+            comprobantesDeseleccionados.forEach(cId => {
+              supabaseQuery('ventas', 'PATCH', { estado: 'ENTREGADA CONFORME' }, { id: parseInt(cId, 10) }).then(res => {
+                console.log('Revertido a ENTREGADA CONFORME:', cId);
+              });
+            });
+          }
+          return pagoRes;
+        });
       });
     },
     'guardarFlete': ([datos, id]) => {
