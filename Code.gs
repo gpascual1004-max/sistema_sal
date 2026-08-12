@@ -17,7 +17,7 @@ var QUERY_GASTOS     = 'order=fecha.desc';
 var QUERY_PROVEEDORES = 'order=nombre.asc';
 var QUERY_RUBROS     = 'order=nombre.asc';
 var QUERY_BANCOS     = 'order=nombre.asc';
-var QUERY_CHEQUES    = 'order=fecha_pago.desc';
+var QUERY_CHEQUES    = 'order=fecha_emision.desc';
 var QUERY_CHEQUES_EM = 'order=fecha_pago.desc';
 var QUERY_RESUMEN    = 'order=cliente_nombre.asc,anio.asc,mes.asc';
 
@@ -507,11 +507,15 @@ function guardarPagoConCheques(datos, id, cheques, comprobantesIds, comprobantes
   var aBorrar = existentes.filter(function(e) { return idsActuales.indexOf(e.id) === -1; });
 
   cheques.forEach(function(c) {
+    var fechaPago = c.fecha_pago;
+    if (!fechaPago && c.fecha_emision) {
+      fechaPago = sumarDiasGs(c.fecha_emision, 30);
+    }
     var chDatos = {
       pago_id: pagoId, cliente_nombre: datos.cliente_nombre, cliente_id: datos.cliente_id,
       numero: c.numero, banco: c.banco, importe: c.importe, tipo: c.tipo,
-      fecha_emision: c.fecha_emision || null, fecha_pago: c.fecha_pago || null,
-      dias: c.dias || 0, fecha_vencimiento: c.fecha_pago ? sumarDiasGs(c.fecha_pago, c.dias) : null
+      fecha_emision: c.fecha_emision || null, fecha_pago: fechaPago || null,
+      dias: c.dias || 0, fecha_vencimiento: fechaPago ? sumarDiasGs(fechaPago, c.dias) : null
     };
     if (c.id) {
       supabaseQuery('cheques', 'PATCH', chDatos, { id: c.id });
@@ -1129,6 +1133,38 @@ function guardarCheqEm(datos, id) {
 function eliminarCheqEmById(id) {
   var res = supabaseDelete('cheques_emitidos', id);
   invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
+  return res;
+}
+
+// ============================================
+// SALDOS
+// ============================================
+function obtenerSaldos() {
+  var cache = CacheService.getUserCache();
+  var key = 'supabase_saldos';
+  var cached = cache.get(key);
+  if (cached) return JSON.parse(cached);
+  var resultado = supabaseQuery('saldos', 'GET', null, null, 'order=fecha.desc') || [];
+  cache.put(key, JSON.stringify(resultado), 3600);
+  return resultado;
+}
+
+function guardarSaldo(datos, id) {
+  if (!datos.fecha || !datos.tipo || !datos.banco_caja || datos.monto === null || datos.monto === undefined) {
+    throw new Error('Faltan datos obligatorios: fecha, tipo, banco_caja y monto son requeridos');
+  }
+  if (id) {
+    supabaseQuery('saldos', 'PATCH', datos, { id });
+  } else {
+    supabaseQuery('saldos', 'POST', [datos]);
+  }
+  invalidarCacheTabla('saldos', 'order=fecha.desc');
+  return { ok: true };
+}
+
+function eliminarSaldoById(id) {
+  var res = supabaseDelete('saldos', id);
+  invalidarCacheTabla('saldos', 'order=fecha.desc');
   return res;
 }
 

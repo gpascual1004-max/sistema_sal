@@ -313,6 +313,36 @@ function gsRun(fnName, params, onSuccess, onError) {
     'obtenerPagos': () => supabaseQueryAll('pagos', 'order=fecha.desc'),
     'obtenerFletes': () => supabaseQueryAll('fletes', 'order=fecha_flete.desc'),
     'obtenerGastos': () => supabaseQueryAll('gastos', 'order=fecha.desc'),
+    'obtenerSaldos': () => supabaseQueryAll('saldos', 'order=fecha.desc'),
+    'guardarSaldo': ([datos, id]) => {
+      if (id) {
+        return supabaseQuery('saldos', 'PATCH', datos, { id }).then(res => {
+          console.log('✓ Saldo actualizado:', id);
+          return res;
+        }).catch(err => {
+          console.error('✗ Error actualizando saldo:', err);
+          throw err;
+        });
+      } else {
+        return supabaseQuery('saldos', 'POST', [datos]).then(res => {
+          console.log('Respuesta POST saldos:', res);
+          if (Array.isArray(res) && res.length > 0) {
+            console.log('✓ Saldo creado:', res[0].id);
+            return res[0];
+          }
+          if (Array.isArray(res) && res.length === 0) {
+            console.log('✓ Saldo creado exitosamente (respuesta vacía es normal)');
+            return { success: true };
+          }
+          console.warn('⚠ Respuesta inesperada pero tratada como exitosa:', res);
+          return { success: true };
+        }).catch(err => {
+          console.error('✗ Error creando saldo:', err);
+          throw err;
+        });
+      }
+    },
+    'eliminarSaldoById': ([id]) => supabaseQuery('saldos', 'DELETE', null, { id }),
     'guardarVenta': () => Promise.resolve(true),
     'guardarPagoConCheques': ([datos, idPagoEdicion, cheques, comprobantesArr, comprobantesDeseleccionados]) => {
       return Promise.resolve().then(() => {
@@ -722,6 +752,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       <button class="nav-btn" data-tab="gastos">Gastos</button>
       <button class="nav-btn" data-tab="cheques">Cheques Recibidos</button>
       <button class="nav-btn" data-tab="cheques_emitidos">Cheques Emitidos</button>
+      <button class="nav-btn" data-tab="saldos-banco">Saldos</button>
     </div>
   </nav>
 
@@ -1062,7 +1093,7 @@ function gsRun(fnName, params, onSuccess, onError) {
         <h3 id="modalTituloPago">Nuevo Cobro</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group"><label>Fecha *</label><input type="date" id="ppFecha"></div>
-          <div class="form-group"><label>Haber ($) *</label><input type="number" id="ppHaber" step="0.01" placeholder="0.00"></div>
+          <div class="form-group"><label>Haber ($) *</label><input type="text" id="ppHaber" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
           <div class="form-group" style="grid-column:span 2;position:relative"><label>Cliente</label><input type="text" id="ppCliente" placeholder="Nombre del cliente" oninput="buscarMatchClientePago()" autocomplete="off"><div id="ppClienteSugerencias" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 5px 5px;max-height:200px;overflow-y:auto;display:none;z-index:100;box-shadow:0 4px 8px rgba(0,0,0,0.1)"></div></div>
           <div id="ppMatchInfo" style="grid-column:span 2;font-size:12px;margin-top:-8px;margin-bottom:4px;padding:6px 10px;border-radius:4px;display:none"></div>
           <div class="form-group" style="grid-column:span 2"><label>Cliente ID (automático)</label><input type="text" id="ppClienteId" readonly></div>
@@ -1074,8 +1105,8 @@ function gsRun(fnName, params, onSuccess, onError) {
               <div id="ppTotalComprobantes" style="font-size:12px;color:#667eea;font-weight:600;margin-top:6px;text-align:right"></div>
             </div>
           </div>
-          <div class="form-group"><label>Efectivo ($)</label><input type="number" id="ppEfectivo" step="0.01" placeholder="0.00"></div>
-          <div class="form-group"><label>Transferencia ($)</label><input type="number" id="ppTransferencia" step="0.01" placeholder="0.00"></div>
+          <div class="form-group"><label>Efectivo ($)</label><input type="text" id="ppEfectivo" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
+          <div class="form-group"><label>Transferencia ($)</label><input type="text" id="ppTransferencia" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
           <div class="form-group"><label>Observaciones</label><input type="text" id="ppObs"></div>
           <div style="grid-column:span 2;margin-top:4px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#667eea;font-weight:600;user-select:none">
@@ -1364,6 +1395,62 @@ function gsRun(fnName, params, onSuccess, onError) {
       <div class="paginacion" id="paginacionCheqEm"></div>
     </div>
 
+    <!-- SALDOS -->
+    <div class="section" id="saldos">
+      <div class="tabla-header">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span id="infoSaldos" class="total-pill total-pill-lg"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span id="countSaldos" class="count-label"></span>
+          <button class="btn btn-success" onclick="abrirModalSaldo(null)">+ Nuevo Saldo</button>
+        </div>
+      </div>
+      <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
+        <div>
+          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Fecha (dd-mm-yy)</label>
+          <input type="text" id="fSaldoFecha" placeholder="DD-MM-YY" oninput="filtrarSaldos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:120px">
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Tipo</label>
+          <select id="fSaldoTipo" onchange="actualizarFiltrosBanco();filtrarSaldos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:150px"><option value="">Todos</option><option value="Caja">Caja</option><option value="Banco">Banco</option></select>
+        </div>
+        <div>
+          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Banco</label>
+          <select id="fSaldoBanco" onchange="filtrarSaldos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:180px;display:none"><option value="">Todos</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="mostrarSaldos()" style="align-self:flex-end">Cargar Saldos</button>
+        <button class="btn" onclick="limpiarFiltrosSaldos()" style="background:#6c757d;color:white;align-self:flex-end">Limpiar</button>
+      </div>
+      <div id="msgSaldos"></div>
+      <div class="table-container">
+        <table>
+          <thead><tr><th>Fecha</th><th>Tipo</th><th>Banco/Caja</th><th style="text-align:right">Monto</th><th>Observaciones</th><th></th></tr></thead>
+          <tbody id="cuerpoSaldos"><tr><td colspan="6" style="text-align:center;color:#999">Presiona "Cargar Saldos" para ver los datos</td></tr></tbody>
+        </table>
+      </div>
+      <div class="paginacion" id="paginacionSaldos"></div>
+    </div>
+
+    <!-- MODAL SALDO -->
+    <div class="overlay" id="overlaySaldo">
+      <div class="modal" style="width:500px">
+        <h3 id="modalTituloSaldo">Nuevo Saldo</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group" style="grid-column:span 2"><label>Fecha *</label><input type="date" id="saldoFecha"></div>
+          <div class="form-group"><label>Tipo *</label><select id="saldoTipo" onchange="actualizarOpcionesBancoCaja()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Seleccionar...</option><option value="Caja">Caja</option><option value="Banco">Banco</option></select></div>
+          <div class="form-group"><label>Banco/Caja *</label><select id="saldoBancoCaja" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Seleccionar...</option></select></div>
+          <div class="form-group" style="grid-column:span 2"><label>Monto ($) *</label><input type="text" id="saldoMonto" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
+          <div class="form-group" style="grid-column:span 2"><label>Observaciones</label><input type="text" id="saldoObs"></div>
+        </div>
+        <div class="modal-error" id="modalErrorSaldo"></div>
+        <div class="modal-footer">
+          <button class="btn" onclick="cerrarModalSaldo()" style="background:#6c757d;color:white">Cancelar</button>
+          <button class="btn btn-success" onclick="guardarSaldo()">Guardar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL CHEQUE EMITIDO -->
     <div class="overlay" id="overlayCheqEm">
       <div class="modal" style="width:620px;max-height:92vh;overflow-y:auto">
@@ -1575,9 +1662,10 @@ document.querySelectorAll('.nav-btn').forEach(function(btn) {
     if (tab==='pagos')     mostrarPagos();
     if (tab==='gastos')       mostrarGastos();
     if (tab==='proveedores')  mostrarProveedores();
-    if (tab==='saldos')           mostrarSaldos();
+    if (tab==='saldos')           mostrarSaldosClientes();
     if (tab==='cheques')          mostrarCheques();
     if (tab==='cheques_emitidos') mostrarCheqEm();
+    if (tab==='saldos-banco')     mostrarSaldos();
     if (tab==='reportes')         mostrarReportes();
   });
 });
@@ -1588,6 +1676,8 @@ document.querySelectorAll('.nav-btn').forEach(function(btn) {
 var NOMBRES_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
 function pesos(v) { return '$'+(parseFloat(v)||0).toLocaleString('es-AR',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function formatoMonedaArg(v) { return (parseFloat(v)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function parsearMonedaArg(str) { return parseFloat((str||'').replace(/\./g,'').replace(',','.')); }
 function mensaje(id, txt, tipo) {
   var el = document.getElementById(id); if (!el) return;
   el.className = 'mensaje '+tipo;
@@ -1664,35 +1754,39 @@ function dbGetMesesActivos() {
 }
 function dbFiltrar(arr, campo) {
   var anio=document.getElementById('dbAnio').value, meses=dbGetMesesActivos();
-  return arr.filter(function(r){ var f=r[campo]||''; return (!anio||f.substr(0,4)===anio)&&(!meses||meses.indexOf(f.substr(5,2))!==-1); });
+  return arr.filter(function(r){
+    var f=r[campo]||'';
+    if(arr===dbVentas&&r.estado==='ANULADO')return false;
+    return (!anio||f.substr(0,4)===anio)&&(!meses||meses.indexOf(f.substr(5,2))!==-1);
+  });
 }
 function dbFiltrarMesAnterior(arr, campo) {
   var anio=document.getElementById('dbAnio').value, meses=dbGetMesesActivos();
   if (!anio&&!meses) {
     var hoy=new Date(), ma=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);
     var ay=String(ma.getFullYear()), am=String(ma.getMonth()+1).padStart(2,'0');
-    return arr.filter(function(r){var f=r[campo]||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;});
+    return arr.filter(function(r){var f=r[campo]||'';if(arr===dbVentas&&r.estado==='ANULADO')return false;return f.substr(0,4)===ay&&f.substr(5,2)===am;});
   }
   if (anio&&(!meses||meses.length===1)) {
     var mr=meses?meses[0]:null; if(!mr)return[];
     var nm=parseInt(mr,10), ay2, am2;
     if(nm===1){ay2=String(parseInt(anio)-1);am2='12';}else{ay2=anio;am2=String(nm-1).padStart(2,'0');}
-    return arr.filter(function(r){var f=r[campo]||'';return f.substr(0,4)===ay2&&f.substr(5,2)===am2;});
+    return arr.filter(function(r){var f=r[campo]||'';if(arr===dbVentas&&r.estado==='ANULADO')return false;return f.substr(0,4)===ay2&&f.substr(5,2)===am2;});
   }
   return [];
 }
 function dbPoblarAnios() {
   var anios={};
-  [].concat(dbFletes,dbVentas,dbPagos,dbGastos).forEach(function(r){var a=(r.fecha_flete||r.fecha||'').substr(0,4);if(a)anios[a]=true;});
+  [].concat(dbFletes,dbVentas.filter(function(v){return v.estado!=='ANULADO';}),dbPagos,dbGastos).forEach(function(r){var a=(r.fecha_flete||r.fecha||'').substr(0,4);if(a)anios[a]=true;});
   // Última fecha con datos entre las 4 fuentes (mismo criterio que Ventas)
-  var ultimaFecha=[].concat(dbFletes,dbVentas,dbPagos,dbGastos).map(function(r){return r.fecha_flete||r.fecha||'';}).reduce(function(max,f){return(f&&f>max)?f:max;},'');
+  var ultimaFecha=[].concat(dbFletes,dbVentas.filter(function(v){return v.estado!=='ANULADO';}),dbPagos,dbGastos).map(function(r){return r.fecha_flete||r.fecha||'';}).reduce(function(max,f){return(f&&f>max)?f:max;},'');
   var sel=document.getElementById('dbAnio'), actual=sel.value||(ultimaFecha?ultimaFecha.substr(0,4):String(new Date().getFullYear()));
   sel.innerHTML='<option value="">Todos</option>';
   Object.keys(anios).sort().reverse().forEach(function(a){var o=document.createElement('option');o.value=a;o.textContent=a;if(a===actual)o.selected=true;sel.appendChild(o);});
   if(Object.keys(dbMesesCheck).length===0){
     var mesTarget=ultimaFecha?ultimaFecha.substr(5,2):String(new Date().getMonth()+1).padStart(2,'0');
     dbMesesCheck={};
-    [].concat(dbFletes,dbVentas,dbPagos,dbGastos).forEach(function(r){
+    [].concat(dbFletes,dbVentas.filter(function(v){return v.estado!=='ANULADO';}),dbPagos,dbGastos).forEach(function(r){
       var f=r.fecha_flete||r.fecha||'';
       if(sel.value&&f.substr(0,4)!==sel.value)return;
       var m=f.substr(5,2);if(m)dbMesesCheck[m]=(m===mesTarget);
@@ -1701,7 +1795,7 @@ function dbPoblarAnios() {
 }
 function dbPoblarMeses() {
   var anio=document.getElementById('dbAnio').value, meses={};
-  [].concat(dbFletes,dbVentas,dbPagos,dbGastos).forEach(function(r){var f=r.fecha_flete||r.fecha||'';if(anio&&f.substr(0,4)!==anio)return;var m=f.substr(5,2);if(m)meses[m]=true;});
+  [].concat(dbFletes,dbVentas.filter(function(v){return v.estado!=='ANULADO';}),dbPagos,dbGastos).forEach(function(r){var f=r.fecha_flete||r.fecha||'';if(anio&&f.substr(0,4)!==anio)return;var m=f.substr(5,2);if(m)meses[m]=true;});
   var lista=document.getElementById('dmDbMesList'); lista.innerHTML='';
   Object.keys(meses).sort().forEach(function(m){
     var div=document.createElement('div');div.className='dm-item';
@@ -1809,7 +1903,7 @@ function renderGraficoEvolucion() {
   for(var i=12;i>=0;i--){
     var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1),ay=String(d.getFullYear()),am=String(d.getMonth()+1).padStart(2,'0');
     ml.push(NOMBRES_MESES[d.getMonth()].substr(0,3)+' '+ay.substr(2));
-    var vt=dbVentas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+(parseFloat(r.debe)||0);},0);
+    var vt=dbVentas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am&&r.estado!=='ANULADO';}).reduce(function(s,r){return s+(parseFloat(r.debe)||0);},0);
     var cob=dbPagos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;}).reduce(function(s,r){return s+cobroReal(r);},0);
     var fl=dbFletes.filter(function(r){var f=r.fecha_flete||'';return f.substr(0,4)===ay&&f.substr(5,2)===am&&r.estado==='PAGADO';}).reduce(function(s,r){return s+(parseFloat(r.importe)||0);},0);
     var gs=dbGastos.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am&&r.estado==='PAGADO';}).reduce(function(s,r){return s+(parseFloat(r.monto)||0);},0);
@@ -2179,12 +2273,13 @@ function renderizarVentas() {
   });
 
   var inicio=(paginaVentas-1)*porPaginaVentas,pagina=datosOrdenados.slice(inicio,inicio+porPaginaVentas);
-  var totalDebe=ventasFiltradas.reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
+  var ventasSinAnular=ventasFiltradas.filter(function(v){return v.estado!=='ANULADO';});
+  var totalDebe=ventasSinAnular.reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
   document.getElementById('countVentas').textContent=total+' registro'+(total!==1?'s':'')+(total!==todasVentas.length?' (filtrado de '+todasVentas.length+')':'');
   document.getElementById('infoVentas').textContent='Total: '+pesos(totalDebe);
-  var totalPagada=ventasFiltradas.filter(function(v){return v.estado==='PAGADA';}).reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
-  var totalPendienteVenta=ventasFiltradas.filter(function(v){return v.estado==='ENTREGADA CONFORME';}).reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
-  var totalOtrosVenta=ventasFiltradas.filter(function(v){return v.estado!=='PAGADA'&&v.estado!=='ENTREGADA CONFORME';}).reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
+  var totalPagada=ventasSinAnular.filter(function(v){return v.estado==='PAGADA';}).reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
+  var totalPendienteVenta=ventasSinAnular.filter(function(v){return v.estado==='ENTREGADA CONFORME';}).reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
+  var totalOtrosVenta=ventasSinAnular.filter(function(v){return v.estado!=='PAGADA'&&v.estado!=='ENTREGADA CONFORME';}).reduce(function(s,v){return s+(parseFloat(v.debe)||0);},0);
   document.getElementById('pillVentaPagada').textContent='Pagada: '+pesos(totalPagada);
   document.getElementById('pillVentaPendiente').textContent='Pendiente de pago: '+pesos(totalPendienteVenta);
   document.getElementById('pillVentaOtros').textContent='Otros: '+pesos(totalOtrosVenta);
@@ -2410,6 +2505,12 @@ function actualizarLabelMeses() {
 function getMesesActivos(){var c=document.querySelectorAll('#listaMeses input[type=checkbox]'),t=c.length,m=Array.from(c).filter(function(x){return x.checked;}).map(function(x){return x.id.replace('mes_','');});return m.length===t||m.length===0?null:m;}
 
 var pagosFiltroInicializado=false;
+function refrescarPagos() {
+  gsRun('obtenerPagos',[],function(data){
+    todosPagos=data||[];paginaPagos=1;
+    filtrarPagos();
+  });
+}
 function mostrarPagos() {
   gsRun('obtenerBancos',[],function(bancos){
     todosBancos=bancos||[];
@@ -2495,6 +2596,10 @@ function renderizarPagos() {
   tbody.innerHTML='';
   pagina.forEach(function(p){
     var idx=todosPagos.indexOf(p),ms=p.cliente_id?'color:#28a745;font-size:12px':'color:#dc3545;font-size:12px',tr=tbody.insertRow();
+    var cobrado=cobroReal(p),haber=parseFloat(p.haber)||0;
+    var hayDiferencia=Math.abs(cobrado-haber)>0.01;
+    var bgRow=hayDiferencia?'background:#fffacd;':'';
+    tr.style.cssText=bgRow;
     tr.innerHTML='<td>'+formatFecha(p.fecha)+'</td><td>'+(p.cliente_nombre||'')+'</td><td style="'+ms+'">'+(p.cliente_id||'— sin match')+'</td><td style="text-align:right">'+pesos(p.haber)+'</td><td style="text-align:right">'+pesos(p.efectivo)+'</td><td style="text-align:right">'+pesos(p.transferencia)+'</td><td style="font-family:monospace;font-size:12px">'+(p.cheque_numero||'-')+'</td><td>'+(p.banco||'-')+'</td><td style="text-align:right">'+pesos(p.importe_cheque)+'</td><td style="color:#999;font-size:12px">'+(p.observaciones||'')+'</td><td style="white-space:nowrap"><button class="btn-edit" onclick="abrirModalPago('+idx+')">Editar</button><button class="btn-delete" onclick="eliminarPago('+idx+')">Borrar</button></td>';
   });
   var tp=Math.ceil(total/porPaginaPagos),div=document.getElementById('paginacionPagos');
@@ -2518,8 +2623,8 @@ function abrirModalPago(idx) {
   document.getElementById('modalTituloPago').textContent=p?'Editar Cobro':'Nuevo Cobro';
   document.getElementById('ppFecha').value=p?p.fecha||'':new Date().toISOString().substr(0,10);
   document.getElementById('ppCliente').value=p?p.cliente_nombre||'':'';document.getElementById('ppClienteId').value=p?p.cliente_id||'':'';
-  document.getElementById('ppHaber').value=p?parseFloat(p.haber)||0:'';document.getElementById('ppEfectivo').value=p?parseFloat(p.efectivo)||0:'';
-  document.getElementById('ppTransferencia').value=p?parseFloat(p.transferencia)||0:'';
+  document.getElementById('ppHaber').value=p?formatoMonedaArg(parseFloat(p.haber)||0):'';document.getElementById('ppEfectivo').value=p?formatoMonedaArg(parseFloat(p.efectivo)||0):'';
+  document.getElementById('ppTransferencia').value=p?formatoMonedaArg(parseFloat(p.transferencia)||0):'';
   document.getElementById('ppObs').value=p?p.observaciones||'':'';document.getElementById('modalErrorPago').style.display='none';
   document.getElementById('btnGuardarPago').disabled=false;
   if(p)actualizarMatchInfoPago(p.cliente_id,p.cliente_nombre);else document.getElementById('ppMatchInfo').style.display='none';
@@ -2598,7 +2703,7 @@ function abrirSelectorComprobantes(){
   gsRun('obtenerVentasNoPagadas',[clienteId,Array.from(comprobantesSeleccionados)],function(ventas){
     ventasDisponibles=ventas||[];
     ventasDisponiblesCompletas=ventasDisponibles.slice();
-    ventasDisponibles.sort(function(a,b){return new Date(b.fecha)-new Date(a.fecha);});
+    ventasDisponibles.sort(function(a,b){return (b.comprobante||'').localeCompare(a.comprobante||'');});
     poblarFiltroMesComprobantes();
     filtrarComprobantesSelector();
     document.getElementById('overlaySelectorComprobantes').classList.add('activo');
@@ -2607,7 +2712,7 @@ function abrirSelectorComprobantes(){
 function poblarFiltroMesComprobantes(){
   var meses=new Set();
   ventasDisponibles.forEach(function(v){
-    if(v.estado!=='ANULADA'){
+    if(v.estado!=='ANULADO'){
       var fecha=v.fecha;
       if(fecha){
         var año=fecha.split('-')[0];
@@ -2637,18 +2742,16 @@ function actualizarTotalSelectorComprobantes(){
       total+=comprobantesInfo[cId].monto||0;
     }
   });
-  var totalFormato=total.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-  document.getElementById('selectorComprobantesTotal').textContent='Total: $'+totalFormato;
+  document.getElementById('selectorComprobantesTotal').textContent='Total: $'+formatoMonedaArg(total);
 
-  var efectivo=parseFloat(document.getElementById('ppEfectivo').value)||0;
-  var transferencia=parseFloat(document.getElementById('ppTransferencia').value)||0;
+  var efectivo=parsearMonedaArg(document.getElementById('ppEfectivo').value)||0;
+  var transferencia=parsearMonedaArg(document.getElementById('ppTransferencia').value)||0;
   var cheques=0;
   pagoChequesState.forEach(function(ch){cheques+=parseFloat(ch.importe)||0;});
   var sumaPagos=efectivo+transferencia+cheques;
-  var sumaPagosFormato=sumaPagos.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 
   var barra=document.getElementById('barraEfectivoComprobantes');
-  barra.textContent='Cobrado: $'+sumaPagosFormato;
+  barra.textContent='Cobrado: $'+formatoMonedaArg(sumaPagos);
 
   if(total>0){
     if(sumaPagos<total){
@@ -2667,7 +2770,7 @@ function filtrarComprobantesSelector(){
   tbody.innerHTML='';
 
   var ventasFiltradas=ventasDisponibles.filter(function(v){
-    if(v.estado==='ANULADA')return false;
+    if(v.estado==='ANULADO')return false;
     return true;
   });
 
@@ -2777,8 +2880,8 @@ function seleccionarClientePago(clienteId){
 }
 function actualizarMatchInfoPago(cid,nombre){var div=document.getElementById('ppMatchInfo');if(!nombre){div.style.display='none';return;}div.style.display='block';div.style.background=cid?'#d4edda':'#fff3cd';div.style.color=cid?'#155724':'#856404';div.textContent=cid?'✓ Match: '+cid:'⚠ Sin match — se guardará sin cliente_id';}
 function guardarPago() {
-  var fecha=document.getElementById('ppFecha').value,haber=parseFloat(document.getElementById('ppHaber').value)||0,err=document.getElementById('modalErrorPago');
-  var efectivo=parseFloat(document.getElementById('ppEfectivo').value)||0,transferencia=parseFloat(document.getElementById('ppTransferencia').value)||0;
+  var fecha=document.getElementById('ppFecha').value,haberStr=document.getElementById('ppHaber').value,haber=parsearMonedaArg(haberStr)||0,err=document.getElementById('modalErrorPago');
+  var efectivoStr=document.getElementById('ppEfectivo').value,efectivo=parsearMonedaArg(efectivoStr)||0,transferenciaStr=document.getElementById('ppTransferencia').value,transferencia=parsearMonedaArg(transferenciaStr)||0;
   err.style.display='none';
   if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
   if(!haber){err.textContent='El haber es obligatorio.';err.style.display='block';return;}
@@ -2791,6 +2894,10 @@ function guardarPago() {
     if(!cheques[i].numero){err.textContent='Falta el número del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].banco){err.textContent='Falta el banco del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].importe){err.textContent='Falta el importe del cheque '+(i+1)+'.';err.style.display='block';return;}
+
+    if(!cheques[i].fecha_pago&&cheques[i].fecha_emision){
+      cheques[i].fecha_pago=sumarDias(cheques[i].fecha_emision,30);
+    }
   }
 
   var chequeNumero=cheques.map(function(c){return c.numero;}).join(', ');
@@ -2812,7 +2919,7 @@ function guardarPago() {
     var txtCheques=cheques.length?(' '+cheques.length+' cheque'+(cheques.length!==1?'s':'')+' guardado'+(cheques.length!==1?'s':'')+'.'):'';
     var txtComprobantes=comprobantesArr.length?(' '+comprobantesArr.length+' comprobante'+(comprobantesArr.length!==1?'s':'')+' marcado'+(comprobantesArr.length!==1?'s':'')+' como pagado.'):'';
     mensaje('msgPagos',etiqueta+txtCheques+txtComprobantes,'ok');
-    mostrarPagos();
+    refrescarPagos();
   },function(e){btnGuardar.disabled=false;err.textContent='Error: '+e.message;err.style.display='block';});
 }
 document.getElementById('overlayPago').addEventListener('click',function(e){if(e.target===this)cerrarModalPago();});
@@ -2827,6 +2934,7 @@ var ordenPagos={campo: null, dir: 'asc'};
 var ordenVentas={campo: null, dir: 'asc'};
 var ordenCheques={campo: null, dir: 'asc'};
 var ordenChequeEm={campo: null, dir: 'asc'};
+var todosSaldos=[],saldosFiltrados=[],paginaSaldos=1,porPaginaSaldos=20,idSaldoEdicion=null;
 var gastosFiltroInicializado=false, todosRubros=[];
 var chequesGastoDisponibles=[], chequesGastoSeleccionados={}, chequesGastoOriginalIds=[];
 var chequesGastoEmDisponibles=[], chequesGastoEmSeleccionados={}, chequesGastoEmOriginalIds=[];
@@ -3688,7 +3796,7 @@ function renderReportesIngresos(ventas, meses) {
   var dataCant=[], dataMonto=[], dataTicket=[];
   meses.forEach(function(m){
     var ay=String(m.year), am=String(m.month+1).padStart(2,'0');
-    var sv=ventas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am;});
+    var sv=ventas.filter(function(r){var f=r.fecha||'';return f.substr(0,4)===ay&&f.substr(5,2)===am&&r.estado!=='ANULADO';});
     var monto=sv.reduce(function(s,r){return s+(parseFloat(r.debe)||0);},0);
     dataCant.push(sv.length); dataMonto.push(monto); dataTicket.push(sv.length?monto/sv.length:0);
   });
@@ -4073,7 +4181,7 @@ function renderizarChequesPago() {
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
         '<div class="form-group"><label>N° Cheque *</label><input type="text" value="' + esc(c.numero) + '" oninput="actualizarChequePago(' + idx + ',\'numero\',this.value)"></div>' +
         '<div class="form-group"><label>Banco *</label><input type="text" value="' + esc(c.banco) + '" oninput="actualizarChequePago(' + idx + ',\'banco\',this.value)" list="' + bancoDatalistId + '" autocomplete="off" placeholder="Selecciona o escribe banco..."><datalist id="' + bancoDatalistId + '">' + bancosOptions + '</datalist></div>' +
-        '<div class="form-group"><label>Importe ($) *</label><input type="number" step="0.01" value="' + (c.importe || '') + '" oninput="actualizarChequePago(' + idx + ',\'importe\',this.value)"></div>' +
+        '<div class="form-group"><label>Importe ($) *</label><input type="text" value="' + formatoMonedaArg(c.importe || 0) + '" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value));actualizarChequePago(' + idx + ',\'importe\',parsearMonedaArg(this.value))"></div>' +
         '<div class="form-group"><label>Tipo *</label><select onchange="actualizarChequePago(' + idx + ',\'tipo\',this.value)" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px">' +
           '<option value="cartera"' + (c.tipo==='cartera'?' selected':'') + '>Cartera</option>' +
           '<option value="no_cartera"' + (c.tipo==='no_cartera'?' selected':'') + '>No cartera</option>' +
@@ -4304,21 +4412,23 @@ function cambiarOrdenCheques(campo) {
 }
 function renderizarCheques() {
   var datosOrdenados = chequesFiltrados.slice();
-  if (ordenCheques.campo) {
-    datosOrdenados.sort(function(a, b) {
-      var valA = a[ordenCheques.campo], valB = b[ordenCheques.campo];
-      if (valA === null || valA === undefined) valA = '';
-      if (valB === null || valB === undefined) valB = '';
-      if (typeof valA === 'string') valA = valA.toLowerCase();
-      if (typeof valB === 'string') valB = valB.toLowerCase();
-      var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
-      return ordenCheques.dir === 'asc' ? cmp : -cmp;
-    });
-  }
+  var campoOrd = ordenCheques.campo || 'fecha_emision';
+  var dirOrd = ordenCheques.campo ? ordenCheques.dir : 'desc';
+  datosOrdenados.sort(function(a, b) {
+    var valA = a[campoOrd], valB = b[campoOrd];
+    if (valA === null || valA === undefined) valA = '';
+    if (valB === null || valB === undefined) valB = '';
+    if (typeof valA === 'string') valA = valA.toLowerCase();
+    if (typeof valB === 'string') valB = valB.toLowerCase();
+    var cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+    return dirOrd === 'asc' ? cmp : -cmp;
+  });
   var campos = ['estado', 'tipo', 'banco', 'fecha_emision', 'fecha_pago', 'numero', 'importe', 'dias', 'fecha_vencimiento', 'monto_salida', 'fecha_salida', 'cliente_nombre'];
   campos.forEach(function(c) {
     var span = document.getElementById('ordCheque' + c.charAt(0).toUpperCase() + c.slice(1).replace(/_/g, ''));
-    if (span) span.textContent = ordenCheques.campo === c ? (ordenCheques.dir === 'asc' ? '▲' : '▼') : '';
+    var campoActual = ordenCheques.campo || 'fecha_emision';
+    var esEsteOrd = campoActual === c;
+    if (span) span.textContent = esEsteOrd ? (dirOrd === 'asc' ? '▲' : '▼') : '';
   });
   var total  = chequesFiltrados.length;
   document.getElementById('countCheques').textContent=total+' registro'+(total!==1?'s':'')+(total!==todosCheques.length?' (filtrado de '+todosCheques.length+')':'');
@@ -4734,6 +4844,118 @@ function eliminarCheqEm(idx) {
 }
 document.getElementById('overlayCheqEm').addEventListener('click', function(e) { if (e.target === this) cerrarModalCheqEm(); });
 document.getElementById('overlayChequesVencerDetalle').addEventListener('click', function(e) { if (e.target === this) cerrarChequesVencerDetalle(); });
+
+// ==========================================
+// SALDOS
+// ==========================================
+function mostrarSaldos() {
+  gsRun('obtenerBancos',[],function(bancos){
+    todosBancos=bancos||[];
+    poblarSelectBancoSaldo();
+    gsRun('obtenerSaldos',[],function(data){
+      todosSaldos=data||[];paginaSaldos=1;
+      filtrarSaldos();
+    });
+  });
+}
+function poblarSelectBancoSaldo(){
+  var selectBanco=document.getElementById('fSaldoBanco');
+  selectBanco.innerHTML='<option value="">Todos</option>';
+  (todosBancos||[]).forEach(function(b){
+    selectBanco.innerHTML+='<option value="'+esc(b.nombre)+'">'+esc(b.nombre)+'</option>';
+  });
+  actualizarOpcionesBancoCaja();
+}
+function actualizarOpcionesBancoCaja(){
+  var tipo=document.getElementById('saldoTipo').value;
+  var sel=document.getElementById('saldoBancoCaja');
+  sel.innerHTML='<option value="">Seleccionar...</option>';
+  if(tipo==='Banco'){
+    (todosBancos||[]).forEach(function(b){
+      sel.innerHTML+='<option value="'+esc(b.nombre)+'">'+esc(b.nombre)+'</option>';
+    });
+  }else if(tipo==='Caja'){
+    sel.innerHTML+='<option value="Caja General">Caja General</option><option value="Caja Chica">Caja Chica</option>';
+  }
+}
+function actualizarFiltrosBanco(){
+  var tipo=document.getElementById('fSaldoTipo').value;
+  var selectBanco=document.getElementById('fSaldoBanco');
+  if(tipo==='Banco'){
+    selectBanco.style.display='block';
+  }else{
+    selectBanco.style.display='none';
+    selectBanco.value='';
+  }
+}
+function convertirFechaAlDMY(fechaDMY){
+  if(!fechaDMY)return null;
+  var partes=fechaDMY.split('-');
+  if(partes.length!==3)return null;
+  var dd=partes[0],mm=partes[1],yy=partes[2];
+  var yyyy='20'+yy;
+  return yyyy+'-'+mm.padStart(2,'0')+'-'+dd.padStart(2,'0');
+}
+function filtrarSaldos(){
+  var tipo=document.getElementById('fSaldoTipo').value,fechaDMY=document.getElementById('fSaldoFecha').value,banco=document.getElementById('fSaldoBanco').value;
+  var fechaYYYYMMDD=convertirFechaAlDMY(fechaDMY);
+  saldosFiltrados=todosSaldos.filter(function(s){
+    return(!tipo||s.tipo===tipo)&&(!fechaYYYYMMDD||s.fecha===fechaYYYYMMDD)&&(!banco||s.banco_caja===banco);
+  });
+  paginaSaldos=1;renderizarSaldos();
+}
+function limpiarFiltrosSaldos(){document.getElementById('fSaldoFecha').value='';document.getElementById('fSaldoTipo').value='';document.getElementById('fSaldoBanco').value='';actualizarFiltrosBanco();saldosFiltrados=todosSaldos;paginaSaldos=1;renderizarSaldos();}
+function renderizarSaldos(){
+  var tbody=document.getElementById('cuerpoSaldos'),total=saldosFiltrados.length;
+  var totalMonto=saldosFiltrados.reduce(function(s,r){return s+(parseFloat(r.monto)||0);},0);
+  document.getElementById('infoSaldos').textContent='Total: '+pesos(totalMonto);
+  document.getElementById('countSaldos').textContent=total+' registro'+(total!==1?'s':'')+(total!==todosSaldos.length?' (filtrado de '+todosSaldos.length+')':'');
+  if(!total){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#999">Sin resultados</td></tr>';document.getElementById('paginacionSaldos').innerHTML='';return;}
+  tbody.innerHTML='';
+  var inicio=(paginaSaldos-1)*porPaginaSaldos,pagina=saldosFiltrados.slice(inicio,inicio+porPaginaSaldos);
+  pagina.forEach(function(s){
+    var idx=todosSaldos.indexOf(s),tr=tbody.insertRow();
+    var tipoStyle=s.tipo==='Caja'?'background:#fff3cd;color:#856404':'background:#e7f3ff;color:#004085';
+    tr.innerHTML='<td>'+formatFecha(s.fecha)+'</td><td><span class="badge" style="'+tipoStyle+'">'+esc(s.tipo)+'</span></td><td>'+esc(s.banco_caja)+'</td><td style="text-align:right">'+pesos(s.monto)+'</td><td style="color:#999;font-size:12px">'+(s.observaciones||'')+'</td><td style="white-space:nowrap"><button class="btn-edit" onclick="abrirModalSaldo('+idx+')">Editar</button><button class="btn-delete" onclick="eliminarSaldo('+idx+')">Borrar</button></td>';
+  });
+  var tp=Math.ceil(total/porPaginaSaldos),div=document.getElementById('paginacionSaldos');
+  div.innerHTML=tp<=1?'':'<button onclick="irPaginaSaldos('+(paginaSaldos-1)+')" '+(paginaSaldos===1?'disabled':'')+'>&#8249;</button><span class="info-pag">'+(inicio+1)+'-'+Math.min(inicio+porPaginaSaldos,total)+' de '+total+'</span><button onclick="irPaginaSaldos('+(paginaSaldos+1)+')" '+(paginaSaldos===tp?'disabled':'')+'>&#8250;</button>';
+}
+function irPaginaSaldos(n){var t=Math.ceil(saldosFiltrados.length/porPaginaSaldos);if(n<1||n>t)return;paginaSaldos=n;renderizarSaldos();}
+function abrirModalSaldo(idx){
+  var s=idx!==null&&idx!==undefined?todosSaldos[idx]:null;idSaldoEdicion=s?s.id:null;
+  document.getElementById('modalTituloSaldo').textContent=s?'Editar Saldo':'Nuevo Saldo';
+  document.getElementById('saldoFecha').value=s?s.fecha||'':new Date().toISOString().substr(0,10);
+  document.getElementById('saldoTipo').value=s?s.tipo||'':'';
+  actualizarOpcionesBancoCaja();
+  document.getElementById('saldoBancoCaja').value=s?s.banco_caja||'':'';
+  document.getElementById('saldoMonto').value=s?formatoMonedaArg(parseFloat(s.monto)||0):'';
+  document.getElementById('saldoObs').value=s?s.observaciones||'':'';
+  document.getElementById('modalErrorSaldo').style.display='none';
+  document.getElementById('overlaySaldo').classList.add('activo');
+}
+function cerrarModalSaldo(){document.getElementById('overlaySaldo').classList.remove('activo');idSaldoEdicion=null;}
+function guardarSaldo(){
+  var fecha=document.getElementById('saldoFecha').value,tipo=document.getElementById('saldoTipo').value,bancoCaja=document.getElementById('saldoBancoCaja').value,montoStr=document.getElementById('saldoMonto').value,err=document.getElementById('modalErrorSaldo');
+  var monto=parsearMonedaArg(montoStr)||0;
+  err.style.display='none';
+  if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
+  if(!tipo){err.textContent='Selecciona un tipo (Caja o Banco).';err.style.display='block';return;}
+  if(!bancoCaja){err.textContent='Selecciona un banco/caja.';err.style.display='block';return;}
+  if(!monto){err.textContent='El monto es obligatorio.';err.style.display='block';return;}
+  var datos={fecha:fecha,tipo:tipo,banco_caja:bancoCaja,monto:monto,observaciones:document.getElementById('saldoObs').value.trim()};
+  gsRun('guardarSaldo',[datos,idSaldoEdicion],function(){
+    cerrarModalSaldo();
+    mensaje('msgSaldos',idSaldoEdicion?'Saldo actualizado.':'Saldo agregado.','ok');
+    mostrarSaldos();
+  },function(e){err.textContent='Error: '+e.message;err.style.display='block';});
+}
+function eliminarSaldo(idx){
+  var s=todosSaldos[idx];if(!s)return;
+  var desc=formatFecha(s.fecha)+' — '+s.banco_caja+' — '+pesos(s.monto);
+  if(!confirm('¿Eliminar el saldo de '+desc+'?\nEsta acción no se puede deshacer.'))return;
+  gsRun('eliminarSaldoById',[s.id],function(){mensaje('msgSaldos','Saldo eliminado.','ok');mostrarSaldos();},function(e){mensaje('msgSaldos','Error al eliminar: '+e.message,'error');});
+}
 
 // ==========================================
 // LOGIN
