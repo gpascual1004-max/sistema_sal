@@ -2897,12 +2897,15 @@ function guardarPago() {
   if(!tieneCheque&&efectivo===0&&transferencia===0){err.textContent='Ingresá al menos efectivo O transferencia, o marcá "Pago incluye cheque".';err.style.display='block';return;}
 
   for(var i=0;i<cheques.length;i++){
+    console.log('Cheque',i,'antes de validar:',JSON.stringify(cheques[i]));
     if(!cheques[i].numero){err.textContent='Falta el número del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].banco){err.textContent='Falta el banco del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].importe){err.textContent='Falta el importe del cheque '+(i+1)+'.';err.style.display='block';return;}
 
+    console.log('Cheque',i,'fecha_emision:',cheques[i].fecha_emision,'fecha_pago antes:',cheques[i].fecha_pago);
     if(!cheques[i].fecha_pago&&cheques[i].fecha_emision){
       cheques[i].fecha_pago=sumarDias(cheques[i].fecha_emision,30);
+      console.log('Cheque',i,'fecha_pago calculada:',cheques[i].fecha_pago);
     }
   }
 

@@ -351,3 +351,22 @@ ALTER TABLE cheques_emitidos ADD COLUMN IF NOT EXISTS descripcion TEXT;
 -- ============================================
 ALTER TABLE cheques_emitidos ADD COLUMN IF NOT EXISTS gasto_id INTEGER REFERENCES gastos(id);
 CREATE INDEX IF NOT EXISTS idx_cheques_em_gasto ON cheques_emitidos(gasto_id);
+
+-- ============================================
+-- TABLA: Saldos de Caja/Banco
+-- Registro diario de saldos en caja o cuentas bancarias
+-- ============================================
+CREATE TABLE IF NOT EXISTS saldos (
+  id SERIAL PRIMARY KEY,
+  fecha DATE NOT NULL,
+  tipo TEXT NOT NULL, -- 'Caja' | 'Banco'
+  banco_caja TEXT NOT NULL,
+  monto DECIMAL(12,2) NOT NULL,
+  observaciones TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_saldos_fecha ON saldos(fecha);
+CREATE INDEX IF NOT EXISTS idx_saldos_tipo ON saldos(tipo);
+CREATE INDEX IF NOT EXISTS idx_saldos_banco_caja ON saldos(banco_caja);
