@@ -384,12 +384,18 @@ function gsRun(fnName, params, onSuccess, onError) {
 
               // Guardar/actualizar cheques nuevos - ESPERAR A QUE TERMINEN TODOS
               var promesasCheques = (cheques || []).map(c => {
+                var bancoId = null;
+                if (c.banco && todosBancos && todosBancos.length) {
+                  var bancoPrueba = todosBancos.find(b => b.nombre === c.banco);
+                  if (bancoPrueba) bancoId = bancoPrueba.id;
+                }
                 var chDatos = {
                   pago_id: pagoId,
                   cliente_nombre: datos.cliente_nombre,
                   cliente_id: datos.cliente_id,
                   numero: c.numero,
                   banco: c.banco,
+                  banco_id: bancoId,
                   importe: c.importe,
                   tipo: c.tipo || 'cartera',
                   fecha_emision: c.fecha_emision || null,
