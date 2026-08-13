@@ -2621,6 +2621,7 @@ function eliminarPago(idx) {
   },function(e){mensaje('msgPagos','Error al verificar cheques: '+e.message,'error');});
 }
 function abrirModalPago(idx) {
+  gsRun('obtenerBancos',[],function(bancos){todosBancos=bancos||[];});
   var p=idx!==null&&idx!==undefined?todosPagos[idx]:null;idPagoEdicion=p?p.id:null;
   document.getElementById('modalTituloPago').textContent=p?'Editar Cobro':'Nuevo Cobro';
   document.getElementById('ppFecha').value=p?p.fecha||'':new Date().toISOString().substr(0,10);
