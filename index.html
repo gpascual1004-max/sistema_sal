@@ -1093,7 +1093,7 @@ function gsRun(fnName, params, onSuccess, onError) {
         <h3 id="modalTituloPago">Nuevo Cobro</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div class="form-group"><label>Fecha *</label><input type="date" id="ppFecha"></div>
-          <div class="form-group"><label>Haber ($) *</label><input type="text" id="ppHaber" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
+          <div class="form-group"><label>Haber ($) *</label><input type="text" id="ppHaber" placeholder="0,00" onblur="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
           <div class="form-group" style="grid-column:span 2;position:relative"><label>Cliente</label><input type="text" id="ppCliente" placeholder="Nombre del cliente" oninput="buscarMatchClientePago()" autocomplete="off"><div id="ppClienteSugerencias" style="position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 5px 5px;max-height:200px;overflow-y:auto;display:none;z-index:100;box-shadow:0 4px 8px rgba(0,0,0,0.1)"></div></div>
           <div id="ppMatchInfo" style="grid-column:span 2;font-size:12px;margin-top:-8px;margin-bottom:4px;padding:6px 10px;border-radius:4px;display:none"></div>
           <div class="form-group" style="grid-column:span 2"><label>Cliente ID (automático)</label><input type="text" id="ppClienteId" readonly></div>
@@ -1105,8 +1105,8 @@ function gsRun(fnName, params, onSuccess, onError) {
               <div id="ppTotalComprobantes" style="font-size:12px;color:#667eea;font-weight:600;margin-top:6px;text-align:right"></div>
             </div>
           </div>
-          <div class="form-group"><label>Efectivo ($)</label><input type="text" id="ppEfectivo" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
-          <div class="form-group"><label>Transferencia ($)</label><input type="text" id="ppTransferencia" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
+          <div class="form-group"><label>Efectivo ($)</label><input type="text" id="ppEfectivo" placeholder="0,00" onblur="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
+          <div class="form-group"><label>Transferencia ($)</label><input type="text" id="ppTransferencia" placeholder="0,00" onblur="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
           <div class="form-group"><label>Observaciones</label><input type="text" id="ppObs"></div>
           <div style="grid-column:span 2;margin-top:4px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#667eea;font-weight:600;user-select:none">
