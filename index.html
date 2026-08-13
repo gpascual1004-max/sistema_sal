@@ -2891,11 +2891,8 @@ function guardarPago() {
   if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
   if(!haber){err.textContent='El haber es obligatorio.';err.style.display='block';return;}
 
-  var tieneCheque=document.getElementById('ppTieneCheque').checked;
-  console.log('DEBUG guardarPago: ppTieneCheque.checked =',tieneCheque,'pagoChequesState length =',pagoChequesState.length);
-  var cheques=tieneCheque?pagoChequesState:[];
-  if(tieneCheque&&!cheques.length){err.textContent='Agregá al menos un cheque o desmarcá "Pago incluye cheque(s)".';err.style.display='block';return;}
-  if(!tieneCheque&&efectivo===0&&transferencia===0){err.textContent='Ingresá al menos efectivo O transferencia, o marcá "Pago incluye cheque".';err.style.display='block';return;}
+  var cheques=pagoChequesState;
+  if(!cheques.length&&efectivo===0&&transferencia===0){err.textContent='Ingresá al menos efectivo O transferencia, o cheques.';err.style.display='block';return;}
 
   for(var i=0;i<cheques.length;i++){
     console.log('Cheque',i,'antes de validar:',JSON.stringify(cheques[i]));
