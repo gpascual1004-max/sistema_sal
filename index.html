@@ -1440,7 +1440,7 @@ function gsRun(fnName, params, onSuccess, onError) {
           <div class="form-group" style="grid-column:span 2"><label>Fecha *</label><input type="date" id="saldoFecha"></div>
           <div class="form-group"><label>Tipo *</label><select id="saldoTipo" onchange="actualizarOpcionesBancoCaja()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Seleccionar...</option><option value="Caja">Caja</option><option value="Banco">Banco</option></select></div>
           <div class="form-group"><label>Banco/Caja *</label><select id="saldoBancoCaja" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Seleccionar...</option></select></div>
-          <div class="form-group" style="grid-column:span 2"><label>Monto ($) *</label><input type="text" id="saldoMonto" placeholder="0,00" oninput="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
+          <div class="form-group" style="grid-column:span 2"><label>Monto ($) *</label><input type="text" id="saldoMonto" placeholder="0,00" onblur="this.value=formatoMonedaArg(parsearMonedaArg(this.value))"></div>
           <div class="form-group" style="grid-column:span 2"><label>Observaciones</label><input type="text" id="saldoObs"></div>
         </div>
         <div class="modal-error" id="modalErrorSaldo"></div>
@@ -4195,7 +4195,7 @@ function renderizarChequesPago() {
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
         '<div class="form-group"><label>N° Cheque *</label><input type="text" value="' + esc(c.numero) + '" oninput="actualizarChequePago(' + idx + ',\'numero\',this.value)"></div>' +
         '<div class="form-group"><label>Banco *</label><input type="text" value="' + esc(c.banco) + '" oninput="actualizarChequePago(' + idx + ',\'banco\',this.value)" list="' + bancoDatalistId + '" autocomplete="off" placeholder="Selecciona o escribe banco..."><datalist id="' + bancoDatalistId + '">' + bancosOptions + '</datalist></div>' +
-        '<div class="form-group"><label>Importe ($) *</label><input type="text" value="' + formatoMonedaArg(c.importe || 0) + '" onblur="this.value=formatoMonedaArg(parsearMonedaArg(this.value))" oninput="actualizarChequePago(' + idx + ',\'importe\',parsearMonedaArg(this.value))"></div>' +
+        '<div class="form-group"><label>Importe ($) *</label><input type="text" value="' + formatoMonedaArg(c.importe || 0) + '" onblur="this.value=formatoMonedaArg(parsearMonedaArg(this.value));actualizarChequePago(' + idx + ',\'importe\',parsearMonedaArg(this.value))" oninput="actualizarChequePago(' + idx + ',\'importe\',parsearMonedaArg(this.value))"></div>' +
         '<div class="form-group"><label>Tipo *</label><select onchange="actualizarChequePago(' + idx + ',\'tipo\',this.value)" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px">' +
           '<option value="cartera"' + (c.tipo==='cartera'?' selected':'') + '>Cartera</option>' +
           '<option value="no_cartera"' + (c.tipo==='no_cartera'?' selected':'') + '>No cartera</option>' +
@@ -4951,7 +4951,7 @@ function abrirModalSaldo(idx){
 function cerrarModalSaldo(){document.getElementById('overlaySaldo').classList.remove('activo');idSaldoEdicion=null;}
 function guardarSaldo(){
   var fecha=document.getElementById('saldoFecha').value,tipo=document.getElementById('saldoTipo').value,bancoCaja=document.getElementById('saldoBancoCaja').value,montoStr=document.getElementById('saldoMonto').value,err=document.getElementById('modalErrorSaldo');
-  var monto=parsearMonedaArg(montoStr)||0;
+  var monto=parsearMonedaArg(montoStr);monto=isNaN(monto)?0:monto;
   err.style.display='none';
   if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
   if(!tipo){err.textContent='Selecciona un tipo (Caja o Banco).';err.style.display='block';return;}
