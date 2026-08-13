@@ -2899,6 +2899,7 @@ function guardarPago() {
     if(!cheques[i].numero){err.textContent='Falta el número del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].banco){err.textContent='Falta el banco del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].importe){err.textContent='Falta el importe del cheque '+(i+1)+'.';err.style.display='block';return;}
+    if(!cheques[i].fecha_emision&&!cheques[i].fecha_pago){err.textContent='Falta la fecha de emisión o fecha de pago del cheque '+(i+1)+'.';err.style.display='block';return;}
 
     if(!cheques[i].fecha_pago&&cheques[i].fecha_emision){
       cheques[i].fecha_pago=sumarDias(cheques[i].fecha_emision,30);
