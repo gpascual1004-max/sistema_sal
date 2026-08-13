@@ -1821,12 +1821,17 @@ function calcularFechasCashflow() {
 
 function mostrarCashflow() {
   calcularFechasCashflow();
+  cfTodosCheques = [];
+  cfTodosPagos = [];
+  cfTodosFletes = [];
+  cfTodosGastos = [];
+  cfSaldosPorDia = {};
   Promise.all([
-    new Promise(r => gsRun('obtenerCheques', [], d => cfTodosCheques = d || [], e => r())),
-    new Promise(r => gsRun('obtenerPagos', [], d => cfTodosPagos = d || [], e => r())),
-    new Promise(r => gsRun('obtenerFletes', [], d => cfTodosFletes = d || [], e => r())),
-    new Promise(r => gsRun('obtenerGastos', [], d => cfTodosGastos = d || [], e => r())),
-    new Promise(r => gsRun('obtenerSaldos', [], d => { (d||[]).forEach(s => { var k = s.fecha; cfSaldosPorDia[k] = s; }); r(); }, e => r()))
+    new Promise(r => gsRun('obtenerCheques', [], d => { cfTodosCheques = d || []; r(); }, e => r())),
+    new Promise(r => gsRun('obtenerPagos', [], d => { cfTodosPagos = d || []; r(); }, e => r())),
+    new Promise(r => gsRun('obtenerFletes', [], d => { cfTodosFletes = d || []; r(); }, e => r())),
+    new Promise(r => gsRun('obtenerGastos', [], d => { cfTodosGastos = d || []; r(); }, e => r())),
+    new Promise(r => gsRun('obtenerSaldos', [], d => { (d||[]).forEach(s => { cfSaldosPorDia[s.fecha] = s; }); r(); }, e => r()))
   ]).then(() => {
     cargarConfigCashflow();
     renderizarCashflow();
