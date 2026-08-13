@@ -363,6 +363,7 @@ function gsRun(fnName, params, onSuccess, onError) {
 
         return pagoPromise.then(pagoRes => {
           var pagoId = pagoRes.id;
+          console.log('=== BACKEND LOCAL: Pago guardado, pagoId:', pagoId, 'Cheques a procesar:', cheques.length);
 
           // Manejar cheques: actualizar existentes y borrar los que se quitaron
           if(pagoId){
