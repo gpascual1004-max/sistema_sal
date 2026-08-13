@@ -2892,20 +2892,23 @@ function guardarPago() {
   if(!haber){err.textContent='El haber es obligatorio.';err.style.display='block';return;}
 
   var cheques=pagoChequesState;
+  console.log('=== GUARDAR PAGO - DEBUG ===');
+  console.log('pagoChequesState.length:',pagoChequesState.length);
+  console.log('pagoChequesState:',JSON.stringify(pagoChequesState));
   if(!cheques.length&&efectivo===0&&transferencia===0){err.textContent='Ingresá al menos efectivo O transferencia, o cheques.';err.style.display='block';return;}
 
   for(var i=0;i<cheques.length;i++){
-    console.log('Cheque',i,'antes de validar:',JSON.stringify(cheques[i]));
+    console.log('Procesando cheque',i+':', JSON.stringify(cheques[i]));
     if(!cheques[i].numero){err.textContent='Falta el número del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].banco){err.textContent='Falta el banco del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].importe){err.textContent='Falta el importe del cheque '+(i+1)+'.';err.style.display='block';return;}
 
-    console.log('Cheque',i,'fecha_emision:',cheques[i].fecha_emision,'fecha_pago antes:',cheques[i].fecha_pago);
     if(!cheques[i].fecha_pago&&cheques[i].fecha_emision){
       cheques[i].fecha_pago=sumarDias(cheques[i].fecha_emision,30);
-      console.log('Cheque',i,'fecha_pago calculada:',cheques[i].fecha_pago);
+      console.log('Calculada fecha_pago para cheque',i+':',cheques[i].fecha_pago);
     }
   }
+  console.log('Cheques finales a enviar:',JSON.stringify(cheques));
 
   var chequeNumero=cheques.map(function(c){return c.numero;}).join(', ');
   var bancosUnicos=cheques.map(function(c){return c.banco;}).filter(function(b,i,a){return b&&a.indexOf(b)===i;});
