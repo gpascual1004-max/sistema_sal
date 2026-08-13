@@ -4210,8 +4210,8 @@ function renderizarChequesPago() {
           '<option value="cartera"' + (c.tipo==='cartera'?' selected':'') + '>Cartera</option>' +
           '<option value="no_cartera"' + (c.tipo==='no_cartera'?' selected':'') + '>No cartera</option>' +
         '</select></div>' +
-        '<div class="form-group"><label>Fecha Emisión</label><input type="date" value="' + (c.fecha_emision||'') + '" onchange="actualizarChequePago(' + idx + ',\'fecha_emision\',this.value)"></div>' +
-        '<div class="form-group"><label>Fecha Pago (cobro)</label><input type="date" value="' + (c.fecha_pago||'') + '" onchange="actualizarChequePago(' + idx + ',\'fecha_pago\',this.value);recalcVencChequePago(' + idx + ')"></div>' +
+        '<div class="form-group"><label>Fecha Emisión</label><input type="date" value="' + (c.fecha_emision||'') + '" onchange="actualizarChequePago(' + idx + ',\'fecha_emision\',this.value)" onblur="actualizarChequePago(' + idx + ',\'fecha_emision\',this.value)"></div>' +
+        '<div class="form-group"><label>Fecha Pago (cobro)</label><input type="date" value="' + (c.fecha_pago||'') + '" onchange="actualizarChequePago(' + idx + ',\'fecha_pago\',this.value);recalcVencChequePago(' + idx + ')" onblur="actualizarChequePago(' + idx + ',\'fecha_pago\',this.value);recalcVencChequePago(' + idx + ')"></div>' +
         '<div class="form-group"><label>Días de validez</label><input type="number" min="0" value="' + (c.dias||0) + '" oninput="actualizarChequePago(' + idx + ',\'dias\',this.value);recalcVencChequePago(' + idx + ')"></div>' +
         '<div class="form-group"><label>Fecha Vencimiento</label><input type="date" id="ppChequeVenc_' + idx + '" value="' + (c.fecha_vencimiento||'') + '" readonly style="background:#f0f0f0;color:#555"></div>' +
       '</div>';
