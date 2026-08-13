@@ -2907,7 +2907,7 @@ function guardarPago() {
   var banco=bancosUnicos.join(', ');
   var importeCheque=cheques.reduce(function(a,c){return a+(c.importe||0);},0);
 
-  var datos={fecha:fecha,cliente_nombre:document.getElementById('ppCliente').value.trim().toUpperCase(),cliente_id:document.getElementById('ppClienteId').value.trim()||null,haber:haber,efectivo:parseFloat(document.getElementById('ppEfectivo').value)||0,transferencia:parseFloat(document.getElementById('ppTransferencia').value)||0,cheque_numero:chequeNumero,banco:banco,importe_cheque:importeCheque,observaciones:document.getElementById('ppObs').value.trim()};
+  var datos={fecha:fecha,cliente_nombre:document.getElementById('ppCliente').value.trim().toUpperCase(),cliente_id:document.getElementById('ppClienteId').value.trim()||null,haber:haber,efectivo:efectivo,transferencia:transferencia,cheque_numero:chequeNumero,banco:banco,importe_cheque:importeCheque,observaciones:document.getElementById('ppObs').value.trim()};
   var btnGuardar=document.getElementById('btnGuardarPago');
   if(btnGuardar.disabled)return;
   btnGuardar.disabled=true;
