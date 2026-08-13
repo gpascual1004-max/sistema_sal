@@ -4168,7 +4168,13 @@ function recalcVencCheque(prefix) {
 function toggleSeccionCheque() {
   var checked = document.getElementById('ppTieneCheque').checked;
   document.getElementById('ppSeccionCheque').style.display = checked ? 'block' : 'none';
-  if (checked && !pagoChequesState.length) agregarChequePago(); // ya renderiza
+  if (checked && !pagoChequesState.length) {
+    if (!todosBancos.length) {
+      gsRun('obtenerBancos',[],function(bancos){todosBancos=bancos||[];agregarChequePago();});
+    } else {
+      agregarChequePago();
+    }
+  }
 }
 function chequeAEstado(c) {
   return {
