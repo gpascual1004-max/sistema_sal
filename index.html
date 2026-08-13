@@ -171,6 +171,10 @@ function supabaseQuery(table, methodOrFilters, dataOrFiltersOrQuery, filtersOrQu
       }
     };
 
+    if(method === 'POST' || method === 'PATCH' || method === 'PUT') {
+      options.headers['Prefer'] = 'return=representation';
+    }
+
     if(data) options.body = JSON.stringify(data);
 
     fetch(url, options)
