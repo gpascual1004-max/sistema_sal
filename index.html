@@ -2896,25 +2896,10 @@ function guardarPago() {
   if(tieneCheque&&!cheques.length){err.textContent='Agregá al menos un cheque o desmarcá "Pago incluye cheque(s)".';err.style.display='block';return;}
   if(!tieneCheque&&efectivo===0&&transferencia===0){err.textContent='Ingresá al menos efectivo O transferencia, o marcá "Pago incluye cheque".';err.style.display='block';return;}
 
-  // Sincronizar valores del DOM con pagoChequesState
-  var chequesDivs=document.querySelectorAll('.cheque-section');
-  chequesDivs.forEach(function(div,idx){
-    var inputs=div.querySelectorAll('input, select');
-    if(inputs.length>=6){
-      cheques[idx].numero=inputs[0].value||'';
-      cheques[idx].banco=inputs[1].value||'';
-      cheques[idx].importe=parseFloat(inputs[2].value)||0;
-      cheques[idx].fecha_emision=inputs[4].value||'';
-      cheques[idx].fecha_pago=inputs[5].value||'';
-      cheques[idx].dias=parseInt(inputs[6].value)||0;
-    }
-  });
-
   for(var i=0;i<cheques.length;i++){
     if(!cheques[i].numero){err.textContent='Falta el número del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].banco){err.textContent='Falta el banco del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].importe){err.textContent='Falta el importe del cheque '+(i+1)+'.';err.style.display='block';return;}
-    if(!cheques[i].fecha_emision&&!cheques[i].fecha_pago){err.textContent='Falta la fecha de emisión o fecha de pago del cheque '+(i+1)+'.';err.style.display='block';return;}
 
     if(!cheques[i].fecha_pago&&cheques[i].fecha_emision){
       cheques[i].fecha_pago=sumarDias(cheques[i].fecha_emision,30);
@@ -4234,7 +4219,8 @@ function renderizarChequesPago() {
   });
 }
 function agregarChequePago() {
-  pagoChequesState.push({ id: null, numero: '', banco: '', importe: 0, tipo: 'cartera', fecha_emision: document.getElementById('ppFecha').value || '', fecha_pago: '', dias: 30, fecha_vencimiento: '' });
+  var hoy = new Date().toISOString().substr(0,10);
+  pagoChequesState.push({ id: null, numero: '', banco: '', importe: 0, tipo: 'cartera', fecha_emision: hoy, fecha_pago: '', dias: 30, fecha_vencimiento: '' });
   renderizarChequesPago();
 }
 function quitarChequePago(idx) { pagoChequesState.splice(idx, 1); renderizarChequesPago(); }
