@@ -2659,7 +2659,7 @@ function abrirModalPago(idx) {
             }
             console.log('  comprobantesInfo cargado:',Object.keys(comprobantesInfo).length,'items');
             mostrarComprobantesSeleccionados();
-          });
+          },function(err){console.error('Error al obtener ventas:',err);});
         }else{mostrarComprobantesSeleccionados();}
       }catch(e){console.error('Error parseando comprobantes_ids:',e);mostrarComprobantesSeleccionados();}
     }else{console.log('  No hay comprobantes_ids');mostrarComprobantesSeleccionados();}
