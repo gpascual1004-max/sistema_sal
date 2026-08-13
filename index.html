@@ -2669,18 +2669,19 @@ function abrirModalPago(idx) {
     renderizarChequesPago();
     document.getElementById('overlayPago').classList.add('activo');
 
-  if(p){
-    gsRun('obtenerChequesDePago',[p.id],function(cheques){
-      if(cheques&&cheques.length){
-        pagoChequesState=cheques.map(chequeAEstado);
-      } else if(p.cheque_numero){
-        pagoChequesState=[{id:null,numero:p.cheque_numero,banco:p.banco||'',importe:parseFloat(p.importe_cheque)||0,tipo:'cartera',fecha_emision:p.fecha||'',fecha_pago:'',dias:30,fecha_vencimiento:''}];
-      }
-      document.getElementById('ppTieneCheque').checked=pagoChequesState.length>0;
-      document.getElementById('ppSeccionCheque').style.display=pagoChequesState.length>0?'block':'none';
-      renderizarChequesPago();
-    },function(e){console.error('[abrirModalPago] error al cargar cheques',e);});
-  }
+    if(p){
+      gsRun('obtenerChequesDePago',[p.id],function(cheques){
+        if(cheques&&cheques.length){
+          pagoChequesState=cheques.map(chequeAEstado);
+        } else if(p.cheque_numero){
+          pagoChequesState=[{id:null,numero:p.cheque_numero,banco:p.banco||'',importe:parseFloat(p.importe_cheque)||0,tipo:'cartera',fecha_emision:p.fecha||'',fecha_pago:'',dias:30,fecha_vencimiento:''}];
+        }
+        document.getElementById('ppTieneCheque').checked=pagoChequesState.length>0;
+        document.getElementById('ppSeccionCheque').style.display=pagoChequesState.length>0?'block':'none';
+        renderizarChequesPago();
+      },function(e){console.error('[abrirModalPago] error al cargar cheques',e);});
+    }
+  });
 }
 function cerrarModalPago(){document.getElementById('overlayPago').classList.remove('activo');idPagoEdicion=null;pagoChequesState=[];}
 function limpiarComprobantesAlAbrirModal(){comprobantesSeleccionados.clear();}
