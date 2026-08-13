@@ -1474,7 +1474,6 @@ function gsRun(fnName, params, onSuccess, onError) {
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Banco</label>
           <select id="fSaldoBanco" onchange="filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:180px;display:none"><option value="">Todos</option></select>
         </div>
-        <button class="btn btn-primary" onclick="mostrarSaldos()" style="align-self:flex-end">Cargar Saldos</button>
         <button class="btn" onclick="limpiarFiltrosSaldos()" style="background:#6c757d;color:white;align-self:flex-end">Limpiar</button>
       </div>
       <div id="msgSaldos"></div>
@@ -1831,7 +1830,7 @@ function mostrarCashflow() {
     new Promise(r => gsRun('obtenerPagos', [], d => { cfTodosPagos = d || []; r(); }, e => r())),
     new Promise(r => gsRun('obtenerFletes', [], d => { cfTodosFletes = d || []; r(); }, e => r())),
     new Promise(r => gsRun('obtenerGastos', [], d => { cfTodosGastos = d || []; r(); }, e => r())),
-    new Promise(r => gsRun('obtenerSaldos', [], d => { (d||[]).forEach(s => { cfSaldosPorDia[s.fecha] = s; }); r(); }, e => r()))
+    new Promise(r => gsRun('obtenerSaldos', [], d => { (d||[]).forEach(s => { cfSaldosPorDia[s.fecha + '|' + (s.tipo || 'Banco')] = s; }); r(); }, e => r()))
   ]).then(() => {
     cargarConfigCashflow();
     renderizarCashflow();
@@ -1905,16 +1904,27 @@ function renderizarCashflow() {
   var tbody = document.getElementById('cfTableBody');
   tbody.innerHTML = '';
 
-  // FILA: SALDOS
-  var rowSaldos = tbody.insertRow();
-  rowSaldos.style.borderBottom = '2px solid #ddd';
-  rowSaldos.insertCell(0).textContent = 'SALDOS';
+  // FILA: SALDOS CAJA
+  var rowSaldosCaja = tbody.insertRow();
+  rowSaldosCaja.insertCell(0).textContent = 'Saldos Caja';
   for (var i = 0; i < 14; i++) {
     var fecha = cfFechas[i];
-    var cell = rowSaldos.insertCell(i+1);
-    var saldo = cfSaldosPorDia[fecha] ? parseFloat(cfSaldosPorDia[fecha].monto) : 0;
+    var cell = rowSaldosCaja.insertCell(i+1);
+    var saldo = cfSaldosPorDia[fecha + '|Caja'] ? parseFloat(cfSaldosPorDia[fecha + '|Caja'].monto) : 0;
     cell.textContent = pesos(saldo);
-    cell.style.cssText = 'padding:8px;text-align:right;background:#f0f4ff;font-weight:500';
+    cell.style.cssText = 'padding:8px;text-align:right;background:#fff3cd;font-weight:500';
+  }
+
+  // FILA: SALDOS BANCO
+  var rowSaldosBanco = tbody.insertRow();
+  rowSaldosBanco.style.borderBottom = '2px solid #ddd';
+  rowSaldosBanco.insertCell(0).textContent = 'Saldos Banco';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var cell = rowSaldosBanco.insertCell(i+1);
+    var saldo = cfSaldosPorDia[fecha + '|Banco'] ? parseFloat(cfSaldosPorDia[fecha + '|Banco'].monto) : 0;
+    cell.textContent = pesos(saldo);
+    cell.style.cssText = 'padding:8px;text-align:right;background:#e7f3ff;font-weight:500';
   }
 
   // FILA: INGRESOS (Cobros)
