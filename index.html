@@ -2895,6 +2895,21 @@ function guardarPago() {
   var cheques=tieneCheque?pagoChequesState:[];
   if(tieneCheque&&!cheques.length){err.textContent='Agregá al menos un cheque o desmarcá "Pago incluye cheque(s)".';err.style.display='block';return;}
   if(!tieneCheque&&efectivo===0&&transferencia===0){err.textContent='Ingresá al menos efectivo O transferencia, o marcá "Pago incluye cheque".';err.style.display='block';return;}
+
+  // Sincronizar valores del DOM con pagoChequesState
+  var chequesDivs=document.querySelectorAll('.cheque-section');
+  chequesDivs.forEach(function(div,idx){
+    var inputs=div.querySelectorAll('input, select');
+    if(inputs.length>=6){
+      cheques[idx].numero=inputs[0].value||'';
+      cheques[idx].banco=inputs[1].value||'';
+      cheques[idx].importe=parseFloat(inputs[2].value)||0;
+      cheques[idx].fecha_emision=inputs[4].value||'';
+      cheques[idx].fecha_pago=inputs[5].value||'';
+      cheques[idx].dias=parseInt(inputs[6].value)||0;
+    }
+  });
+
   for(var i=0;i<cheques.length;i++){
     if(!cheques[i].numero){err.textContent='Falta el número del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].banco){err.textContent='Falta el banco del cheque '+(i+1)+'.';err.style.display='block';return;}
