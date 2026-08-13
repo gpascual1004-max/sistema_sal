@@ -367,7 +367,6 @@ function gsRun(fnName, params, onSuccess, onError) {
 
         return pagoPromise.then(pagoRes => {
           var pagoId = pagoRes.id;
-          console.log('=== BACKEND LOCAL: Pago guardado, pagoId:', pagoId, 'Cheques a procesar:', cheques.length);
 
           // Manejar cheques: actualizar existentes y borrar los que se quitaron
           if(pagoId){
@@ -380,8 +379,7 @@ function gsRun(fnName, params, onSuccess, onError) {
               // Borrar cheques que se quitaron
               chequesABorrar.forEach(c => {
                 supabaseQuery('cheques', 'DELETE', null, { id: c.id }).then(res => {
-                  console.log('Cheque borrado (desvinculado del cobro):', c.id);
-                });
+                                  });
               });
 
               // Guardar/actualizar cheques nuevos - ESPERAR A QUE TERMINEN TODOS
@@ -400,11 +398,9 @@ function gsRun(fnName, params, onSuccess, onError) {
                   fecha_vencimiento: c.fecha_vencimiento || null,
                   estado: 'DISPONIBLE'
                 };
-                console.log('Intentando guardar cheque:', JSON.stringify(chDatos, null, 2));
-                if(c.id){
+                                if(c.id){
                   return supabaseQuery('cheques', 'PATCH', chDatos, { id: c.id }).then(res => {
-                    console.log('✓ Cheque actualizado:', c.id, res);
-                    return res;
+                                        return res;
                   }).catch(err => {
                     console.error('✗ Error actualizando cheque:', c.id, err);
                     throw err;
@@ -500,21 +496,18 @@ function gsRun(fnName, params, onSuccess, onError) {
 
           // Si es array con datos = éxito normal
           if (Array.isArray(res) && res.length > 0) {
-            console.log('✓ Cheque creado (array con datos):', res[0].id);
-            return res[0];
+                        return res[0];
           }
 
           // Si es array vacío = Supabase no retornó datos pero POST fue exitoso (201)
           // Esto es normal cuando Supabase no retorna la respuesta
           if (Array.isArray(res) && res.length === 0) {
-            console.log('✓ Cheque creado exitosamente (respuesta vacía es normal en POST 201)');
-            return { success: true };
+                        return { success: true };
           }
 
           // Si NO es array pero es un objeto con id = éxito con objeto
           if (res && typeof res === 'object' && !Array.isArray(res) && res.id) {
-            console.log('✓ Cheque creado (respuesta como objeto único):', res.id);
-            return res;
+                        return res;
           }
 
           // Cualquier otra cosa = respuesta inesperada
@@ -2897,23 +2890,17 @@ function guardarPago() {
   if(!haber){err.textContent='El haber es obligatorio.';err.style.display='block';return;}
 
   var cheques=pagoChequesState;
-  console.log('=== GUARDAR PAGO - DEBUG ===');
-  console.log('pagoChequesState.length:',pagoChequesState.length);
-  console.log('pagoChequesState:',JSON.stringify(pagoChequesState));
   if(!cheques.length&&efectivo===0&&transferencia===0){err.textContent='Ingresá al menos efectivo O transferencia, o cheques.';err.style.display='block';return;}
 
   for(var i=0;i<cheques.length;i++){
-    console.log('Procesando cheque',i+':', JSON.stringify(cheques[i]));
     if(!cheques[i].numero){err.textContent='Falta el número del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].banco){err.textContent='Falta el banco del cheque '+(i+1)+'.';err.style.display='block';return;}
     if(!cheques[i].importe){err.textContent='Falta el importe del cheque '+(i+1)+'.';err.style.display='block';return;}
 
     if(!cheques[i].fecha_pago&&cheques[i].fecha_emision){
       cheques[i].fecha_pago=sumarDias(cheques[i].fecha_emision,30);
-      console.log('Calculada fecha_pago para cheque',i+':',cheques[i].fecha_pago);
     }
   }
-  console.log('Cheques finales a enviar:',JSON.stringify(cheques));
 
   var chequeNumero=cheques.map(function(c){return c.numero;}).join(', ');
   var bancosUnicos=cheques.map(function(c){return c.banco;}).filter(function(b,i,a){return b&&a.indexOf(b)===i;});
@@ -2928,10 +2915,6 @@ function guardarPago() {
   var etiqueta=idPagoEdicion?'Cobro actualizado.':'Cobro agregado correctamente.';
   var comprobantesArr=Array.from(comprobantesSeleccionados);
   var comprobantesDeseleccionados=comprobantesOriginales.filter(function(c){return comprobantesArr.indexOf(String(c))===-1;}).map(function(c){return String(c);});
-  console.log('=== ENVIANDO AL BACKEND ===');
-  console.log('Datos pago:', JSON.stringify(datos));
-  console.log('Cheques a guardar:', JSON.stringify(cheques));
-  console.log('Comprobantes:', comprobantesArr);
   gsRun('guardarPagoConCheques',[datos,idPagoEdicion,cheques,comprobantesArr,comprobantesDeseleccionados],function(){
     cerrarModalPago();
     var txtCheques=cheques.length?(' '+cheques.length+' cheque'+(cheques.length!==1?'s':'')+' guardado'+(cheques.length!==1?'s':'')+'.'):'';
@@ -4304,26 +4287,37 @@ var mapaClientesCheque = {};
 
 function mostrarCheques() {
   document.getElementById('fChequeBanco').innerHTML = '<option value="">Todos</option>';
-  gsRun('obtenerBancos', [], function(bancos) {
-    todosBancos = bancos || [];
-    poblarSelectBanco('chBanco');
-    gsRun('obtenerClientes', [], function(clientes) {
-      mapaClientesCheque = {};
-      (clientes || []).forEach(function(c) { mapaClientesCheque[normalizar(c.nombre)] = c; });
-      var lista = document.getElementById('listaClientesCheque');
-      if (lista) lista.innerHTML = (clientes || []).map(function(c) { return '<option value="' + String(c.nombre).replace(/"/g, '&quot;') + '">'; }).join('');
+  var finalizarCarga = function() {
+    gsRun('obtenerCheques', [], function(data) {
+      todosCheques = data || [];
+      paginaCheques = 1;
+      document.getElementById('infoCheques').textContent = '';
+      poblarFiltrosAnioMesCheques();
+      poblarFiltroBanco();
+      document.getElementById('fChequeAnio').value = '2026';
+      filtrarCheques();
+    }, function(err) { mensaje('msgCheques', 'Error al cargar: ' + err.message, 'error'); });
+  };
 
-      gsRun('obtenerCheques', [], function(data) {
-        todosCheques = data || [];
-        paginaCheques = 1;
-        document.getElementById('infoCheques').textContent = '';
-        poblarFiltrosAnioMesCheques();
-        poblarFiltroBanco();
-        document.getElementById('fChequeAnio').value = '2026';
-        filtrarCheques(); // aplica el prefiltro "Vigente + Próximo" que viene seleccionado por defecto
-      }, function(err) { mensaje('msgCheques', 'Error al cargar: ' + err.message, 'error'); });
-    }, function(err) { mensaje('msgCheques', 'Error al cargar clientes: ' + err.message, 'error'); });
-  }, function(err) { mensaje('msgCheques', 'Error al cargar bancos: ' + err.message, 'error'); });
+  if (!todosBancos.length) {
+    gsRun('obtenerBancos', [], function(bancos) {
+      todosBancos = bancos || [];
+      poblarSelectBanco('chBanco');
+      if (!Object.keys(mapaClientesCheque).length) {
+        gsRun('obtenerClientes', [], function(clientes) {
+          mapaClientesCheque = {};
+          (clientes || []).forEach(function(c) { mapaClientesCheque[normalizar(c.nombre)] = c; });
+          var lista = document.getElementById('listaClientesCheque');
+          if (lista) lista.innerHTML = (clientes || []).map(function(c) { return '<option value="' + String(c.nombre).replace(/"/g, '&quot;') + '">'; }).join('');
+          finalizarCarga();
+        }, function(err) { mensaje('msgCheques', 'Error al cargar clientes: ' + err.message, 'error'); });
+      } else {
+        finalizarCarga();
+      }
+    }, function(err) { mensaje('msgCheques', 'Error al cargar bancos: ' + err.message, 'error'); });
+  } else {
+    finalizarCarga();
+  }
 }
 
 function buscarMatchClienteCheque() {
@@ -4349,7 +4343,6 @@ function poblarFiltroBanco() {
   var bancos = [];
   todosCheques.forEach(function(c) { var b = (c.banco || '').trim(); if (b && bancos.indexOf(b) === -1) bancos.push(b); });
   bancos.sort();
-  console.log('poblarFiltroBanco - Bancos encontrados:', bancos);
   sel.innerHTML = '<option value="">Todos</option>';
   bancos.forEach(function(b) { var o = document.createElement('option'); o.value = b; o.textContent = b; if (b === valorActual) o.selected = true; sel.appendChild(o); });
 }
