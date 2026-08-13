@@ -2923,7 +2923,10 @@ function guardarPago() {
   var etiqueta=idPagoEdicion?'Cobro actualizado.':'Cobro agregado correctamente.';
   var comprobantesArr=Array.from(comprobantesSeleccionados);
   var comprobantesDeseleccionados=comprobantesOriginales.filter(function(c){return comprobantesArr.indexOf(String(c))===-1;}).map(function(c){return String(c);});
-  console.log('Guardando pago:',datos,'Comprobantes:',comprobantesArr,'Deseleccionados:',comprobantesDeseleccionados);
+  console.log('=== ENVIANDO AL BACKEND ===');
+  console.log('Datos pago:', JSON.stringify(datos));
+  console.log('Cheques a guardar:', JSON.stringify(cheques));
+  console.log('Comprobantes:', comprobantesArr);
   gsRun('guardarPagoConCheques',[datos,idPagoEdicion,cheques,comprobantesArr,comprobantesDeseleccionados],function(){
     cerrarModalPago();
     var txtCheques=cheques.length?(' '+cheques.length+' cheque'+(cheques.length!==1?'s':'')+' guardado'+(cheques.length!==1?'s':'')+'.'):'';

@@ -502,6 +502,7 @@ function guardarPagoConCheques(datos, id, cheques, comprobantesIds, comprobantes
   }
 
   cheques = cheques || [];
+  Logger.log('[guardarPagoConCheques] Cheques recibidos: ' + JSON.stringify(cheques));
   var existentes = supabaseQuery('cheques', 'GET', null, { pago_id: pagoId }) || [];
   var idsActuales = cheques.filter(function(c) { return c.id; }).map(function(c) { return c.id; });
   var aBorrar = existentes.filter(function(e) { return idsActuales.indexOf(e.id) === -1; });
