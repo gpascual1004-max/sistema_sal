@@ -743,6 +743,7 @@ function gsRun(fnName, params, onSuccess, onError) {
   <nav class="nav">
     <div class="nav-row">
       <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="nav-btn" data-tab="cashflow">CashFlow</button>
       <button class="nav-btn" data-tab="saldos">Cuenta Corriente de Clientes</button>
       <button class="nav-btn" data-tab="reportes">Reportes</button>
       <button class="nav-btn" data-tab="cargar">Cargar Datos</button>
@@ -1216,9 +1217,59 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
     </div>
 
+    <!-- CASHFLOW -->
+    <div class="section" id="cashflow">
+      <h2>CashFlow - 14 Días</h2>
+      <div id="msgCashflow"></div>
+
+      <!-- Panel de control de Gastos Abiertos -->
+      <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h3 style="margin:0">Conceptos de Gastos a Mostrar Individualmente</h3>
+          <span id="cfConfigGuardada" style="font-size:12px;color:#28a745;display:none">✓ Configuración guardada</span>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+          <select id="cfAgregarGasto" style="padding:8px 12px;border:1px solid #ddd;border-radius:4px">
+            <option value="">Agregar concepto...</option>
+          </select>
+          <span id="cfAviso" style="font-size:12px;color:#666"></span>
+        </div>
+        <div id="cfGastosAbiertos" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      </div>
+
+      <!-- Tabla CashFlow -->
+      <div style="overflow-x:auto;border:1px solid #ddd;border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead>
+            <tr style="background:#f8f9fa;border-bottom:2px solid #ddd">
+              <th style="padding:12px;text-align:left;font-weight:600;min-width:150px;position:sticky;left:0;background:#f8f9fa;z-index:10">Concepto</th>
+              <th colspan="7" style="padding:12px;text-align:center;font-weight:600;border-left:1px solid #ddd">SEMANA 1</th>
+              <th colspan="7" style="padding:12px;text-align:center;font-weight:600;border-left:2px solid #ccc">SEMANA 2</th>
+            </tr>
+            <tr style="background:#fff;border-bottom:1px solid #ddd" id="cfHeaderDias"></tr>
+          </thead>
+          <tbody id="cfTableBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- SALDOS -->
     <div class="section" id="saldos">
-      <div class="tabla-header" style="justify-content:flex-end"><button class="btn" onclick="exportarSaldoCliente()" style="background:#6c757d;color:white">Exportar Saldo</button></div>
+      <div class="tabla-header" style="justify-content:space-between">
+        <div style="display:flex;gap:15px;align-items:center">
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="filtroPageEste" checked onchange="filtrarSaldos()"> Este mes
+          </label>
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="filtroPageAnterior" checked onchange="filtrarSaldos()"> Mes anterior
+          </label>
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="filtroSinPage" checked onchange="filtrarSaldos()"> Sin pagos (2 meses)
+          </label>
+        </div>
+        <button class="btn" onclick="exportarSaldoCliente()" style="background:#6c757d;color:white">Exportar Saldo</button>
+      </div>
       <div id="msgClientes"></div>
       <div id="cardSaldoTotal" style="margin-bottom:20px"></div>
       <div id="detalleSaldoCliente" style="display:none;margin-bottom:24px">
@@ -1413,15 +1464,15 @@ function gsRun(fnName, params, onSuccess, onError) {
       <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
         <div>
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Fecha (dd-mm-yy)</label>
-          <input type="text" id="fSaldoFecha" placeholder="DD-MM-YY" oninput="filtrarSaldos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:120px">
+          <input type="text" id="fSaldoFecha" placeholder="DD-MM-YY" oninput="filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:120px">
         </div>
         <div>
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Tipo</label>
-          <select id="fSaldoTipo" onchange="actualizarFiltrosBanco();filtrarSaldos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:150px"><option value="">Todos</option><option value="Caja">Caja</option><option value="Banco">Banco</option></select>
+          <select id="fSaldoTipo" onchange="actualizarFiltrosBanco();filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:150px"><option value="">Todos</option><option value="Caja">Caja</option><option value="Banco">Banco</option></select>
         </div>
         <div>
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Banco</label>
-          <select id="fSaldoBanco" onchange="filtrarSaldos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:180px;display:none"><option value="">Todos</option></select>
+          <select id="fSaldoBanco" onchange="filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:180px;display:none"><option value="">Todos</option></select>
         </div>
         <button class="btn btn-primary" onclick="mostrarSaldos()" style="align-self:flex-end">Cargar Saldos</button>
         <button class="btn" onclick="limpiarFiltrosSaldos()" style="background:#6c757d;color:white;align-self:flex-end">Limpiar</button>
@@ -1662,6 +1713,7 @@ document.querySelectorAll('.nav-btn').forEach(function(btn) {
     var seccion = document.getElementById(tab);
     if (seccion) seccion.classList.add('active');
     if (tab==='dashboard') cargarDashboard();
+    if (tab==='cashflow')  mostrarCashflow();
     if (tab==='fletes')    mostrarFletes();
     if (tab==='ventas')    mostrarVentas();
     if (tab==='clientes')  mostrarClientesTab();
@@ -1745,6 +1797,232 @@ function parsearFila(l, sep) {
     else { act+=c; }
   }
   res.push(act); return res;
+}
+
+// ==========================================
+// CASHFLOW
+// ==========================================
+function calcularFechasCashflow() {
+  var hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  var diaSemana = hoy.getDay();
+  var lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() - (diaSemana === 0 ? 6 : diaSemana - 1));
+
+  cfFechasInicio = new Date(lunes);
+  cfFechasHoy = new Date(hoy);
+  cfFechas = [];
+  for (var i = 0; i < 14; i++) {
+    var d = new Date(lunes);
+    d.setDate(lunes.getDate() + i);
+    cfFechas.push(d.toISOString().substr(0,10));
+  }
+}
+
+function mostrarCashflow() {
+  calcularFechasCashflow();
+  Promise.all([
+    new Promise(r => gsRun('obtenerCheques', [], d => cfTodosCheques = d || [], e => r())),
+    new Promise(r => gsRun('obtenerPagos', [], d => cfTodosPagos = d || [], e => r())),
+    new Promise(r => gsRun('obtenerFletes', [], d => cfTodosFletes = d || [], e => r())),
+    new Promise(r => gsRun('obtenerGastos', [], d => cfTodosGastos = d || [], e => r())),
+    new Promise(r => gsRun('obtenerSaldos', [], d => { (d||[]).forEach(s => { var k = s.fecha; cfSaldosPorDia[k] = s; }); r(); }, e => r()))
+  ]).then(() => {
+    cargarConfigCashflow();
+    renderizarCashflow();
+  });
+}
+
+function cargarConfigCashflow() {
+  var cfg = localStorage.getItem('cfGastosAbiertos');
+  cfGastosAbiertos = cfg ? JSON.parse(cfg) : [];
+}
+
+function guardarConfigCashflow() {
+  localStorage.setItem('cfGastosAbiertos', JSON.stringify(cfGastosAbiertos));
+  document.getElementById('cfConfigGuardada').style.display = 'inline-block';
+  setTimeout(() => { document.getElementById('cfConfigGuardada').style.display = 'none'; }, 2000);
+}
+
+function renderizarCashflow() {
+  // Encabezado con días
+  var encabezado = '<th style="padding:12px;text-align:left;font-weight:600;min-width:150px;position:sticky;left:0;background:#f8f9fa;z-index:10"></th>';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var d = new Date(fecha + 'T00:00:00');
+    var diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    var esSemana2 = i >= 7 ? 'border-left:2px solid #ccc' : 'border-left:1px solid #ddd';
+    var esHoy = fecha === cfFechasHoy.toISOString().substr(0,10) ? 'background:#fff3cd;font-weight:600' : '';
+    var badge = fecha === cfFechasHoy.toISOString().substr(0,10) ? '<br><span style="font-size:10px;color:#ff6b6b">HOY</span>' : '';
+    encabezado += '<th style="padding:12px;text-align:center;font-weight:600;font-size:12px;min-width:100px;' + esSemana2 + ';' + esHoy + '">' +
+      diasSemana[d.getDay()] + '<br>' + d.getDate() + '/' + (d.getMonth()+1) + badge + '</th>';
+  }
+  document.getElementById('cfHeaderDias').innerHTML = encabezado;
+
+  // Conceptos y gastos disponibles
+  var conceptos = [...new Set(cfTodosGastos.map(g => g.rubro || 'Sin rubro'))].sort();
+  var select = document.getElementById('cfAgregarGasto');
+  select.innerHTML = '<option value="">Agregar concepto...</option>';
+  conceptos.forEach(c => {
+    if (!cfGastosAbiertos.includes(c)) {
+      var opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      select.appendChild(opt);
+    }
+  });
+
+  select.onchange = function() {
+    if (this.value) {
+      cfGastosAbiertos.push(this.value);
+      this.value = '';
+      guardarConfigCashflow();
+      renderizarCashflow();
+    }
+  };
+
+  // Botones de gastos abiertos
+  var divGastos = document.getElementById('cfGastosAbiertos');
+  divGastos.innerHTML = '';
+  cfGastosAbiertos.forEach(c => {
+    var btn = document.createElement('div');
+    btn.style.cssText = 'background:#e3f2fd;border:1px solid #2196f3;border-radius:4px;padding:6px 12px;font-size:13px;display:flex;gap:8px;align-items:center';
+    btn.innerHTML = c + '<button style="border:none;background:none;color:#2196f3;cursor:pointer;padding:0;font-size:16px" onclick="removerGastoCashflow(\'' + c.replace(/'/g, "\\'") + '\')">×</button>';
+    divGastos.appendChild(btn);
+  });
+
+  var gastosVarios = conceptos.filter(c => !cfGastosAbiertos.includes(c)).length;
+  document.getElementById('cfAviso').textContent = gastosVarios > 0 ?
+    gastosVarios + ' concepto' + (gastosVarios!==1?'s':'') + ' en "Gastos Varios"' :
+    'Todos los conceptos abiertos';
+
+  // Tabla
+  var tbody = document.getElementById('cfTableBody');
+  tbody.innerHTML = '';
+
+  // FILA: SALDOS
+  var rowSaldos = tbody.insertRow();
+  rowSaldos.style.borderBottom = '2px solid #ddd';
+  rowSaldos.insertCell(0).textContent = 'SALDOS';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var cell = rowSaldos.insertCell(i+1);
+    var saldo = cfSaldosPorDia[fecha] ? parseFloat(cfSaldosPorDia[fecha].monto) : 0;
+    cell.textContent = pesos(saldo);
+    cell.style.cssText = 'padding:8px;text-align:right;background:#f0f4ff;font-weight:500';
+  }
+
+  // FILA: INGRESOS (Cobros)
+  var rowCobros = tbody.insertRow();
+  rowCobros.insertCell(0).textContent = 'Cobros (Efe+Transf)';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var suma = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
+    var cell = rowCobros.insertCell(i+1);
+    cell.textContent = pesos(suma);
+    cell.style.cssText = 'padding:8px;text-align:right;color:#28a745';
+  }
+
+  // FILA: CHEQUES
+  var rowCheques = tbody.insertRow();
+  rowCheques.insertCell(0).textContent = 'Cheques Recibidos';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var suma = cfTodosCheques.filter(ch => ch.fecha_pago === fecha && ch.estado === 'DISPONIBLE').reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
+    var cell = rowCheques.insertCell(i+1);
+    cell.textContent = pesos(suma);
+    cell.style.cssText = 'padding:8px;text-align:right;color:#2196f3';
+  }
+
+  // SUBTOTAL INGRESOS
+  var rowSubIngresos = tbody.insertRow();
+  rowSubIngresos.style.fontWeight = '600';
+  rowSubIngresos.style.borderTop = '1px solid #ddd';
+  rowSubIngresos.insertCell(0).textContent = 'TOTAL INGRESOS';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var cobros = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
+    var cheques = cfTodosCheques.filter(ch => ch.fecha_pago === fecha && ch.estado === 'DISPONIBLE').reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
+    var cell = rowSubIngresos.insertCell(i+1);
+    cell.textContent = pesos(cobros + cheques);
+    cell.style.cssText = 'padding:8px;text-align:right;background:#e8f5e9;color:#1b5e20';
+  }
+
+  // FILA: FLETES
+  var rowFletes = tbody.insertRow();
+  rowFletes.insertCell(0).textContent = 'Fletes';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var suma = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
+    var cell = rowFletes.insertCell(i+1);
+    cell.textContent = suma > 0 ? '-' + pesos(suma).substr(1) : '-';
+    cell.style.cssText = 'padding:8px;text-align:right;color:#d32f2f';
+  }
+
+  // GASTOS (abiertos + Gastos Varios)
+  cfGastosAbiertos.forEach(concepto => {
+    var row = tbody.insertRow();
+    row.insertCell(0).textContent = concepto;
+    for (var i = 0; i < 14; i++) {
+      var fecha = cfFechas[i];
+      var suma = cfTodosGastos.filter(g => (g.rubro || 'Sin rubro') === concepto && g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
+      var cell = row.insertCell(i+1);
+      cell.textContent = suma > 0 ? '-' + pesos(suma).substr(1) : '-';
+      cell.style.cssText = 'padding:8px;text-align:right;color:#f57c00';
+    }
+  });
+
+  // GASTOS VARIOS
+  var rowGastosSevarios = tbody.insertRow();
+  rowGastosSevarios.insertCell(0).textContent = 'Gastos Varios';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var abiertos = cfTodosGastos.filter(g => cfGastosAbiertos.includes(g.rubro || 'Sin rubro') && g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
+    var total = cfTodosGastos.filter(g => g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
+    var suma = total - abiertos;
+    var cell = rowGastosSevarios.insertCell(i+1);
+    cell.textContent = suma > 0 ? '-' + pesos(suma).substr(1) : '-';
+    cell.style.cssText = 'padding:8px;text-align:right;color:#9c27b0';
+  }
+
+  // SUBTOTAL EGRESOS
+  var rowSubEgresos = tbody.insertRow();
+  rowSubEgresos.style.fontWeight = '600';
+  rowSubEgresos.style.borderTop = '1px solid #ddd';
+  rowSubEgresos.insertCell(0).textContent = 'TOTAL EGRESOS';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var fletes = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
+    var gastos = cfTodosGastos.filter(g => g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
+    var cell = rowSubEgresos.insertCell(i+1);
+    cell.textContent = fletes > 0 || gastos > 0 ? '-' + pesos(fletes + gastos).substr(1) : '-';
+    cell.style.cssText = 'padding:8px;text-align:right;background:#ffe0e0;color:#b71c1c';
+  }
+
+  // RESULTADO NETO
+  var rowResultado = tbody.insertRow();
+  rowResultado.style.fontWeight = '700';
+  rowResultado.style.fontSize = '14px';
+  rowResultado.style.borderTop = '2px solid #333';
+  rowResultado.insertCell(0).textContent = 'RESULTADO NETO';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var saldo = cfSaldosPorDia[fecha] ? parseFloat(cfSaldosPorDia[fecha].monto) : 0;
+    var cobros = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
+    var cheques = cfTodosCheques.filter(ch => ch.fecha_pago === fecha && ch.estado === 'DISPONIBLE').reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
+    var fletes = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
+    var gastos = cfTodosGastos.filter(g => g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
+    var resultado = saldo + cobros + cheques - fletes - gastos;
+    var cell = rowResultado.insertCell(i+1);
+    cell.textContent = pesos(resultado);
+    cell.style.cssText = 'padding:10px;text-align:right;background:' + (resultado >= 0 ? '#c8e6c9' : '#ffcccc') + ';color:' + (resultado >= 0 ? '#1b5e20' : '#b71c1c');
+  }
+}
+
+function removerGastoCashflow(concepto) {
+  cfGastosAbiertos = cfGastosAbiertos.filter(c => c !== concepto);
+  guardarConfigCashflow();
+  renderizarCashflow();
 }
 
 // ==========================================
@@ -2482,7 +2760,11 @@ document.getElementById('overlayProveedor').addEventListener('click',function(e)
 // PAGOS
 // ==========================================
 var todosPagos=[],pagosFiltrados=[],paginaPagos=1,porPaginaPagos=20,idPagoEdicion=null,mapaClientesPagos={},mesesSeleccionados={},comprobantesSeleccionados=new Set(),ventasDisponibles=[],comprobantesInfo={},comprobantesOriginales=[],todosBancos=[];
-var pagoChequesState=[]; // cheques del pago que se está editando/creando: [{id, numero, banco, importe, tipo, fecha_emision, fecha_pago, dias, fecha_vencimiento}]
+var pagoChequesState=[];
+
+// CASHFLOW
+var cfGastosAbiertos=[],cfTodosCheques=[],cfTodosPagos=[],cfTodosFletes=[],cfTodosGastos=[],cfSaldosPorDia={};
+var cfFechasInicio=null,cfFechasHoy=null,cfFechas=[]; // cheques del pago que se está editando/creando: [{id, numero, banco, importe, tipo, fecha_emision, fecha_pago, dias, fecha_vencimiento}]
 
 function toggleDropdownMeses(){var d=document.getElementById('dropdownMeses');d.style.display=d.style.display==='none'?'block':'none';}
 document.addEventListener('click',function(e){var btn=document.getElementById('btnMesesPago'),dd=document.getElementById('dropdownMeses');if(btn&&dd&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display='none';});
@@ -2514,6 +2796,7 @@ var pagosFiltroInicializado=false;
 function refrescarPagos() {
   gsRun('obtenerPagos',[],function(data){
     todosPagos=data||[];paginaPagos=1;
+    poblarAniosPagos();
     filtrarPagos();
   });
 }
@@ -2526,27 +2809,31 @@ function mostrarPagos() {
         todosPagos=data||[];paginaPagos=1;
         poblarAniosPagos();
 
-        // Siempre preseleccionar año y mes actual
-        var hoy=new Date();
-        var anioActual=String(hoy.getFullYear());
-        var mesActual=String(hoy.getMonth()+1).padStart(2,'0');
+        // Solo reinicializar filtros la primera vez
+        if (!pagosFiltroInicializado) {
+          // Siempre preseleccionar año y mes actual
+          var hoy=new Date();
+          var anioActual=String(hoy.getFullYear());
+          var mesActual=String(hoy.getMonth()+1).padStart(2,'0');
 
-        var selectAnio=document.getElementById('fPagoAnio');
-        selectAnio.value=anioActual;
+          var selectAnio=document.getElementById('fPagoAnio');
+          selectAnio.value=anioActual;
 
-        // Seleccionar solo el mes actual
-        mesesSeleccionados={};
-        var claveActual=anioActual+'-'+mesActual;
-        // Primero poner todos en false
-        todosPagos.forEach(function(p){
-          var f=p.fecha||'';
-          if(f){
-            var y=f.substr(0,4), m=f.substr(5,2);
-            if(m) mesesSeleccionados[y+'-'+m]=false;
-          }
-        });
-        // Luego poner el actual en true
-        mesesSeleccionados[claveActual]=true;
+          // Seleccionar solo el mes actual
+          mesesSeleccionados={};
+          var claveActual=anioActual+'-'+mesActual;
+          // Primero poner todos en false
+          todosPagos.forEach(function(p){
+            var f=p.fecha||'';
+            if(f){
+              var y=f.substr(0,4), m=f.substr(5,2);
+              if(m) mesesSeleccionados[y+'-'+m]=false;
+            }
+          });
+          // Luego poner el actual en true
+          mesesSeleccionados[claveActual]=true;
+          pagosFiltroInicializado=true;
+        }
 
         poblarDropdownMeses();
 
@@ -3409,15 +3696,34 @@ function poblarSelectSaldoCliente() {
 function filtrarSaldos() {
   var q=document.getElementById('fSaldoCliente').value;
   var pagosMes=document.getElementById('fSaldoPagosMes').value;
-  var hoy=new Date(), claveMesActual=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+  var filtroEste=document.getElementById('filtroPageEste').checked;
+  var filtroAnterior=document.getElementById('filtroPageAnterior').checked;
+  var filtroSinPago=document.getElementById('filtroSinPage').checked;
+
+  var hoy=new Date(), mesActual=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
+  var mesAnterior=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);
+  var mesAnteriorClave=mesAnterior.getFullYear()+'-'+String(mesAnterior.getMonth()+1).padStart(2,'0');
+  var haceDos=new Date(hoy.getFullYear(),hoy.getMonth()-2,1);
+  var dosMesesAtrasClave=haceDos.getFullYear()+'-'+String(haceDos.getMonth()+1).padStart(2,'0');
+
   _saldosFiltrados=_saldosData.filter(function(s){
     if(q&&s.cliente!==q)return false;
     if(pagosMes){
-      var tienePago=!!(s.meses[claveMesActual]&&s.meses[claveMesActual].pagos>0);
+      var tienePago=!!(s.meses[mesActual]&&s.meses[mesActual].pagos>0);
       if(pagosMes==='si'&&!tienePago)return false;
       if(pagosMes==='no'&&tienePago)return false;
     }
-    return true;
+
+    var tienePageEste=!!(s.meses[mesActual]&&s.meses[mesActual].pagos>0);
+    var tienePageAnterior=!!(s.meses[mesAnteriorClave]&&s.meses[mesAnteriorClave].pagos>0);
+    var sinPageDosUltimos=!tienePageEste&&!tienePageAnterior;
+
+    var cumpleFiltro=false;
+    if(filtroEste&&tienePageEste) cumpleFiltro=true;
+    if(filtroAnterior&&tienePageAnterior&&!tienePageEste) cumpleFiltro=true;
+    if(filtroSinPago&&sinPageDosUltimos) cumpleFiltro=true;
+
+    return cumpleFiltro;
   });
   cerrarDetalleSaldo();renderSaldos();
 }
@@ -4932,7 +5238,7 @@ function convertirFechaAlDMY(fechaDMY){
   var yyyy='20'+yy;
   return yyyy+'-'+mm.padStart(2,'0')+'-'+dd.padStart(2,'0');
 }
-function filtrarSaldos(){
+function filtrarSaldosBanco(){
   var tipo=document.getElementById('fSaldoTipo').value,fechaDMY=document.getElementById('fSaldoFecha').value,banco=document.getElementById('fSaldoBanco').value;
   var fechaYYYYMMDD=convertirFechaAlDMY(fechaDMY);
   saldosFiltrados=todosSaldos.filter(function(s){
