@@ -2621,52 +2621,53 @@ function eliminarPago(idx) {
   },function(e){mensaje('msgPagos','Error al verificar cheques: '+e.message,'error');});
 }
 function abrirModalPago(idx) {
-  gsRun('obtenerBancos',[],function(bancos){todosBancos=bancos||[];});
-  var p=idx!==null&&idx!==undefined?todosPagos[idx]:null;idPagoEdicion=p?p.id:null;
-  document.getElementById('modalTituloPago').textContent=p?'Editar Cobro':'Nuevo Cobro';
-  document.getElementById('ppFecha').value=p?p.fecha||'':new Date().toISOString().substr(0,10);
-  document.getElementById('ppCliente').value=p?p.cliente_nombre||'':'';document.getElementById('ppClienteId').value=p?p.cliente_id||'':'';
-  document.getElementById('ppHaber').value=p?formatoMonedaArg(parseFloat(p.haber)||0):'';document.getElementById('ppEfectivo').value=p?formatoMonedaArg(parseFloat(p.efectivo)||0):'';
-  document.getElementById('ppTransferencia').value=p?formatoMonedaArg(parseFloat(p.transferencia)||0):'';
-  document.getElementById('ppObs').value=p?p.observaciones||'':'';document.getElementById('modalErrorPago').style.display='none';
-  document.getElementById('btnGuardarPago').disabled=false;
-  if(p)actualizarMatchInfoPago(p.cliente_id,p.cliente_nombre);else document.getElementById('ppMatchInfo').style.display='none';
+  gsRun('obtenerBancos',[],function(bancos){
+    todosBancos=bancos||[];
+    var p=idx!==null&&idx!==undefined?todosPagos[idx]:null;idPagoEdicion=p?p.id:null;
+    document.getElementById('modalTituloPago').textContent=p?'Editar Cobro':'Nuevo Cobro';
+    document.getElementById('ppFecha').value=p?p.fecha||'':new Date().toISOString().substr(0,10);
+    document.getElementById('ppCliente').value=p?p.cliente_nombre||'':'';document.getElementById('ppClienteId').value=p?p.cliente_id||'':'';
+    document.getElementById('ppHaber').value=p?formatoMonedaArg(parseFloat(p.haber)||0):'';document.getElementById('ppEfectivo').value=p?formatoMonedaArg(parseFloat(p.efectivo)||0):'';
+    document.getElementById('ppTransferencia').value=p?formatoMonedaArg(parseFloat(p.transferencia)||0):'';
+    document.getElementById('ppObs').value=p?p.observaciones||'':'';document.getElementById('modalErrorPago').style.display='none';
+    document.getElementById('btnGuardarPago').disabled=false;
+    if(p)actualizarMatchInfoPago(p.cliente_id,p.cliente_nombre);else document.getElementById('ppMatchInfo').style.display='none';
 
-  pagoChequesState=[];
-  comprobantesOriginales=[];
-  comprobantesSeleccionados.clear();
-  comprobantesInfo={};
-  console.log('abrirModalPago - Pago:',p?'EDITAR id='+p.id:'CREAR NUEVO','comprobantes_ids:',p?p.comprobantes_ids:'N/A');
-  if(p&&p.comprobantes_ids){
-    try{
-      var comprobantesGuardados=JSON.parse(p.comprobantes_ids);
-      console.log('  Comprobantes guardados parseados:',comprobantesGuardados);
-      comprobantesOriginales=comprobantesGuardados.map(function(c){return String(c);});
-      comprobantesGuardados.forEach(function(cId){comprobantesSeleccionados.add(String(cId));});
-      console.log('  comprobantesSeleccionados después de cargar:',Array.from(comprobantesSeleccionados));
-      if(p.cliente_id){
-        gsRun('obtenerVentasNoPagadas',[p.cliente_id,comprobantesGuardados],function(ventas){
-          console.log('  obtenerVentasNoPagadas callback - ventas:',ventas?ventas.length:'null');
-          if(ventas){
-            var comprobantesGuardadosStr=comprobantesGuardados.map(function(c){return String(c);});
-            ventas.forEach(function(v){
-              var vId=String(v.id);
-              if(comprobantesGuardadosStr.indexOf(vId)!==-1){
-                comprobantesInfo[vId]={comprobante:v.comprobante,monto:parseFloat(v.debe)};
-              }
-            });
-          }
-          console.log('  comprobantesInfo cargado:',Object.keys(comprobantesInfo).length,'items');
-          mostrarComprobantesSeleccionados();
-        });
-      }else{mostrarComprobantesSeleccionados();}
-    }catch(e){console.error('Error parseando comprobantes_ids:',e);mostrarComprobantesSeleccionados();}
-  }else{console.log('  No hay comprobantes_ids');mostrarComprobantesSeleccionados();}
-  var tieneChequeLegado=!!(p&&p.cheque_numero);
-  document.getElementById('ppTieneCheque').checked=tieneChequeLegado;
-  document.getElementById('ppSeccionCheque').style.display=tieneChequeLegado?'block':'none';
-  renderizarChequesPago();
-  document.getElementById('overlayPago').classList.add('activo');
+    pagoChequesState=[];
+    comprobantesOriginales=[];
+    comprobantesSeleccionados.clear();
+    comprobantesInfo={};
+    console.log('abrirModalPago - Pago:',p?'EDITAR id='+p.id:'CREAR NUEVO','comprobantes_ids:',p?p.comprobantes_ids:'N/A');
+    if(p&&p.comprobantes_ids){
+      try{
+        var comprobantesGuardados=JSON.parse(p.comprobantes_ids);
+        console.log('  Comprobantes guardados parseados:',comprobantesGuardados);
+        comprobantesOriginales=comprobantesGuardados.map(function(c){return String(c);});
+        comprobantesGuardados.forEach(function(cId){comprobantesSeleccionados.add(String(cId));});
+        console.log('  comprobantesSeleccionados después de cargar:',Array.from(comprobantesSeleccionados));
+        if(p.cliente_id){
+          gsRun('obtenerVentasNoPagadas',[p.cliente_id,comprobantesGuardados],function(ventas){
+            console.log('  obtenerVentasNoPagadas callback - ventas:',ventas?ventas.length:'null');
+            if(ventas){
+              var comprobantesGuardadosStr=comprobantesGuardados.map(function(c){return String(c);});
+              ventas.forEach(function(v){
+                var vId=String(v.id);
+                if(comprobantesGuardadosStr.indexOf(vId)!==-1){
+                  comprobantesInfo[vId]={comprobante:v.comprobante,monto:parseFloat(v.debe)};
+                }
+              });
+            }
+            console.log('  comprobantesInfo cargado:',Object.keys(comprobantesInfo).length,'items');
+            mostrarComprobantesSeleccionados();
+          });
+        }else{mostrarComprobantesSeleccionados();}
+      }catch(e){console.error('Error parseando comprobantes_ids:',e);mostrarComprobantesSeleccionados();}
+    }else{console.log('  No hay comprobantes_ids');mostrarComprobantesSeleccionados();}
+    var tieneChequeLegado=!!(p&&p.cheque_numero);
+    document.getElementById('ppTieneCheque').checked=tieneChequeLegado;
+    document.getElementById('ppSeccionCheque').style.display=tieneChequeLegado?'block':'none';
+    renderizarChequesPago();
+    document.getElementById('overlayPago').classList.add('activo');
 
   if(p){
     gsRun('obtenerChequesDePago',[p.id],function(cheques){
