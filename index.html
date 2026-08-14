@@ -1826,6 +1826,7 @@ function mostrarCashflow() {
 }
 
 function cargarConfigCashflow() {
+  // Intentar cargar desde localStorage como fallback
   var cfg = localStorage.getItem('cfGastosAbiertos');
   cfGastosAbiertos = cfg ? JSON.parse(cfg) : [];
 }
@@ -1834,6 +1835,10 @@ function guardarConfigCashflow() {
   localStorage.setItem('cfGastosAbiertos', JSON.stringify(cfGastosAbiertos));
   document.getElementById('cfConfigGuardada').style.display = 'inline-block';
   setTimeout(() => { document.getElementById('cfConfigGuardada').style.display = 'none'; }, 2000);
+  // También intentar guardar en Supabase como respaldo
+  try {
+    gsRun('guardarConfigCashflow', [cfGastosAbiertos], function() {}, function(e) {});
+  } catch(e) {}
 }
 
 function renderizarCashflow() {
@@ -1931,7 +1936,10 @@ function renderizarCashflow() {
   rowCheques.insertCell(0).textContent = 'Cheques Recibidos';
   for (var i = 0; i < 14; i++) {
     var fecha = cfFechas[i];
-    var suma = cfTodosCheques.filter(ch => ch.fecha_pago === fecha && ch.estado === 'DISPONIBLE').reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
+    var suma = cfTodosCheques.filter(ch => {
+      var fechaChq = ch.estado === 'ENTREGADO' ? ch.fecha_salida : ch.fecha_pago;
+      return fechaChq === fecha;
+    }).reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
     var cell = rowCheques.insertCell(i+1);
     cell.textContent = pesos(suma);
     cell.style.cssText = 'padding:8px;text-align:right;color:#2196f3';
@@ -1945,7 +1953,10 @@ function renderizarCashflow() {
   for (var i = 0; i < 14; i++) {
     var fecha = cfFechas[i];
     var cobros = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
-    var cheques = cfTodosCheques.filter(ch => ch.fecha_pago === fecha && ch.estado === 'DISPONIBLE').reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
+    var cheques = cfTodosCheques.filter(ch => {
+      var fechaChq = ch.estado === 'ENTREGADO' ? ch.fecha_salida : ch.fecha_pago;
+      return fechaChq === fecha;
+    }).reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
     var cell = rowSubIngresos.insertCell(i+1);
     cell.textContent = pesos(cobros + cheques);
     cell.style.cssText = 'padding:8px;text-align:right;background:#e8f5e9;color:#1b5e20';
@@ -2012,7 +2023,10 @@ function renderizarCashflow() {
     var fecha = cfFechas[i];
     var saldo = cfSaldosPorDia[fecha] ? parseFloat(cfSaldosPorDia[fecha].monto) : 0;
     var cobros = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
-    var cheques = cfTodosCheques.filter(ch => ch.fecha_pago === fecha && ch.estado === 'DISPONIBLE').reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
+    var cheques = cfTodosCheques.filter(ch => {
+      var fechaChq = ch.estado === 'ENTREGADO' ? ch.fecha_salida : ch.fecha_pago;
+      return fechaChq === fecha;
+    }).reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
     var fletes = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
     var gastos = cfTodosGastos.filter(g => g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
     var resultado = saldo + cobros + cheques - fletes - gastos;
