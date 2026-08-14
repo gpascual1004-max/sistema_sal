@@ -1480,7 +1480,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       <div class="table-container">
         <table>
           <thead><tr><th>Fecha</th><th>Tipo</th><th>Banco/Caja</th><th style="text-align:right">Monto</th><th>Observaciones</th><th></th></tr></thead>
-          <tbody id="cuerpoSaldos"><tr><td colspan="6" style="text-align:center;color:#999">Presiona "Cargar Saldos" para ver los datos</td></tr></tbody>
+          <tbody id="cuerpoSaldos"></tbody>
         </table>
       </div>
       <div class="paginacion" id="paginacionSaldos"></div>
@@ -5211,7 +5211,7 @@ function mostrarSaldos() {
     poblarSelectBancoSaldo();
     gsRun('obtenerSaldos',[],function(data){
       todosSaldos=data||[];paginaSaldos=1;
-      filtrarSaldos();
+      filtrarSaldosBanco();
     });
   });
 }
