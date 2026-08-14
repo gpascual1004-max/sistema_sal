@@ -1256,20 +1256,7 @@ function gsRun(fnName, params, onSuccess, onError) {
 
     <!-- SALDOS -->
     <div class="section" id="saldos">
-      <div class="tabla-header" style="justify-content:space-between">
-        <div style="display:flex;gap:15px;align-items:center">
-          <label style="display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="filtroPageEste" checked onchange="filtrarSaldos()"> Este mes
-          </label>
-          <label style="display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="filtroPageAnterior" checked onchange="filtrarSaldos()"> Mes anterior
-          </label>
-          <label style="display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="filtroSinPage" checked onchange="filtrarSaldos()"> Sin pagos (2 meses)
-          </label>
-        </div>
-        <button class="btn" onclick="exportarSaldoCliente()" style="background:#6c757d;color:white">Exportar Saldo</button>
-      </div>
+      <div class="tabla-header" style="justify-content:flex-end"><button class="btn" onclick="exportarSaldoCliente()" style="background:#6c757d;color:white">Exportar Saldo</button></div>
       <div id="msgClientes"></div>
       <div id="cardSaldoTotal" style="margin-bottom:20px"></div>
       <div id="detalleSaldoCliente" style="display:none;margin-bottom:24px">
@@ -1299,9 +1286,10 @@ function gsRun(fnName, params, onSuccess, onError) {
           <option value="">Todos los clientes</option>
         </select>
         <select id="fSaldoPagosMes" onchange="filtrarSaldos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px">
-          <option value="">Pagos mes actual: Todos</option>
-          <option value="si">Con pagos este mes</option>
-          <option value="no">Sin pagos este mes</option>
+          <option value="">Pagos: Todos</option>
+          <option value="este_mes">Con pagos este mes</option>
+          <option value="mes_anterior">Con pagos mes anterior (sin pagos este)</option>
+          <option value="sin_pagos_2m">Sin pagos últimos 2 meses</option>
         </select>
         <button class="btn" onclick="descargarSaldosXLSX()" style="background:#28a745;color:white;margin-left:auto">📥 Descargar XLSX</button>
       </div>
@@ -3711,34 +3699,22 @@ function poblarSelectSaldoCliente() {
 function filtrarSaldos() {
   var q=document.getElementById('fSaldoCliente').value;
   var pagosMes=document.getElementById('fSaldoPagosMes').value;
-  var filtroEste=document.getElementById('filtroPageEste').checked;
-  var filtroAnterior=document.getElementById('filtroPageAnterior').checked;
-  var filtroSinPago=document.getElementById('filtroSinPage').checked;
 
   var hoy=new Date(), mesActual=hoy.getFullYear()+'-'+String(hoy.getMonth()+1).padStart(2,'0');
   var mesAnterior=new Date(hoy.getFullYear(),hoy.getMonth()-1,1);
   var mesAnteriorClave=mesAnterior.getFullYear()+'-'+String(mesAnterior.getMonth()+1).padStart(2,'0');
-  var haceDos=new Date(hoy.getFullYear(),hoy.getMonth()-2,1);
-  var dosMesesAtrasClave=haceDos.getFullYear()+'-'+String(haceDos.getMonth()+1).padStart(2,'0');
 
   _saldosFiltrados=_saldosData.filter(function(s){
     if(q&&s.cliente!==q)return false;
-    if(pagosMes){
-      var tienePago=!!(s.meses[mesActual]&&s.meses[mesActual].pagos>0);
-      if(pagosMes==='si'&&!tienePago)return false;
-      if(pagosMes==='no'&&tienePago)return false;
-    }
 
     var tienePageEste=!!(s.meses[mesActual]&&s.meses[mesActual].pagos>0);
     var tienePageAnterior=!!(s.meses[mesAnteriorClave]&&s.meses[mesAnteriorClave].pagos>0);
-    var sinPageDosUltimos=!tienePageEste&&!tienePageAnterior;
 
-    var cumpleFiltro=false;
-    if(filtroEste&&tienePageEste) cumpleFiltro=true;
-    if(filtroAnterior&&tienePageAnterior&&!tienePageEste) cumpleFiltro=true;
-    if(filtroSinPago&&sinPageDosUltimos) cumpleFiltro=true;
+    if(pagosMes==='este_mes'&&!tienePageEste)return false;
+    if(pagosMes==='mes_anterior'&&(tienePageEste||!tienePageAnterior))return false;
+    if(pagosMes==='sin_pagos_2m'&&(tienePageEste||tienePageAnterior))return false;
 
-    return cumpleFiltro;
+    return true;
   });
   cerrarDetalleSaldo();renderSaldos();
 }
