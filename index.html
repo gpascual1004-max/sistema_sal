@@ -295,15 +295,19 @@ function gsRun(fnName, params, onSuccess, onError) {
     },
     'obtenerChequesDisponiblesParaGasto': ([gastoId]) => {
       return Promise.all([
-        supabaseQueryAll('cheques', 'estado=eq.DISPONIBLE&order=fecha_vencimiento.asc'),
-        supabaseQueryAll('cheques_emitidos', 'estado=eq.PENDIENTE&order=fecha_pago.asc')
-      ]).then(([cheques, chequesEm]) => {
-        var yaAsignados = gastoId ? cheques.filter(c => c.gasto_id === gastoId) : [];
-        var yaAsignadosEm = gastoId ? chequesEm.filter(c => c.gasto_id === gastoId) : [];
+        supabaseQueryAll('cheques', 'order=fecha_vencimiento.asc'),
+        supabaseQueryAll('cheques_emitidos', 'order=fecha_pago.asc')
+      ]).then(([todosCheques, todosChequesEm]) => {
+        var yaAsignados = gastoId ? todosCheques.filter(c => c.gasto_id === gastoId) : [];
+        var disponibles = todosCheques.filter(c => c.estado === 'DISPONIBLE' || c.gasto_id === gastoId);
+
+        var yaAsignadosEm = gastoId ? todosChequesEm.filter(c => c.gasto_id === gastoId) : [];
+        var disponiblesEm = todosChequesEm.filter(c => c.estado === 'PENDIENTE' || c.gasto_id === gastoId);
+
         return {
-          disponibles: cheques || [],
+          disponibles: disponibles || [],
           yaAsignadosIds: yaAsignados.map(c => c.id),
-          disponiblesEm: chequesEm || [],
+          disponiblesEm: disponiblesEm || [],
           yaAsignadosEmIds: yaAsignadosEm.map(c => c.id)
         };
       });
@@ -463,20 +467,12 @@ function gsRun(fnName, params, onSuccess, onError) {
       }
     },
     'guardarGasto': ([datos, id, chequeIds, chequeEmitidoIds]) => {
-      if (id) {
-        return supabaseQuery('gastos', 'PATCH', datos, { id }).then(res => {
-          console.log('Gasto actualizado en Supabase:', id);
-          return res;
-        });
-      } else {
-        return supabaseQuery('gastos', 'POST', [datos]).then(res => {
-          console.log('Nuevo gasto insertado en Supabase:', res);
-          if (!res || !Array.isArray(res) || res.length === 0) {
-            throw new Error('No se pudo guardar el gasto en la base de datos');
-          }
-          return res[0];
-        });
-      }
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .guardarGasto(datos, id, chequeIds, chequeEmitidoIds);
+      });
     },
     'guardarCheque': ([datos, id, pagoId]) => {
       console.log('guardarCheque - datos completos:', JSON.stringify(datos, null, 2), 'id:', id);
@@ -629,6 +625,15 @@ function gsRun(fnName, params, onSuccess, onError) {
     'insertarGastos': () => Promise.resolve(true),
     'actualizarVenta': () => Promise.resolve(true),
     'actualizarVentasPorNombreCliente': () => Promise.resolve(true),
+    'guardarConfigCashflow': ([gastosAbiertos]) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).guardarConfigCashflow(gastosAbiertos);
+    }),
+    'obtenerConfigCashflow': () => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).obtenerConfigCashflow();
+    }),
+    'verificarYGuardarCliente': ([datos, modoEdicion]) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).verificarYGuardarCliente(datos, modoEdicion);
+    }),
   };
 
   if (fnMap[fnName]) {
@@ -841,14 +846,14 @@ function gsRun(fnName, params, onSuccess, onError) {
         </div>
       </div>
       <div class="filtros-bar" style="display:flex;gap:6px;flex-wrap:nowrap;margin-bottom:15px;align-items:flex-end">
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><div class="dropdown-multi" id="dmFleteAnio"><button class="dm-btn" onclick="dmToggle('dmFleteAnio')" style="padding:4px 8px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmFleteAnioLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmFleteAnioPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmFleteAnioList',true)">Todos</button><button onclick="dmSelectAll('dmFleteAnioList',false)">Ninguno</button></div><div class="dm-list" id="dmFleteAnioList"></div></div></div></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><div class="dropdown-multi" id="dmFleteMes"><button class="dm-btn" onclick="dmToggle('dmFleteMes')" style="padding:4px 8px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmFleteMesLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmFleteMesPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmFleteMesList',true)">Todos</button><button onclick="dmSelectAll('dmFleteMesList',false)">Ninguno</button></div><div class="dm-list" id="dmFleteMesList"></div></div></div></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><div class="dropdown-multi" id="dmFleteAnio"><button class="dm-btn" onclick="dmToggle('dmFleteAnio')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:140px"><span class="dm-lbl" id="dmFleteAnioLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmFleteAnioPanel"><div class="dm-actions"><button onclick="seleccionarTodosAniosFletes(true)">Todos</button><button onclick="seleccionarTodosAniosFletes(false)">Ninguno</button></div><div class="dm-list" id="dmFleteAnioList"></div></div></div></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><div class="dropdown-multi" id="dmFleteMes"><button class="dm-btn" onclick="dmToggle('dmFleteMes')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:140px"><span class="dm-lbl" id="dmFleteMesLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmFleteMesPanel"><div class="dm-actions"><button onclick="seleccionarTodosMesesFletes(true)">Todos</button><button onclick="seleccionarTodosMesesFletes(false)">Ninguno</button></div><div class="dm-list" id="dmFleteMesList"></div></div></div></div>
         <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Estado</label><div class="dropdown-multi" id="dmFleteEstado"><button class="dm-btn" onclick="dmToggle('dmFleteEstado')" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:12px"><span class="dm-lbl" id="dmFleteEstadoLbl">Todos</span><span style="color:#999;font-size:9px">▼</span></button><div class="dm-panel" id="dmFleteEstadoPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmFleteEstadoList',true)">Todos</button><button onclick="dmSelectAll('dmFleteEstadoList',false)">Ninguno</button></div><div class="dm-list" id="dmFleteEstadoList"></div></div></div></div>
         <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Fecha</label><input type="date" id="fFleteFecha" onchange="filtrarFletes()" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px"></div>
         <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Proveedor</label><input type="text" id="fFleteProveedor" oninput="filtrarFletes()" placeholder="Proveedor" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:120px"></div>
         <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Chofer</label><input type="text" id="fFleteChofer" oninput="filtrarFletes()" placeholder="Chofer" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:120px"></div>
         <div><label style="display:block;font-size:10px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:2px">Detalle</label><input type="text" id="fFleteDetalle" oninput="filtrarFletes()" placeholder="Detalle" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:120px"></div>
-        <button class="btn" onclick="limpiarFiltrosFletes()" style="background:#6c757d;color:white;align-self:flex-end;padding:4px 10px;font-size:12px;white-space:nowrap">Limpiar</button>
+        <button class="btn" onclick="limpiarFiltrosFletes()" style="background:#6c757d;color:white;align-self:flex-end">Limpiar</button>
       </div>
       <div id="msgFletes"></div>
       <div class="table-container">
@@ -889,14 +894,14 @@ function gsRun(fnName, params, onSuccess, onError) {
     <div class="section" id="ventas">
       <div class="tabla-header"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span id="infoVentas" class="total-pill total-pill-lg"></span><span id="pillVentaPagada" class="status-pill ok"></span><span id="pillVentaPendiente" class="status-pill warn"></span><span id="pillVentaOtros" class="status-pill bad"></span></div><div style="display:flex;align-items:center;gap:10px"><span id="countVentas" class="count-label"></span><button class="btn" onclick="exportarClientesSinMatch()" style="background:#6c757d;color:white">Exportar clientes sin match</button></div></div>
       <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><select id="fVentaAnio" onchange="cambioAnioVenta()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><select id="fVentaMes" onchange="filtrarVentas()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><div class="dropdown-multi" id="dmVentaAnio"><button class="dm-btn" onclick="dmToggle('dmVentaAnio')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:140px"><span class="dm-lbl" id="dmVentaAnioLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmVentaAnioPanel"><div class="dm-actions"><button onclick="seleccionarTodosAniosVentas(true)">Todos</button><button onclick="seleccionarTodosAniosVentas(false)">Ninguno</button></div><div class="dm-list" id="dmVentaAnioList"></div></div></div></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><div class="dropdown-multi" id="dmVentaMes"><button class="dm-btn" onclick="dmToggle('dmVentaMes')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:140px"><span class="dm-lbl" id="dmVentaMesLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmVentaMesPanel"><div class="dm-actions"><button onclick="seleccionarTodosMesesVentas(true)">Todos</button><button onclick="seleccionarTodosMesesVentas(false)">Ninguno</button></div><div class="dm-list" id="dmVentaMesList"></div></div></div></div>
         <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Fecha</label><input type="date" id="fVentaFecha" onchange="filtrarVentas()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"></div>
         <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Comprobante</label><input type="text" id="fVentaComp" oninput="filtrarVentas()" placeholder="Ej: 01-000072" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:160px"></div>
         <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Cliente Match</label><select id="fVentaMatch" onchange="filtrarVentas()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option><option value="con">Con match</option><option value="sin">Sin match</option></select></div>
         <div class="dropdown-multi" id="dmVentaEstado">
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Estado</label>
-          <button class="dm-btn" onclick="dmToggle('dmVentaEstado')"><span class="dm-lbl" id="dmVentaEstadoLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button>
+          <button class="dm-btn" onclick="dmToggle('dmVentaEstado')" style="min-width:auto"><span class="dm-lbl" id="dmVentaEstadoLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button>
           <div class="dm-panel" id="dmVentaEstadoPanel">
             <div class="dm-actions"><button onclick="dmSelectAll('dmVentaEstado',true)">Todos</button><button onclick="dmSelectAll('dmVentaEstado',false)">Ninguno</button></div>
             <div class="dm-list" id="dmVentaEstadoList"></div>
@@ -1030,7 +1035,19 @@ function gsRun(fnName, params, onSuccess, onError) {
         </div>
       </div>
       <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><select id="fPagoAnio" onchange="filtrarPagos()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select></div>
+        <div style="position:relative">
+          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label>
+          <button id="btnAniosPago" onclick="toggleDropdownAnios()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;background:white;cursor:pointer;min-width:140px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <span id="lblAniosPago">Todos</span><span style="color:#999;font-size:11px">&#9660;</span>
+          </button>
+          <div id="dropdownAnios" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid #ddd;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:200;min-width:160px;padding:6px 0;max-height:300px;overflow-y:auto">
+            <div style="padding:6px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px">
+              <button onclick="seleccionarTodosAnios(true)" style="font-size:11px;border:none;background:none;color:#667eea;cursor:pointer;padding:0">Todos</button>
+              <button onclick="seleccionarTodosAnios(false)" style="font-size:11px;border:none;background:none;color:#667eea;cursor:pointer;padding:0">Ninguno</button>
+            </div>
+            <div id="listaAnios"></div>
+          </div>
+        </div>
         <div style="position:relative">
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label>
           <button id="btnMesesPago" onclick="toggleDropdownMeses()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;background:white;cursor:pointer;min-width:140px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px">
@@ -1148,8 +1165,8 @@ function gsRun(fnName, params, onSuccess, onError) {
         </div>
       </div>
       <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><div class="dropdown-multi" id="dmGastoAnio"><button class="dm-btn" onclick="dmToggle('dmGastoAnio')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmGastoAnioLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button><div class="dm-panel" id="dmGastoAnioPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmGastoAnioList',true)">Todos</button><button onclick="dmSelectAll('dmGastoAnioList',false)">Ninguno</button></div><div class="dm-list" id="dmGastoAnioList"></div></div></div></div>
-        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><div class="dropdown-multi" id="dmGastoMes"><button class="dm-btn" onclick="dmToggle('dmGastoMes')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmGastoMesLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button><div class="dm-panel" id="dmGastoMesPanel"><div class="dm-actions"><button onclick="dmSelectAll('dmGastoMesList',true)">Todos</button><button onclick="dmSelectAll('dmGastoMesList',false)">Ninguno</button></div><div class="dm-list" id="dmGastoMesList"></div></div></div></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label><div class="dropdown-multi" id="dmGastoAnio"><button class="dm-btn" onclick="dmToggle('dmGastoAnio')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmGastoAnioLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button><div class="dm-panel" id="dmGastoAnioPanel"><div class="dm-actions"><button onclick="seleccionarTodosAniosGasto(true)">Todos</button><button onclick="seleccionarTodosAniosGasto(false)">Ninguno</button></div><div class="dm-list" id="dmGastoAnioList"></div></div></div></div>
+        <div><label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label><div class="dropdown-multi" id="dmGastoMes"><button class="dm-btn" onclick="dmToggle('dmGastoMes')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><span class="dm-lbl" id="dmGastoMesLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button><div class="dm-panel" id="dmGastoMesPanel"><div class="dm-actions"><button onclick="seleccionarTodosMesesGasto(true)">Todos</button><button onclick="seleccionarTodosMesesGasto(false)">Ninguno</button></div><div class="dm-list" id="dmGastoMesList"></div></div></div></div>
         <div class="dropdown-multi" id="dmGastoProveedor">
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Proveedor</label>
           <button class="dm-btn" onclick="dmToggle('dmGastoProveedor')"><span class="dm-lbl" id="dmGastoProveedorLbl">Todos</span><span style="color:#999;font-size:11px">&#9660;</span></button>
@@ -1200,6 +1217,7 @@ function gsRun(fnName, params, onSuccess, onError) {
               <button type="button" id="btnFuenteRecibidos" class="btn" style="padding:5px 12px;font-size:12px" onclick="toggleFuenteChequesGasto('recibidos')">Recibidos en cartera</button>
               <button type="button" id="btnFuenteEmitidos" class="btn" style="padding:5px 12px;font-size:12px;background:#e9ecef;color:#333" onclick="toggleFuenteChequesGasto('emitidos')">Emitidos (propios)</button>
             </div>
+            <input type="text" id="gChequesFiltro" placeholder="Buscar por banco o N° cheque..." style="width:100%;padding:7px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:4px;font-size:13px" onkeyup="renderizarChequesGasto()">
             <div id="gChequesResumen" style="font-size:12px;color:#666;margin-bottom:6px"></div>
             <div id="gChequesLista" style="max-height:180px;overflow-y:auto;border:1px solid #ddd;border-radius:5px;padding:6px 10px">
               <div style="color:#999;font-size:12px;padding:8px 0">Cargando cheques disponibles...</div>
@@ -1219,22 +1237,17 @@ function gsRun(fnName, params, onSuccess, onError) {
 
     <!-- CASHFLOW -->
     <div class="section" id="cashflow">
-      <h2>CashFlow - 14 Días</h2>
       <div id="msgCashflow"></div>
 
       <!-- Panel de control de Gastos Abiertos -->
       <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <h3 style="margin:0">Conceptos de Gastos a Mostrar Individualmente</h3>
-          <span id="cfConfigGuardada" style="font-size:12px;color:#28a745;display:none">✓ Configuración guardada</span>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:0">
           <select id="cfAgregarGasto" style="padding:8px 12px;border:1px solid #ddd;border-radius:4px">
             <option value="">Agregar concepto...</option>
           </select>
-          <span id="cfAviso" style="font-size:12px;color:#666"></span>
+          <span id="cfConfigGuardada" style="font-size:12px;color:#28a745;display:none">✓ Configuración guardada</span>
+          <div id="cfGastosAbiertos" style="display:flex;gap:8px;flex-wrap:wrap"></div>
         </div>
-        <div id="cfGastosAbiertos" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
 
       <!-- Tabla CashFlow -->
@@ -1316,11 +1329,11 @@ function gsRun(fnName, params, onSuccess, onError) {
       <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
         <div>
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label>
-          <select id="fChequeAnio" onchange="filtrarCheques()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select>
+          <div class="dropdown-multi" id="dmChequeAnio"><button class="dm-btn" onclick="dmToggle('dmChequeAnio')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:140px"><span class="dm-lbl" id="dmChequeAnioLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmChequeAnioPanel"><div class="dm-actions"><button onclick="seleccionarTodosAniosCheques(true)">Todos</button><button onclick="seleccionarTodosAniosCheques(false)">Ninguno</button></div><div class="dm-list" id="dmChequeAnioList"></div></div></div>
         </div>
         <div>
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label>
-          <select id="fChequeMes" onchange="filtrarCheques()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">Todos</option></select>
+          <div class="dropdown-multi" id="dmChequeMes"><button class="dm-btn" onclick="dmToggle('dmChequeMes')" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:140px"><span class="dm-lbl" id="dmChequeMesLbl">Todos</span><span style="color:#999;font-size:11px">▼</span></button><div class="dm-panel" id="dmChequeMesPanel"><div class="dm-actions"><button onclick="seleccionarTodosMesesCheques(true)">Todos</button><button onclick="seleccionarTodosMesesCheques(false)">Ninguno</button></div><div class="dm-list" id="dmChequeMesList"></div></div></div>
         </div>
         <div>
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Banco</label>
@@ -1450,17 +1463,39 @@ function gsRun(fnName, params, onSuccess, onError) {
         </div>
       </div>
       <div class="filtros-bar" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px;align-items:flex-end">
-        <div>
-          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Fecha (dd-mm-yy)</label>
-          <input type="text" id="fSaldoFecha" placeholder="DD-MM-YY" oninput="filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;width:120px">
+        <div style="position:relative">
+          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Año</label>
+          <button id="btnAniosSaldo" onclick="toggleDropdownAniosSaldo()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;background:white;cursor:pointer;min-width:140px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <span id="lblAniosSaldo">Todos</span><span style="color:#999;font-size:11px">&#9660;</span>
+          </button>
+          <div id="dropdownAniosSaldo" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid #ddd;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:200;min-width:160px;padding:6px 0;max-height:300px;overflow-y:auto">
+            <div style="padding:6px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px">
+              <button onclick="seleccionarTodosAniosSaldo(true)" style="font-size:11px;border:none;background:none;color:#667eea;cursor:pointer;padding:0">Todos</button>
+              <button onclick="seleccionarTodosAniosSaldo(false)" style="font-size:11px;border:none;background:none;color:#667eea;cursor:pointer;padding:0">Ninguno</button>
+            </div>
+            <div id="listaAniosSaldo"></div>
+          </div>
+        </div>
+        <div style="position:relative">
+          <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Mes</label>
+          <button id="btnMesesSaldo" onclick="toggleDropdownMesesSaldo()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;background:white;cursor:pointer;min-width:140px;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:8px">
+            <span id="lblMesesSaldo">Todos</span><span style="color:#999;font-size:11px">&#9660;</span>
+          </button>
+          <div id="dropdownMesesSaldo" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:white;border:1px solid #ddd;border-radius:5px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:200;min-width:160px;padding:6px 0">
+            <div style="padding:6px 12px;border-bottom:1px solid #f0f0f0;display:flex;gap:8px">
+              <button onclick="seleccionarTodosMesesSaldo(true)" style="font-size:11px;border:none;background:none;color:#667eea;cursor:pointer;padding:0">Todos</button>
+              <button onclick="seleccionarTodosMesesSaldo(false)" style="font-size:11px;border:none;background:none;color:#667eea;cursor:pointer;padding:0">Ninguno</button>
+            </div>
+            <div id="listaMesesSaldo"></div>
+          </div>
         </div>
         <div>
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Tipo</label>
           <select id="fSaldoTipo" onchange="actualizarFiltrosBanco();filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:150px"><option value="">Todos</option><option value="Caja">Caja</option><option value="Banco">Banco</option></select>
         </div>
-        <div>
+        <div id="divSaldoBanco" style="display:none">
           <label style="display:block;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;margin-bottom:4px">Banco</label>
-          <select id="fSaldoBanco" onchange="filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:180px;display:none"><option value="">Todos</option></select>
+          <select id="fSaldoBanco" onchange="filtrarSaldosBanco()" style="padding:8px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px;min-width:180px"><option value="">Todos</option></select>
         </div>
         <button class="btn" onclick="limpiarFiltrosSaldos()" style="background:#6c757d;color:white;align-self:flex-end">Limpiar</button>
       </div>
@@ -1607,7 +1642,7 @@ function gsRun(fnName, params, onSuccess, onError) {
     </div>
 
   </div>
-  <footer><p>Sistema de Gestión de Logística - SAL</p></footer>
+  <footer><p>Sistema de Gestión de Logística - SAL <span id="appVersion" style="font-size:11px;color:#999;margin-left:10px"></span></p></footer>
 </div>
 </div>
 
@@ -1813,32 +1848,37 @@ function mostrarCashflow() {
   cfTodosFletes = [];
   cfTodosGastos = [];
   cfSaldosPorDia = {};
+  window.cfTodosChequesEmitidos = [];
   Promise.all([
     new Promise(r => gsRun('obtenerCheques', [], d => { cfTodosCheques = d || []; r(); }, e => r())),
     new Promise(r => gsRun('obtenerPagos', [], d => { cfTodosPagos = d || []; r(); }, e => r())),
     new Promise(r => gsRun('obtenerFletes', [], d => { cfTodosFletes = d || []; r(); }, e => r())),
     new Promise(r => gsRun('obtenerGastos', [], d => { cfTodosGastos = d || []; r(); }, e => r())),
-    new Promise(r => gsRun('obtenerSaldos', [], d => { (d||[]).forEach(s => { cfSaldosPorDia[s.fecha + '|' + (s.tipo || 'Banco')] = s; }); r(); }, e => r()))
+    new Promise(r => gsRun('obtenerSaldos', [], d => { (d||[]).forEach(s => { cfSaldosPorDia[s.fecha + '|' + (s.tipo || 'Banco')] = s; }); r(); }, e => r())),
+    new Promise(r => gsRun('obtenerCheqEm', [], d => { window.cfTodosChequesEmitidos = d || []; r(); }, e => r())),
+    new Promise(r => gsRun('obtenerConfigCashflow', [], d => { cfGastosAbiertos = d || []; r(); }, e => { cfGastosAbiertos = []; r(); }))
   ]).then(() => {
-    cargarConfigCashflow();
     renderizarCashflow();
   });
 }
 
 function cargarConfigCashflow() {
-  // Intentar cargar desde localStorage como fallback
-  var cfg = localStorage.getItem('cfGastosAbiertos');
-  cfGastosAbiertos = cfg ? JSON.parse(cfg) : [];
+  gsRun('obtenerConfigCashflow', [], function(cfg) {
+    cfGastosAbiertos = cfg || [];
+    console.log('Config cargada:', cfGastosAbiertos);
+  }, function(e) {
+    console.error('Error cargando config:', e);
+    cfGastosAbiertos = [];
+  });
 }
 
 function guardarConfigCashflow() {
-  localStorage.setItem('cfGastosAbiertos', JSON.stringify(cfGastosAbiertos));
-  document.getElementById('cfConfigGuardada').style.display = 'inline-block';
-  setTimeout(() => { document.getElementById('cfConfigGuardada').style.display = 'none'; }, 2000);
-  // También intentar guardar en Supabase como respaldo
-  try {
-    gsRun('guardarConfigCashflow', [cfGastosAbiertos], function() {}, function(e) {});
-  } catch(e) {}
+  gsRun('guardarConfigCashflow', [cfGastosAbiertos], function() {
+    document.getElementById('cfConfigGuardada').style.display = 'inline-block';
+    setTimeout(() => { document.getElementById('cfConfigGuardada').style.display = 'none'; }, 2000);
+  }, function(e) {
+    console.error('Error guardando config:', e);
+  });
 }
 
 function renderizarCashflow() {
@@ -1888,14 +1928,31 @@ function renderizarCashflow() {
     divGastos.appendChild(btn);
   });
 
-  var gastosVarios = conceptos.filter(c => !cfGastosAbiertos.includes(c)).length;
-  document.getElementById('cfAviso').textContent = gastosVarios > 0 ?
-    gastosVarios + ' concepto' + (gastosVarios!==1?'s':'') + ' en "Gastos Varios"' :
-    'Todos los conceptos abiertos';
-
   // Tabla
   var tbody = document.getElementById('cfTableBody');
   tbody.innerHTML = '';
+
+  // Calcular resultados netos acumulativos para llenar saldos faltantes
+  var resultadosNetos = [];
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var saldoCaja = cfSaldosPorDia[fecha + '|Caja'] ? parseFloat(cfSaldosPorDia[fecha + '|Caja'].monto) : 0;
+    var saldoBanco = cfSaldosPorDia[fecha + '|Banco'] ? parseFloat(cfSaldosPorDia[fecha + '|Banco'].monto) : 0;
+    var tieneCalja = !!cfSaldosPorDia[fecha + '|Caja'];
+    var tieneBanco = !!cfSaldosPorDia[fecha + '|Banco'];
+    var cobros = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
+    var cheques = cfTodosCheques.filter(ch => {
+      var fechaChq = ch.estado === 'ENTREGADO' ? ch.fecha_salida : ch.fecha_pago;
+      return fechaChq === fecha;
+    }).reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
+    var fletes = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
+    var gastos = cfTodosGastos.filter(g => g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
+    var chequesEm = window.cfTodosChequesEmitidos ? window.cfTodosChequesEmitidos.filter(ch => ch.fecha_pago === fecha && ch.estado !== 'ANULADO').reduce((a,ch) => a + (parseFloat(ch.importe_cheque)||0), 0) : 0;
+    var movimientoNeto = cobros + cheques - fletes - gastos - chequesEm;
+    var saldoDiaAnt = (!tieneCalja && !tieneBanco) && i > 0 ? resultadosNetos[i-1] : 0;
+    var resultado = saldoCaja + saldoBanco + saldoDiaAnt + movimientoNeto;
+    resultadosNetos[i] = resultado;
+  }
 
   // FILA: SALDOS CAJA
   var rowSaldosCaja = tbody.insertRow();
@@ -1910,7 +1967,6 @@ function renderizarCashflow() {
 
   // FILA: SALDOS BANCO
   var rowSaldosBanco = tbody.insertRow();
-  rowSaldosBanco.style.borderBottom = '2px solid #ddd';
   rowSaldosBanco.insertCell(0).textContent = 'Saldos Banco';
   for (var i = 0; i < 14; i++) {
     var fecha = cfFechas[i];
@@ -1918,6 +1974,20 @@ function renderizarCashflow() {
     var saldo = cfSaldosPorDia[fecha + '|Banco'] ? parseFloat(cfSaldosPorDia[fecha + '|Banco'].monto) : 0;
     cell.textContent = pesos(saldo);
     cell.style.cssText = 'padding:8px;text-align:right;background:#e7f3ff;font-weight:500';
+  }
+
+  // FILA: SALDO DÍA ANTERIOR
+  var rowSaldoDiaAnterior = tbody.insertRow();
+  rowSaldoDiaAnterior.style.borderBottom = '2px solid #ddd';
+  rowSaldoDiaAnterior.insertCell(0).textContent = 'Saldo Día Anterior';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var cell = rowSaldoDiaAnterior.insertCell(i+1);
+    var tieneCalja = !!cfSaldosPorDia[fecha + '|Caja'];
+    var tieneBanco = !!cfSaldosPorDia[fecha + '|Banco'];
+    var saldo = (!tieneCalja && !tieneBanco) && i > 0 ? resultadosNetos[i-1] : 0;
+    cell.textContent = saldo !== 0 ? pesos(saldo) : '-';
+    cell.style.cssText = 'padding:8px;text-align:right;background:' + (saldo > 0 ? '#c8e6c9' : saldo < 0 ? '#ffcccc' : '#f0f0f0') + ';font-weight:500;color:' + (saldo > 0 ? '#1b5e20' : saldo < 0 ? '#b71c1c' : '#999') + ';font-size:12px';
   }
 
   // FILA: INGRESOS (Cobros)
@@ -1928,7 +1998,7 @@ function renderizarCashflow() {
     var suma = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
     var cell = rowCobros.insertCell(i+1);
     cell.textContent = pesos(suma);
-    cell.style.cssText = 'padding:8px;text-align:right;color:#28a745';
+    cell.style.cssText = 'padding:8px;text-align:right;color:#000';
   }
 
   // FILA: CHEQUES
@@ -1942,7 +2012,7 @@ function renderizarCashflow() {
     }).reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
     var cell = rowCheques.insertCell(i+1);
     cell.textContent = pesos(suma);
-    cell.style.cssText = 'padding:8px;text-align:right;color:#2196f3';
+    cell.style.cssText = 'padding:8px;text-align:right;color:#000';
   }
 
   // SUBTOTAL INGRESOS
@@ -1970,7 +2040,18 @@ function renderizarCashflow() {
     var suma = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
     var cell = rowFletes.insertCell(i+1);
     cell.textContent = suma > 0 ? '-' + pesos(suma).substr(1) : '-';
-    cell.style.cssText = 'padding:8px;text-align:right;color:#d32f2f';
+    cell.style.cssText = 'padding:8px;text-align:right;color:#000';
+  }
+
+  // FILA: CHEQUES EMITIDOS
+  var rowChequesEm = tbody.insertRow();
+  rowChequesEm.insertCell(0).textContent = 'Cheques Emitidos';
+  for (var i = 0; i < 14; i++) {
+    var fecha = cfFechas[i];
+    var chequesEmitidos = window.cfTodosChequesEmitidos ? window.cfTodosChequesEmitidos.filter(ch => ch.fecha_pago === fecha && ch.estado !== 'ANULADO').reduce((a,ch) => a + (parseFloat(ch.importe_cheque)||0), 0) : 0;
+    var cell = rowChequesEm.insertCell(i+1);
+    cell.textContent = chequesEmitidos > 0 ? '-' + pesos(chequesEmitidos).substr(1) : '-';
+    cell.style.cssText = 'padding:8px;text-align:right;color:#000';
   }
 
   // GASTOS (abiertos + Gastos Varios)
@@ -1982,7 +2063,7 @@ function renderizarCashflow() {
       var suma = cfTodosGastos.filter(g => (g.rubro || 'Sin rubro') === concepto && g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
       var cell = row.insertCell(i+1);
       cell.textContent = suma > 0 ? '-' + pesos(suma).substr(1) : '-';
-      cell.style.cssText = 'padding:8px;text-align:right;color:#f57c00';
+      cell.style.cssText = 'padding:8px;text-align:right;color:#000';
     }
   });
 
@@ -1996,7 +2077,7 @@ function renderizarCashflow() {
     var suma = total - abiertos;
     var cell = rowGastosSevarios.insertCell(i+1);
     cell.textContent = suma > 0 ? '-' + pesos(suma).substr(1) : '-';
-    cell.style.cssText = 'padding:8px;text-align:right;color:#9c27b0';
+    cell.style.cssText = 'padding:8px;text-align:right;color:#000';
   }
 
   // SUBTOTAL EGRESOS
@@ -2008,8 +2089,10 @@ function renderizarCashflow() {
     var fecha = cfFechas[i];
     var fletes = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
     var gastos = cfTodosGastos.filter(g => g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
+    var chequesEm = window.cfTodosChequesEmitidos ? window.cfTodosChequesEmitidos.filter(ch => ch.fecha_pago === fecha && ch.estado !== 'ANULADO').reduce((a,ch) => a + (parseFloat(ch.importe_cheque)||0), 0) : 0;
     var cell = rowSubEgresos.insertCell(i+1);
-    cell.textContent = fletes > 0 || gastos > 0 ? '-' + pesos(fletes + gastos).substr(1) : '-';
+    var total = fletes + gastos + chequesEm;
+    cell.textContent = total > 0 ? '-' + pesos(total).substr(1) : '-';
     cell.style.cssText = 'padding:8px;text-align:right;background:#ffe0e0;color:#b71c1c';
   }
 
@@ -2020,16 +2103,7 @@ function renderizarCashflow() {
   rowResultado.style.borderTop = '2px solid #333';
   rowResultado.insertCell(0).textContent = 'RESULTADO NETO';
   for (var i = 0; i < 14; i++) {
-    var fecha = cfFechas[i];
-    var saldo = cfSaldosPorDia[fecha] ? parseFloat(cfSaldosPorDia[fecha].monto) : 0;
-    var cobros = cfTodosPagos.filter(p => p.fecha === fecha).reduce((a,p) => a + (parseFloat(p.efectivo)||0) + (parseFloat(p.transferencia)||0), 0);
-    var cheques = cfTodosCheques.filter(ch => {
-      var fechaChq = ch.estado === 'ENTREGADO' ? ch.fecha_salida : ch.fecha_pago;
-      return fechaChq === fecha;
-    }).reduce((a,ch) => a + (parseFloat(ch.importe)||0), 0);
-    var fletes = cfTodosFletes.filter(f => f.fecha_flete === fecha).reduce((a,f) => a + (parseFloat(f.total)||0), 0);
-    var gastos = cfTodosGastos.filter(g => g.fecha === fecha).reduce((a,g) => a + (parseFloat(g.monto)||0), 0);
-    var resultado = saldo + cobros + cheques - fletes - gastos;
+    var resultado = resultadosNetos[i];
     var cell = rowResultado.insertCell(i+1);
     cell.textContent = pesos(resultado);
     cell.style.cssText = 'padding:10px;text-align:right;background:' + (resultado >= 0 ? '#c8e6c9' : '#ffcccc') + ';color:' + (resultado >= 0 ? '#1b5e20' : '#b71c1c');
@@ -2504,31 +2578,144 @@ function mostrarVentas() {
         var estados=ESTADOS_VENTA.slice();
         todasVentas.forEach(function(v){if(v.estado&&estados.indexOf(v.estado)===-1)estados.push(v.estado);});
         dmInit('dmVentaEstado',estados.sort(),filtrarVentas);
-        dmInit('dmVentaCliente',todasVentas.map(function(v){return v.cliente_nombre||'';}).filter(function(n,i,a){return n&&a.indexOf(n)===i;}).sort(),filtrarVentas);
+        var clientesUnico=Object.keys(mapaClientesCache).map(function(k){return mapaClientesCache[k].nombre;}).sort();
+        dmInit('dmVentaCliente',clientesUnico,filtrarVentas);
       }
       filtrarVentas();
     });
   });
 }
 function poblarAniosVentas() {
-  var sel=document.getElementById('fVentaAnio'),actual=sel.value,anios={};
+  var lista=document.getElementById('dmVentaAnioList');lista.innerHTML='';
+  var anios={};
+  var anioActual=String(new Date().getFullYear());
   todasVentas.forEach(function(v){var a=(v.fecha||'').substr(0,4);if(a)anios[a]=true;});
-  sel.innerHTML='<option value="">Todos</option>';
-  Object.keys(anios).sort().reverse().forEach(function(a){var o=document.createElement('option');o.value=a;o.textContent=a;if(a===actual)o.selected=true;sel.appendChild(o);});
+  anios[anioActual]=true;
+  Object.keys(anios).sort().reverse().forEach(function(a){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+a+'" data-anio="'+a+'"><label style="cursor:pointer">'+a+'</label>';
+    var chk=div.querySelector('input');
+    if(a===anioActual)chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmVentaAnio');poblarMesesVentas();filtrarVentas();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmVentaAnio');poblarMesesVentas();filtrarVentas();
 }
-function poblarMesesVenta() {
-  var anio=document.getElementById('fVentaAnio').value,sel=document.getElementById('fVentaMes'),actual=sel.value,meses={};
-  todasVentas.forEach(function(v){var f=v.fecha||'';if(anio&&f.substr(0,4)!==anio)return;var m=f.substr(5,2);if(m)meses[m]=true;});
-  sel.innerHTML='<option value="">Todos</option>';
-  Object.keys(meses).sort().forEach(function(m){var o=document.createElement('option');o.value=m;o.textContent=NOMBRES_MESES[parseInt(m,10)-1];if(m===actual)o.selected=true;sel.appendChild(o);});
+function poblarMesesVentas() {
+  var anios=dmGetCheckboxes('dmVentaAnioList');
+  var lista=document.getElementById('dmVentaMesList');lista.innerHTML='';
+  var meses={};
+  var hoy=new Date();
+  var mesActual=String(hoy.getMonth()+1).padStart(2,'0');
+  var anioActual=String(hoy.getFullYear());
+  var ultimaFecha='';
+  todasVentas.forEach(function(v){var f=v.fecha||'';if(anios.length>0&&anios.indexOf(f.substr(0,4))===-1)return;var m=f.substr(5,2);if(m)meses[m]=true;if(f>ultimaFecha)ultimaFecha=f;});
+  if(anios.length===0||anios.indexOf(anioActual)!==-1)meses[mesActual]=true;
+  var ultimoMes=ultimaFecha?ultimaFecha.substr(5,2):mesActual;
+  Object.keys(meses).sort().forEach(function(m){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+m+'" data-mes="'+m+'"><label style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
+    var chk=div.querySelector('input');
+    if(m===ultimoMes)chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmVentaMes');filtrarVentas();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmVentaMes');
 }
-function cambioAnioVenta(){document.getElementById('fVentaMes').value='';poblarMesesVenta();filtrarVentas();}
 function filtrarVentas() {
-  var anio=document.getElementById('fVentaAnio').value,mes=document.getElementById('fVentaMes').value,fecha=document.getElementById('fVentaFecha').value,comp=document.getElementById('fVentaComp').value.toLowerCase().trim(),match=document.getElementById('fVentaMatch').value,estados=dmGetActivos('dmVentaEstado'),cls=dmGetActivos('dmVentaCliente');
-  ventasFiltradas=todasVentas.filter(function(v){return(!anio||(v.fecha||'').substr(0,4)===anio)&&(!mes||(v.fecha||'').substr(5,2)===mes)&&(!fecha||(v.fecha||'').substr(0,10)===fecha)&&(!comp||(v.comprobante||'').toLowerCase().includes(comp))&&(match!=='con'||!!v.cliente_id)&&(match!=='sin'||!v.cliente_id)&&(!estados||estados.has(v.estado||'PENDIENTE'))&&(!cls||cls.has(v.cliente_nombre||''));});
+  var anios=dmGetCheckboxes('dmVentaAnioList'),meses=dmGetCheckboxes('dmVentaMesList'),fecha=document.getElementById('fVentaFecha').value,comp=document.getElementById('fVentaComp').value.toLowerCase().trim(),match=document.getElementById('fVentaMatch').value,estados=dmGetActivos('dmVentaEstado'),cls=dmGetActivos('dmVentaCliente');
+  ventasFiltradas=todasVentas.filter(function(v){return(anios.length===0||(v.fecha||'').substr(0,4) in Object.fromEntries(anios.map(function(a){return[a,true];})))&&(meses.length===0||(v.fecha||'').substr(5,2) in Object.fromEntries(meses.map(function(m){return[m,true];})))&&(!fecha||(v.fecha||'').substr(0,10)===fecha)&&(!comp||(v.comprobante||'').toLowerCase().includes(comp))&&(match!=='con'||!!v.cliente_id)&&(match!=='sin'||!v.cliente_id)&&(!estados||estados.has(v.estado||'PENDIENTE'))&&(!cls||cls.has(v.cliente_nombre||''));});
   paginaVentas=1;renderizarVentas();
 }
-function limpiarFiltrosVentas(){document.getElementById('fVentaAnio').value='';poblarMesesVenta();document.getElementById('fVentaMes').value='';document.getElementById('fVentaFecha').value='';document.getElementById('fVentaComp').value='';document.getElementById('fVentaMatch').value='';dmSelectAll('dmVentaEstado',true);dmSelectAll('dmVentaCliente',true);ventasFiltradas=todasVentas;paginaVentas=1;renderizarVentas();}
+function limpiarFiltrosVentas(){dmSelectAll('dmVentaAnio',true);poblarMesesVentas();dmSelectAll('dmVentaMes',true);document.getElementById('fVentaFecha').value='';document.getElementById('fVentaComp').value='';document.getElementById('fVentaMatch').value='';dmSelectAll('dmVentaEstado',true);dmSelectAll('dmVentaCliente',true);ventasFiltradas=todasVentas;paginaVentas=1;renderizarVentas();}
+function poblarAniosCheques() {
+  var lista=document.getElementById('dmChequeAnioList');lista.innerHTML='';
+  var anios={};
+  var anioActual=String(new Date().getFullYear());
+  todosCheques.forEach(function(c){var a=(c.fecha_vencimiento||'').substr(0,4);if(a)anios[a]=true;});
+  anios[anioActual]=true;
+  Object.keys(anios).sort().reverse().forEach(function(a){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+a+'" data-anio="'+a+'"><label style="cursor:pointer">'+a+'</label>';
+    var chk=div.querySelector('input');
+    if(a===anioActual)chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmChequeAnio');poblarMesesCheques();filtrarCheques();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmChequeAnio');poblarMesesCheques();filtrarCheques();
+}
+function poblarMesesCheques() {
+  var anios=dmGetCheckboxes('dmChequeAnioList');
+  var lista=document.getElementById('dmChequeMesList');lista.innerHTML='';
+  var meses={};
+  var hoy=new Date();
+  var mesActual=String(hoy.getMonth()+1).padStart(2,'0');
+  var anioActual=String(hoy.getFullYear());
+  todosCheques.forEach(function(c){var f=c.fecha_vencimiento||'';if(anios.length>0&&anios.indexOf(f.substr(0,4))===-1)return;var m=f.substr(5,2);if(m)meses[m]=true;});
+  if(anios.length===0||anios.indexOf(anioActual)!==-1)meses[mesActual]=true;
+  Object.keys(meses).sort().forEach(function(m){
+    var div=document.createElement('div');div.className='dm-item';
+    div.innerHTML='<input type="checkbox" value="'+m+'" data-mes="'+m+'"><label style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
+    var chk=div.querySelector('input');
+    chk.checked=true;
+    chk.addEventListener('change',function(){dmUpdateLabelMulti('dmChequeMes');filtrarCheques();});
+    lista.appendChild(div);
+  });
+  dmUpdateLabelMulti('dmChequeMes');
+}
+function poblarAniosSaldo() {
+  var anios={};
+  todosSaldos.forEach(function(s){var a=(s.fecha||'').substr(0,4);if(a)anios[a]=true;});
+  var lista=document.getElementById('listaAniosSaldo');lista.innerHTML='';
+  Object.keys(anios).sort().reverse().forEach(function(a){
+    var div=document.createElement('div');div.style.cssText='padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px';
+    div.onmouseenter=function(){this.style.background='#f8f9fa';};div.onmouseleave=function(){this.style.background='';};
+    var shouldCheck=aniosSaldoSeleccionados[a]!==false;
+    div.innerHTML='<input type="checkbox" id="anioSaldo_'+a+'" '+(shouldCheck?'checked':'')+' style="cursor:pointer"><label for="anioSaldo_'+a+'" style="cursor:pointer">'+a+'</label>';
+    div.querySelector('input').addEventListener('change',function(){aniosSaldoSeleccionados[a]=this.checked;actualizarLabelAniosSaldo();poblarDropdownMesesSaldo();filtrarSaldosBanco();});
+    lista.appendChild(div);
+  });
+  actualizarLabelAniosSaldo();
+}
+function poblarDropdownMesesSaldo(){
+  var anios=Object.keys(aniosSaldoSeleccionados).filter(function(a){return aniosSaldoSeleccionados[a];});
+  var meses={};
+  todosSaldos.forEach(function(s){var f=s.fecha||'';if(anios.length>0&&anios.indexOf(f.substr(0,4))===-1)return;var m=f.substr(5,2);if(m)meses[m]=true;});
+  var lista=document.getElementById('listaMesesSaldo');lista.innerHTML='';
+  Object.keys(meses).sort().forEach(function(m){
+    var div=document.createElement('div');div.style.cssText='padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px';
+    div.onmouseenter=function(){this.style.background='#f8f9fa';};div.onmouseleave=function(){this.style.background='';};
+    var shouldCheck=mesesSaldoSeleccionados[m]!==false;
+    var nomMes=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][parseInt(m)-1];
+    div.innerHTML='<input type="checkbox" id="mesSaldo_'+m+'" '+(shouldCheck?'checked':'')+' style="cursor:pointer"><label for="mesSaldo_'+m+'" style="cursor:pointer">'+nomMes+'</label>';
+    div.querySelector('input').addEventListener('change',function(){mesesSaldoSeleccionados[m]=this.checked;actualizarLabelMesesSaldo();filtrarSaldosBanco();});
+    lista.appendChild(div);
+  });
+  actualizarLabelMesesSaldo();
+}
+function seleccionarTodosAniosSaldo(v){
+  document.querySelectorAll('#listaAniosSaldo input[type=checkbox]').forEach(function(cb){cb.checked=v;aniosSaldoSeleccionados[cb.id.replace('anioSaldo_','')]=v;});
+  actualizarLabelAniosSaldo();poblarDropdownMesesSaldo();filtrarSaldosBanco();
+}
+function seleccionarTodosMesesSaldo(v){
+  document.querySelectorAll('#listaMesesSaldo input[type=checkbox]').forEach(function(cb){cb.checked=v;mesesSaldoSeleccionados[cb.id.replace('mesSaldo_','')]=v;});
+  actualizarLabelMesesSaldo();filtrarSaldosBanco();
+}
+function actualizarLabelAniosSaldo(){
+  var checks=document.querySelectorAll('#listaAniosSaldo input[type=checkbox]'),total=checks.length;
+  var marcados=Array.from(checks).filter(function(c){return c.checked;});
+  var lbl=document.getElementById('lblAniosSaldo');if(!lbl)return;
+  lbl.textContent=marcados.length===0?'Ninguno':marcados.length===total?'Todos':marcados.map(function(c){return c.id.replace('anioSaldo_','');}).join(', ');
+}
+function actualizarLabelMesesSaldo(){
+  var checks=document.querySelectorAll('#listaMesesSaldo input[type=checkbox]'),total=checks.length;
+  var marcados=Array.from(checks).filter(function(c){return c.checked;});
+  var lbl=document.getElementById('lblMesesSaldo');if(!lbl)return;
+  lbl.textContent=marcados.length===0?'Ninguno':marcados.length===total?'Todos':marcados.length+' meses';
+}
+function toggleDropdownAniosSaldo(){var d=document.getElementById('dropdownAniosSaldo');d.style.display=d.style.display==='none'?'block':'none';}
+function toggleDropdownMesesSaldo(){var d=document.getElementById('dropdownMesesSaldo');d.style.display=d.style.display==='none'?'block':'none';}
+document.addEventListener('click',function(e){var btn=document.getElementById('btnAniosSaldo'),dd=document.getElementById('dropdownAniosSaldo');if(btn&&dd&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display='none';btn=document.getElementById('btnMesesSaldo');dd=document.getElementById('dropdownMesesSaldo');if(btn&&dd&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display='none';});
 function exportarClientesSinMatch() {
   var nombres = todasVentas
     .filter(function(v) { return !v.cliente_id && v.cliente_nombre; })
@@ -2787,27 +2974,35 @@ function toggleDropdownMeses(){var d=document.getElementById('dropdownMeses');d.
 document.addEventListener('click',function(e){var btn=document.getElementById('btnMesesPago'),dd=document.getElementById('dropdownMeses');if(btn&&dd&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display='none';});
 
 function poblarDropdownMeses() {
-  var anio=document.getElementById('fPagoAnio').value,meses={};
-  todosPagos.forEach(function(p){var f=p.fecha||'';if(anio&&f.substr(0,4)!==anio)return;var m=f.substr(5,2);if(m)meses[m]=true;});
+  var anios=getAniosActivos(),meses={};
+  todosPagos.forEach(function(p){var f=p.fecha||'';var a=f.substr(0,4);if(anios.length>0&&anios.indexOf(a)===-1)return;var m=f.substr(5,2);if(m)meses[m]=true;});
   var lista=document.getElementById('listaMeses');lista.innerHTML='';
   Object.keys(meses).sort().forEach(function(m){
-    var claveAnioMes=anio+'-'+m;
     var div=document.createElement('div');div.style.cssText='padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px';
     div.onmouseenter=function(){this.style.background='#f8f9fa';};div.onmouseleave=function(){this.style.background='';};
-    div.innerHTML='<input type="checkbox" id="mes_'+m+'" '+(mesesSeleccionados[claveAnioMes]!==false?'checked':'')+' style="cursor:pointer"><label for="mes_'+m+'" style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
-    div.querySelector('input').addEventListener('change',function(){mesesSeleccionados[claveAnioMes]=this.checked;actualizarLabelMeses();filtrarPagos();});
+    var shouldCheck=mesesSeleccionados[m]===true;
+    div.innerHTML='<input type="checkbox" id="mes_'+m+'" '+(shouldCheck?'checked':'')+' style="cursor:pointer"><label for="mes_'+m+'" style="cursor:pointer">'+NOMBRES_MESES[parseInt(m,10)-1]+'</label>';
+    div.querySelector('input').addEventListener('change',function(){mesesSeleccionados[m]=this.checked;actualizarLabelMeses();filtrarPagos();});
     lista.appendChild(div);
   });
   actualizarLabelMeses();
 }
-function seleccionarTodosMeses(v){document.querySelectorAll('#listaMeses input[type=checkbox]').forEach(function(cb){cb.checked=v;mesesSeleccionados[cb.id.replace('mes_','')]=v;});actualizarLabelMeses();filtrarPagos();}
+function seleccionarTodosMeses(v){
+  document.querySelectorAll('#listaMeses input[type=checkbox]').forEach(function(cb){
+    cb.checked=v;
+    var mes=cb.id.replace('mes_','');
+    mesesSeleccionados[mes]=v;
+  });
+  actualizarLabelMeses();
+  filtrarPagos();
+}
 function actualizarLabelMeses() {
   var checks=document.querySelectorAll('#listaMeses input[type=checkbox]'),total=checks.length;
   var marcados=Array.from(checks).filter(function(c){return c.checked;});
   var lbl=document.getElementById('lblMesesPago');if(!lbl)return;
   lbl.textContent=marcados.length===0?'Ninguno':marcados.length===total?'Todos':marcados.map(function(c){return NOMBRES_MESES[parseInt(c.id.replace('mes_',''),10)-1].substr(0,3);}).join(', ');
 }
-function getMesesActivos(){var c=document.querySelectorAll('#listaMeses input[type=checkbox]'),t=c.length,m=Array.from(c).filter(function(x){return x.checked;}).map(function(x){return x.id.replace('mes_','');});return m.length===t||m.length===0?null:m;}
+function getMesesActivos(){var c=document.querySelectorAll('#listaMeses input[type=checkbox]'),t=c.length,m=Array.from(c).filter(function(x){return x.checked;}).map(function(x){return x.id.replace('mes_','');});return m.length===0||m.length===t?null:m;}
 
 var pagosFiltroInicializado=false;
 function refrescarPagos() {
@@ -2833,26 +3028,18 @@ function mostrarPagos() {
           var anioActual=String(hoy.getFullYear());
           var mesActual=String(hoy.getMonth()+1).padStart(2,'0');
 
-          var selectAnio=document.getElementById('fPagoAnio');
-          selectAnio.value=anioActual;
-
-          // Seleccionar solo el mes actual
+          aniosSeleccionados={};
+          aniosSeleccionados[anioActual]=true;
           mesesSeleccionados={};
-          var claveActual=anioActual+'-'+mesActual;
-          // Primero poner todos en false
-          todosPagos.forEach(function(p){
-            var f=p.fecha||'';
-            if(f){
-              var y=f.substr(0,4), m=f.substr(5,2);
-              if(m) mesesSeleccionados[y+'-'+m]=false;
-            }
-          });
-          // Luego poner el actual en true
-          mesesSeleccionados[claveActual]=true;
-          pagosFiltroInicializado=true;
-        }
+          mesesSeleccionados[mesActual]=true;
 
-        poblarDropdownMeses();
+          poblarAniosPagos();
+          poblarDropdownMeses();
+
+          pagosFiltroInicializado=true;
+        } else {
+          poblarDropdownMeses();
+        }
 
         dmInit('dmPagoCliente',todosPagos.map(function(p){return p.cliente_nombre||'';}).filter(function(n,i,a){return n&&a.indexOf(n)===i;}).sort(),filtrarPagos);
         filtrarPagos();
@@ -2860,19 +3047,50 @@ function mostrarPagos() {
     });
   });
 }
+function toggleDropdownAnios(){var d=document.getElementById('dropdownAnios');d.style.display=d.style.display==='none'?'block':'none';}
+document.addEventListener('click',function(e){var btn=document.getElementById('btnAniosPago'),dd=document.getElementById('dropdownAnios');if(btn&&dd&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display='none';});
+
+var aniosSeleccionados={};
+var aniosSaldoSeleccionados={};
+var mesesSaldoSeleccionados={};
 function poblarAniosPagos() {
-  var sel=document.getElementById('fPagoAnio'),actual=sel.value,anios={};
+  var anios={};
   todosPagos.forEach(function(p){var a=(p.fecha||'').substr(0,4);if(a)anios[a]=true;});
-  sel.innerHTML='<option value="">Todos</option>';
-  Object.keys(anios).sort().reverse().forEach(function(a){var o=document.createElement('option');o.value=a;o.textContent=a;if(a===actual)o.selected=true;sel.appendChild(o);});
+  var lista=document.getElementById('listaAnios');lista.innerHTML='';
+  Object.keys(anios).sort().reverse().forEach(function(a){
+    var div=document.createElement('div');div.style.cssText='padding:6px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px';
+    div.onmouseenter=function(){this.style.background='#f8f9fa';};div.onmouseleave=function(){this.style.background='';};
+    var shouldCheck=aniosSeleccionados[a]===true;
+    div.innerHTML='<input type="checkbox" id="anio_'+a+'" '+(shouldCheck?'checked':'')+' style="cursor:pointer"><label for="anio_'+a+'" style="cursor:pointer">'+a+'</label>';
+    div.querySelector('input').addEventListener('change',function(){aniosSeleccionados[a]=this.checked;actualizarLabelAnios();poblarDropdownMeses();filtrarPagos();});
+    lista.appendChild(div);
+  });
+  actualizarLabelAnios();
 }
-function filtrarPagos() {
-  var anio=document.getElementById('fPagoAnio').value,fecha=document.getElementById('fPagoFecha').value,obs=document.getElementById('fPagoObs').value.toLowerCase().trim(),meses=getMesesActivos(),cls=dmGetActivos('dmPagoCliente');
+function seleccionarTodosAnios(v){
+  document.querySelectorAll('#listaAnios input[type=checkbox]').forEach(function(cb){
+    cb.checked=v;
+    var anio=cb.id.replace('anio_','');
+    aniosSeleccionados[anio]=v;
+  });
+  actualizarLabelAnios();
   poblarDropdownMeses();
-  pagosFiltrados=todosPagos.filter(function(p){return(!anio||(p.fecha||'').substr(0,4)===anio)&&(!fecha||(p.fecha||'').substr(0,10)===fecha)&&(!obs||(p.observaciones||'').toLowerCase().includes(obs))&&(!meses||meses.indexOf((p.fecha||'').substr(5,2))!==-1)&&(!cls||cls.has(p.cliente_nombre||''));});
+  filtrarPagos();
+}
+function actualizarLabelAnios() {
+  var checks=document.querySelectorAll('#listaAnios input[type=checkbox]'),total=checks.length;
+  var marcados=Array.from(checks).filter(function(c){return c.checked;});
+  var lbl=document.getElementById('lblAniosPago');if(!lbl)return;
+  lbl.textContent=marcados.length===0?'Ninguno':marcados.length===total?'Todos':marcados.map(function(c){return c.id.replace('anio_','');}).join(', ');
+}
+function getAniosActivos(){var c=document.querySelectorAll('#listaAnios input[type=checkbox]'),t=c.length,a=Array.from(c).filter(function(x){return x.checked;}).map(function(x){return x.id.replace('anio_','');});return a.length===0||a.length===t?[]:a;}
+function filtrarPagos() {
+  var anios=getAniosActivos(),fecha=document.getElementById('fPagoFecha').value,obs=document.getElementById('fPagoObs').value.toLowerCase().trim(),meses=getMesesActivos(),cls=dmGetActivos('dmPagoCliente');
+  poblarDropdownMeses();
+  pagosFiltrados=todosPagos.filter(function(p){var pAnio=(p.fecha||'').substr(0,4),pMes=(p.fecha||'').substr(5,2);return(anios.length===0||anios.indexOf(pAnio)!==-1)&&(!fecha||(p.fecha||'').substr(0,10)===fecha)&&(!obs||(p.observaciones||'').toLowerCase().includes(obs))&&(!meses||meses.indexOf(pMes)!==-1)&&(!cls||cls.has(p.cliente_nombre||''));});
   paginaPagos=1;renderizarPagos();
 }
-function limpiarFiltrosPagos(){document.getElementById('fPagoAnio').value='';document.getElementById('fPagoFecha').value='';document.getElementById('fPagoObs').value='';mesesSeleccionados={};poblarDropdownMeses();dmSelectAll('dmPagoCliente',true);pagosFiltrados=todosPagos;paginaPagos=1;renderizarPagos();}
+function limpiarFiltrosPagos(){aniosSeleccionados={};document.getElementById('fPagoFecha').value='';document.getElementById('fPagoObs').value='';mesesSeleccionados={};poblarAniosPagos();poblarDropdownMeses();dmSelectAll('dmPagoCliente',true);pagosFiltrados=todosPagos;paginaPagos=1;renderizarPagos();}
 function renderizarPagos() {
   var tbody=document.getElementById('cuerpoPagos'),total=pagosFiltrados.length;
 
@@ -3299,6 +3517,38 @@ function agregarRubroNuevo() {
     document.getElementById('gRubro').value=creado.nombre;
   },function(e){alert('Error al crear el rubro: '+e.message);});
 }
+function seleccionarTodosAniosGasto(v){
+  document.querySelectorAll('#dmGastoAnioList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmGastoAnio');poblarMesesGasto();filtrarGastos();
+}
+function seleccionarTodosMesesGasto(v){
+  document.querySelectorAll('#dmGastoMesList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmGastoMes');filtrarGastos();
+}
+function seleccionarTodosAniosFletes(v){
+  document.querySelectorAll('#dmFleteAnioList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmFleteAnio');poblarMesesFletes();filtrarFletes();
+}
+function seleccionarTodosMesesFletes(v){
+  document.querySelectorAll('#dmFleteMesList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmFleteMes');filtrarFletes();
+}
+function seleccionarTodosAniosVentas(v){
+  document.querySelectorAll('#dmVentaAnioList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmVentaAnio');poblarMesesVentas();filtrarVentas();
+}
+function seleccionarTodosMesesVentas(v){
+  document.querySelectorAll('#dmVentaMesList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmVentaMes');filtrarVentas();
+}
+function seleccionarTodosAniosCheques(v){
+  document.querySelectorAll('#dmChequeAnioList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmChequeAnio');poblarMesesCheques();filtrarCheques();
+}
+function seleccionarTodosMesesCheques(v){
+  document.querySelectorAll('#dmChequeMesList input[type=checkbox]').forEach(function(cb){cb.checked=v;});
+  dmUpdateLabelMulti('dmChequeMes');filtrarCheques();
+}
 function poblarAniosGastos() {
   var lista=document.getElementById('dmGastoAnioList');lista.innerHTML='';
   var anios={};
@@ -3464,6 +3714,16 @@ function abrirModalGasto(idx) {
   chequesGastoEmOriginalIds   = [];
   chequesGastoEmDisponibles   = [];
   fuenteChequesGasto = 'recibidos';
+  document.getElementById('gChequesFiltro').value = '';
+
+  // Cargar cheques del gasto desde todoCheques (localmente)
+  if (idGastoEdicion && todosCheques) {
+    var chequesDelGasto = todosCheques.filter(function(c) { return c.gasto_id === idGastoEdicion; });
+    chequesDelGasto.forEach(function(c) {
+      chequesGastoSeleccionados[c.id] = c;
+      chequesGastoOriginalIds.push(c.id);
+    });
+  }
   document.getElementById('modalTituloGasto').textContent=g?'Editar Gasto':'Nuevo Gasto';
   document.getElementById('gFecha').value=g?(g.fecha||''):new Date().toISOString().substr(0,10);
   document.getElementById('gProveedor').value=g?(g.proveedor||''):'';
@@ -3487,6 +3747,7 @@ function abrirModalGasto(idx) {
   else document.getElementById('gMatchInfo').style.display='none';
   toggleSeccionChequeGasto();
   document.getElementById('overlayGasto').classList.add('activo');
+  cargarChequesDisponiblesGasto(idGastoEdicion);
 }
 function cerrarModalGasto(){document.getElementById('overlayGasto').classList.remove('activo');}
 
@@ -3513,9 +3774,19 @@ function toggleSeccionChequeGasto() {
     document.getElementById('gTransferencia').value = '';
   }
 }
-function cargarChequesDisponiblesGasto() {
+function pruebaChequeGasto() {
+  gsRun('pruebaBuscarChequeGasto', [], function(res) {
+    console.log('[PRUEBA] Resultado:', res);
+    alert('Ver consola - Cheques del gasto 3121: ' + JSON.stringify(res, null, 2));
+  });
+}
+
+function cargarChequesDisponiblesGasto(gastoIdParam) {
+  var gastoId = gastoIdParam || idGastoEdicion;
   document.getElementById('gChequesLista').innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">Cargando cheques disponibles...</div>';
-  gsRun('obtenerChequesDisponiblesParaGasto', [idGastoEdicion], function(res) {
+  gsRun('obtenerChequesDisponiblesParaGasto', [gastoId], function(res) {
+    console.log('[cargarChequesDisponiblesGasto] respuesta completa:', res);
+    console.log('[cargarChequesDisponiblesGasto] yaAsignadosIds:', res.yaAsignadosIds);
     if (!res || typeof res !== 'object') {
       document.getElementById('gChequesLista').innerHTML = '<div style="color:#dc3545;font-size:12px">Error: respuesta inválida del servidor</div>';
       return;
@@ -3524,6 +3795,7 @@ function cargarChequesDisponiblesGasto() {
     chequesGastoOriginalIds = res.yaAsignadosIds || [];
     chequesGastoSeleccionados = {};
     chequesGastoDisponibles.forEach(function(c) { if (chequesGastoOriginalIds.indexOf(c.id) !== -1) chequesGastoSeleccionados[c.id] = c; });
+    console.log('[cargarChequesDisponiblesGasto] chequesGastoSeleccionados:', Object.keys(chequesGastoSeleccionados).length, 'cheques');
 
     chequesGastoEmDisponibles = res.disponiblesEm || [];
     chequesGastoEmOriginalIds = res.yaAsignadosEmIds || [];
@@ -3553,19 +3825,34 @@ function actualizarBotonesFuenteChequesGasto() {
 
 function renderizarChequesGasto() {
   var cont = document.getElementById('gChequesLista');
+  var filtro = (document.getElementById('gChequesFiltro') || {}).value || '';
+  var filtroLower = filtro.toLowerCase();
+
   if (fuenteChequesGasto === 'emitidos') {
     if (!chequesGastoEmDisponibles.length) {
       cont.innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">No hay cheques emitidos disponibles (propio/echeq/tercero, sin entregar).</div>';
     } else {
+      var chequesFiltrados = chequesGastoEmDisponibles.filter(function(c) {
+        return !filtro || (c.banco || '').toLowerCase().includes(filtroLower) || (c.numero_cheque || '').includes(filtro);
+      });
+      var chequesOrdenados = chequesFiltrados.sort(function(a, b) {
+        var aSelec = chequesGastoEmSeleccionados[a.id] ? 1 : 0;
+        var bSelec = chequesGastoEmSeleccionados[b.id] ? 1 : 0;
+        return bSelec - aSelec;
+      });
       var headerEm = '<div style="display:grid;grid-template-columns:' + GRID_CHEQUES_GASTO + ';gap:8px;padding:2px 0 6px;font-size:10px;color:#999;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ddd">' +
         '<span></span><span>Banco</span><span>Cheque/D&eacute;bito</span><span>Fecha Pago</span><span style="text-align:right">Importe</span></div>';
-      var filasEm = chequesGastoEmDisponibles.map(function(c) {
+      var filasEm = chequesOrdenados.map(function(c) {
         var checked = chequesGastoEmSeleccionados[c.id] ? 'checked' : '';
-        return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_GASTO + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer">' +
+        var esOriginal = chequesGastoEmOriginalIds.indexOf(c.id) !== -1;
+        var estadoEstilo = esOriginal && c.estado === 'ENTREGADO' ? 'color:#28a745;font-weight:600' : '';
+        var detalle = [(c.operacion||''), (c.descripcion||''), (c.detalle||'')].filter(function(x){return x;}).join(' - ');
+        var title = detalle ? 'title="' + esc(detalle) + '"' : '';
+        return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_GASTO + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer;background:' + (chequesGastoEmSeleccionados[c.id] ? '#f0f8ff' : '') + '">' +
           '<input type="checkbox" ' + checked + ' onchange="toggleChequeEmGastoSeleccion(' + c.id + ',this.checked)">' +
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.banco || '-') + '</span>' +
-          '<span style="font-family:monospace;font-size:12px">' + esc(c.numero_cheque || '-') + '</span>' +
-          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_pago) + '</span>' +
+          '<span style="font-family:monospace;font-size:12px" ' + title + '>' + esc(c.numero_cheque || '-') + '</span>' +
+          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_pago) + (esOriginal && c.estado === 'ENTREGADO' ? ' <span style="' + estadoEstilo + '">(ENTREGADO)</span>' : '') + '</span>' +
           '<span style="font-weight:600;text-align:right">' + pesos(c.importe_cheque) + '</span>' +
         '</label>';
       }).join('');
@@ -3575,15 +3862,25 @@ function renderizarChequesGasto() {
     if (!chequesGastoDisponibles.length) {
       cont.innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">No hay cheques recibidos disponibles (sin vencer y no entregados).</div>';
     } else {
+      var chequesFiltrados = chequesGastoDisponibles.filter(function(c) {
+        return !filtro || (c.banco || '').toLowerCase().includes(filtroLower) || (c.numero || '').includes(filtro);
+      });
+      var chequesOrdenados = chequesFiltrados.sort(function(a, b) {
+        var aSelec = chequesGastoSeleccionados[a.id] ? 1 : 0;
+        var bSelec = chequesGastoSeleccionados[b.id] ? 1 : 0;
+        return bSelec - aSelec;
+      });
       var header = '<div style="display:grid;grid-template-columns:' + GRID_CHEQUES_GASTO + ';gap:8px;padding:2px 0 6px;font-size:10px;color:#999;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ddd">' +
         '<span></span><span>Banco</span><span>N&deg; Cheque</span><span>Vto.</span><span style="text-align:right">Importe</span></div>';
-      var filas = chequesGastoDisponibles.map(function(c) {
+      var filas = chequesOrdenados.map(function(c) {
         var checked = chequesGastoSeleccionados[c.id] ? 'checked' : '';
-        return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_GASTO + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer">' +
+        var esOriginal = chequesGastoOriginalIds.indexOf(c.id) !== -1;
+        var estadoEstilo = esOriginal && c.estado === 'ENTREGADO' ? 'color:#28a745;font-weight:600' : '';
+        return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_GASTO + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer;background:' + (chequesGastoSeleccionados[c.id] ? '#f0f8ff' : '') + '">' +
           '<input type="checkbox" ' + checked + ' onchange="toggleChequeGastoSeleccion(' + c.id + ',this.checked)">' +
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.banco || '-') + '</span>' +
           '<span style="font-family:monospace;font-size:12px">' + esc(c.numero || '-') + '</span>' +
-          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_vencimiento) + '</span>' +
+          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_vencimiento) + (esOriginal && c.estado === 'ENTREGADO' ? ' <span style="' + estadoEstilo + '">(ENTREGADO)</span>' : '') + '</span>' +
           '<span style="font-weight:600;text-align:right">' + pesos(c.importe) + '</span>' +
         '</label>';
       }).join('');
@@ -3662,7 +3959,19 @@ function guardarGasto() {
   var datos={fecha:fecha,proveedor:proveedor,proveedor_id:proveedorId,rubro:rubro,categoria:rubro,descripcion:descripcion,monto:monto,metodo_pago:metodoPago,cheque_numero:chequeNumero,estado:estado,observaciones:observaciones,efectivo:efectivo,transferencia:transferencia};
   var chequeIds=Object.keys(chequesGastoSeleccionados).map(function(k){return parseInt(k,10);});
   var chequeEmitidoIds=Object.keys(chequesGastoEmSeleccionados).map(function(k){return parseInt(k,10);});
-  gsRun('guardarGasto',[datos,idGastoEdicion,chequeIds,chequeEmitidoIds],function(){cerrarModalGasto();mensaje('msgGastos',idGastoEdicion?'Gasto actualizado.':'Gasto agregado.','ok');mostrarGastos();},function(e){err.textContent='Error: '+e.message;err.style.display='block';});
+  console.log('[guardarGasto] chequeIds:', chequeIds, 'chequeEmitidoIds:', chequeEmitidoIds);
+  gsRun('guardarGasto',[datos,idGastoEdicion,chequeIds,chequeEmitidoIds],function(res){
+    console.log('[guardarGasto respuesta]:', res);
+    cerrarModalGasto();
+    var msg = idGastoEdicion?'Gasto actualizado.':'Gasto agregado.';
+    if (res && res.chequesActualizados > 0) {
+      msg += ' (' + res.chequesActualizados + ' cheque(s) estado ENTREGADO)';
+    } else if (chequeIds.length > 0) {
+      msg += ' (⚠ Cheques NO se actualizaron)';
+    }
+    mensaje('msgGastos', msg, 'ok');
+    mostrarGastos();
+  },function(e){err.textContent='Error: '+e.message;err.style.display='block';});
 }
 function eliminarGasto(idx) {
   var g=todosGastos[idx]; if(!g)return;
@@ -4609,10 +4918,8 @@ function mostrarCheques() {
       todosCheques = data || [];
       paginaCheques = 1;
       document.getElementById('infoCheques').textContent = '';
-      poblarFiltrosAnioMesCheques();
+      poblarAniosCheques();
       poblarFiltroBanco();
-      document.getElementById('fChequeAnio').value = '2026';
-      filtrarCheques();
     }, function(err) { mensaje('msgCheques', 'Error al cargar: ' + err.message, 'error'); });
   };
 
@@ -4702,8 +5009,8 @@ function actualizarPillsChequesConDatos(cheques) {
   document.getElementById('pillChequesProximo').style.display = prox > 0 ? 'inline-block' : 'none';
 }
 function filtrarCheques() {
-  var anio   = document.getElementById('fChequeAnio').value;
-  var mes    = document.getElementById('fChequeMes').value;
+  var anios   = dmGetCheckboxes('dmChequeAnioList');
+  var meses   = dmGetCheckboxes('dmChequeMesList');
   var banco  = document.getElementById('fChequeBanco').value;
   var numero = document.getElementById('fChequeNumero').value.toLowerCase().trim();
   var estado = document.getElementById('fChequeEstado').value;
@@ -4711,8 +5018,8 @@ function filtrarCheques() {
   var hoy    = new Date(); hoy.setHours(0,0,0,0);
   chequesFiltrados = todosCheques.filter(function(c) {
     var vencStr = c.fecha_vencimiento || '';
-    if (anio && vencStr.substr(0,4) !== anio) return false;
-    if (mes && vencStr.substr(5,2) !== mes) return false;
+    if (anios.length > 0 && anios.indexOf(vencStr.substr(0,4)) === -1) return false;
+    if (meses.length > 0 && meses.indexOf(vencStr.substr(5,2)) === -1) return false;
     if (banco  && (c.banco  ||'').trim() !== banco)                return false;
     if (numero && !(c.numero||'').toLowerCase().includes(numero)) return false;
     if (tipo   && (c.tipo   ||'') !== tipo)                       return false;
@@ -4739,8 +5046,7 @@ function filtrarCheques() {
   renderizarCheques();
 }
 function limpiarFiltrosCheques() {
-  document.getElementById('fChequeAnio').value   = '';
-  document.getElementById('fChequeMes').value    = '';
+  dmSelectAll('dmChequeAnio',true);poblarMesesCheques();dmSelectAll('dmChequeMes',true);
   document.getElementById('fChequeBanco').value  = '';
   document.getElementById('fChequeNumero').value = '';
   document.getElementById('fChequeEstado').value = '';
@@ -5201,6 +5507,8 @@ function mostrarSaldos() {
     poblarSelectBancoSaldo();
     gsRun('obtenerSaldos',[],function(data){
       todosSaldos=data||[];paginaSaldos=1;
+      poblarAniosSaldo();
+      poblarDropdownMesesSaldo();
       filtrarSaldosBanco();
     });
   });
@@ -5227,11 +5535,12 @@ function actualizarOpcionesBancoCaja(){
 }
 function actualizarFiltrosBanco(){
   var tipo=document.getElementById('fSaldoTipo').value;
+  var divBanco=document.getElementById('divSaldoBanco');
   var selectBanco=document.getElementById('fSaldoBanco');
   if(tipo==='Banco'){
-    selectBanco.style.display='block';
+    divBanco.style.display='block';
   }else{
-    selectBanco.style.display='none';
+    divBanco.style.display='none';
     selectBanco.value='';
   }
 }
@@ -5244,14 +5553,14 @@ function convertirFechaAlDMY(fechaDMY){
   return yyyy+'-'+mm.padStart(2,'0')+'-'+dd.padStart(2,'0');
 }
 function filtrarSaldosBanco(){
-  var tipo=document.getElementById('fSaldoTipo').value,fechaDMY=document.getElementById('fSaldoFecha').value,banco=document.getElementById('fSaldoBanco').value;
-  var fechaYYYYMMDD=convertirFechaAlDMY(fechaDMY);
+  var anios=Object.keys(aniosSaldoSeleccionados).filter(function(a){return aniosSaldoSeleccionados[a];}),meses=Object.keys(mesesSaldoSeleccionados).filter(function(m){return mesesSaldoSeleccionados[m];}),tipo=document.getElementById('fSaldoTipo').value,banco=document.getElementById('fSaldoBanco').value;
   saldosFiltrados=todosSaldos.filter(function(s){
-    return(!tipo||s.tipo===tipo)&&(!fechaYYYYMMDD||s.fecha===fechaYYYYMMDD)&&(!banco||s.banco_caja===banco);
+    var f=s.fecha||'';var anio=f.substr(0,4),mes=f.substr(5,2);
+    return(anios.length===0||anios.indexOf(anio)!==-1)&&(meses.length===0||meses.indexOf(mes)!==-1)&&(!tipo||s.tipo===tipo)&&(!banco||s.banco_caja===banco);
   });
   paginaSaldos=1;renderizarSaldos();
 }
-function limpiarFiltrosSaldos(){document.getElementById('fSaldoFecha').value='';document.getElementById('fSaldoTipo').value='';document.getElementById('fSaldoBanco').value='';actualizarFiltrosBanco();saldosFiltrados=todosSaldos;paginaSaldos=1;renderizarSaldos();}
+function limpiarFiltrosSaldos(){aniosSaldoSeleccionados={};mesesSaldoSeleccionados={};poblarAniosSaldo();poblarDropdownMesesSaldo();document.getElementById('fSaldoTipo').value='';document.getElementById('fSaldoBanco').value='';actualizarFiltrosBanco();saldosFiltrados=todosSaldos;paginaSaldos=1;renderizarSaldos();}
 function renderizarSaldos(){
   var tbody=document.getElementById('cuerpoSaldos'),total=saldosFiltrados.length;
   var totalMonto=saldosFiltrados.reduce(function(s,r){return s+(parseFloat(r.monto)||0);},0);
@@ -5295,13 +5604,14 @@ function guardarSaldo(){
     cerrarModalSaldo();
     mensaje('msgSaldos',idSaldoEdicion?'Saldo actualizado.':'Saldo agregado.','ok');
     mostrarSaldos();
+    mostrarCashflow();
   },function(e){err.textContent='Error: '+e.message;err.style.display='block';});
 }
 function eliminarSaldo(idx){
   var s=todosSaldos[idx];if(!s)return;
   var desc=formatFecha(s.fecha)+' — '+s.banco_caja+' — '+pesos(s.monto);
   if(!confirm('¿Eliminar el saldo de '+desc+'?\nEsta acción no se puede deshacer.'))return;
-  gsRun('eliminarSaldoById',[s.id],function(){mensaje('msgSaldos','Saldo eliminado.','ok');mostrarSaldos();},function(e){mensaje('msgSaldos','Error al eliminar: '+e.message,'error');});
+  gsRun('eliminarSaldoById',[s.id],function(){mensaje('msgSaldos','Saldo eliminado.','ok');mostrarSaldos();mostrarCashflow();},function(e){mensaje('msgSaldos','Error al eliminar: '+e.message,'error');});
 }
 
 // ==========================================
@@ -5358,6 +5668,23 @@ if (localStorage.getItem(LOGIN_STORAGE_KEY) === '1') {
 
 </script>
 
+<script>
+var APP_VERSION = '3.0.8';
+document.getElementById('appVersion').textContent = 'v' + APP_VERSION;
+
+// Función de prueba para ejecutar en consola
+window.testGasto3121 = function() {
+  console.log('Buscando cheques del gasto 3121...');
+  gsRun('pruebaBuscarChequeGasto', [], function(res) {
+    console.log('=== RESULTADO ===');
+    console.log('Cheques directos encontrados:', res.chequesDirectos);
+    console.log('IDs:', res.chequesDirectosIds);
+    console.log('Total con gasto_id no nulo:', res.totalCongasto);
+    console.log('Ejemplos:', res.ejemplos);
+  });
+};
+console.log('Ejecuta testGasto3121() en la consola para probar');
+</script>
 
 </body>
 </html>
