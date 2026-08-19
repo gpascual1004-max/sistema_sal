@@ -3,6 +3,7 @@
 // Backend + conexión Supabase
 // ============================================
 
+const APP_VERSION = '3.0.9';
 const SUPABASE_URL = 'https://mlgvalvuacdfjscelpnm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_xqJh9IwGfjKDBkYUDeuaVg_9c3EQZ0Q';
 
@@ -689,92 +690,189 @@ var TIPOS_CHEQUE_EMITIDO_PAGABLES = ['CHEQUE PROPIO', 'ECHEQ', 'CHEQUE TERCERO']
 // = CHEQUE o MIXTO). chequeEmitidoIds: ids de cheques emitidos (propio/echeq/tercero) usados
 // para lo mismo. Los que se agreguen quedan "entregados"; los que se saquen vuelven a estar
 // disponibles (DISPONIBLE en cheques recibidos, PENDIENTE en cheques emitidos).
-function guardarGasto(datos, id, chequeIds, chequeEmitidoIds) {
-  Logger.log('=== INICIANDO guardarGasto ===');
-  Logger.log('datos: ' + JSON.stringify(datos).substring(0, 200));
-  Logger.log('id: ' + id);
 
-  var gastoId = id;
+function guardarGastoEnBD(datos, id) {
   if (id) {
-    Logger.log('PATCH a gasto existente');
-    var patchRes = supabaseQuery('gastos', 'PATCH', datos, { id: id });
-    Logger.log('Gasto PATCH result: ' + JSON.stringify(patchRes));
+    supabaseQuery('gastos', 'PATCH', datos, { id: id });
+    return id;
   } else {
-    Logger.log('POST de nuevo gasto');
     var res = supabaseQuery('gastos', 'POST', [datos]);
-    Logger.log('Gasto POST result: ' + JSON.stringify(res));
-    gastoId = (res && res[0] && res[0].id) ? res[0].id : null;
-    Logger.log('New gastoId: ' + gastoId);
+    return (res && res[0] && res[0].id) ? res[0].id : null;
   }
-  if (!gastoId && !id) {
-    throw new Error('No se pudo crear el gasto - no hay ID retornado');
+}
+
+function actualizarChequeEnGasto(chequeId, gastoId, fecha_salida) {
+  Logger.log('[actualizarChequeEnGasto] Iniciando para chequeId=' + chequeId + ' gastoId=' + gastoId + ' fecha=' + fecha_salida);
+  var chq = supabaseQuery('cheques', 'GET', null, null, 'id=eq.' + chequeId) || [];
+  Logger.log('[actualizarChequeEnGasto] Datos obtenidos: ' + JSON.stringify(chq));
+  if (chq && chq[0]) {
+    var c = chq[0];
+    Logger.log('[actualizarChequeEnGasto] Actualizando con: numero=' + c.numero + ' banco=' + c.banco + ' importe=' + c.importe);
+    supabaseQuery('cheques', 'PATCH', {
+      gasto_id: gastoId,
+      fecha_salida: fecha_salida,
+      estado: 'ENTREGADO',
+      pago_id: c.pago_id,
+      numero: c.numero,
+      banco: c.banco,
+      importe: c.importe
+    }, { id: chequeId });
+    Logger.log('[actualizarChequeEnGasto] Actualización completada');
+  } else {
+    Logger.log('[actualizarChequeEnGasto] ERROR: No se encontraron datos del cheque');
   }
-  Logger.log('Invalidando cache...');
+}
+
+function guardarGasto(datos, id, chequeIds, chequeEmitidoIds) {
+  Logger.log('[guardarGasto] INICIANDO - datos=' + JSON.stringify(datos) + ', id=' + id + ', chequeIds=' + JSON.stringify(chequeIds));
+  // Guardar gasto y obtener ID
+  var gastoId = id;
+  if (!id) {
+    try {
+      var tempArray = supabaseQuery('gastos', 'POST', [datos]);
+      gastoId = (tempArray && tempArray[0] && tempArray[0].id) ? tempArray[0].id : null;
+      tempArray = null;
+    } catch(e) {
+      gastoId = null;
+    }
+  } else {
+    // Editar gasto existente
+    supabaseQuery('gastos', 'PATCH', datos, { id: id });
+  }
+
+  if (!id && !gastoId) {
+    return { ok: false, error: 'Gasto no guardado' };
+  }
+
+  Logger.log('[guardarGasto] Gasto guardado/editado: ' + gastoId);
   invalidarCacheTabla('gastos', QUERY_GASTOS);
 
+  // Convertir cheque IDs
   chequeIds = (chequeIds || []).map(function(x) { return parseInt(x, 10); });
-  var existentes = supabaseQuery('cheques', 'GET', null, { gasto_id: gastoId }) || [];
-  var idsOriginal = existentes.map(function(c) { return c.id; });
-
-  var idsQuitar  = idsOriginal.filter(function(cid) { return chequeIds.indexOf(cid) === -1; });
-  var idsAgregar = chequeIds.filter(function(cid) { return idsOriginal.indexOf(cid) === -1; });
-
-  if (idsAgregar.length) {
-    var aAgregar = supabaseQuery('cheques', 'GET', null, null, 'id=in.(' + idsAgregar.join(',') + ')&select=id,importe') || [];
-    aAgregar.forEach(function(c) {
-      supabaseQuery('cheques', 'PATCH', { gasto_id: gastoId, fecha_salida: datos.fecha, monto_salida: c.importe, estado: 'ENTREGADO' }, { id: c.id });
-    });
-  }
-  idsQuitar.forEach(function(cid) {
-    supabaseQuery('cheques', 'PATCH', { gasto_id: null, fecha_salida: null, monto_salida: null, estado: 'DISPONIBLE' }, { id: cid });
-  });
-  if (idsAgregar.length || idsQuitar.length) invalidarCacheTabla('cheques', QUERY_CHEQUES);
-
   chequeEmitidoIds = (chequeEmitidoIds || []).map(function(x) { return parseInt(x, 10); });
+  Logger.log('[guardarGasto] chequeIds después de parsear: ' + JSON.stringify(chequeIds) + ', length=' + chequeIds.length);
+
+  var chequesActualizados = 0;
+  var chequesDesvinculados = 0;
+
+  // Desvincular cheques actuales
+  var tempExistentes = supabaseQuery('cheques', 'GET', null, { gasto_id: gastoId });
+  if (tempExistentes) {
+    for (var j = 0; j < tempExistentes.length; j++) {
+      supabaseQuery('cheques', 'PATCH', { gasto_id: null, estado: 'DISPONIBLE', fecha_salida: null }, { id: tempExistentes[j].id });
+      chequesDesvinculados++;
+    }
+  }
+  tempExistentes = null;
+  Logger.log('[guardarGasto] Iniciando vinculación de ' + chequeIds.length + ' cheques nuevos');
+
+  // Vincular cheques nuevos
+  for (var i = 0; i < chequeIds.length; i++) {
+    Logger.log('[guardarGasto] Actualizando cheque ' + chequeIds[i] + ' para gasto ' + gastoId);
+    actualizarChequeEnGasto(chequeIds[i], gastoId, datos.fecha);
+    chequesActualizados++;
+  }
+  Logger.log('[guardarGasto] Vinculación completada. Total actualizados: ' + chequesActualizados);
+
+  if (chequesActualizados > 0 || chequesDesvinculados > 0) {
+    invalidarCacheTabla('cheques', QUERY_CHEQUES);
+  }
+
+  // Cheques emitidos
   var existentesEm = supabaseQuery('cheques_emitidos', 'GET', null, { gasto_id: gastoId }) || [];
-  var idsOriginalEm = existentesEm.map(function(c) { return c.id; });
+  existentesEm.forEach(function(c) {
+    supabaseQuery('cheques_emitidos', 'PATCH', { gasto_id: null, estado: 'PENDIENTE' }, { id: c.id });
+  });
 
-  var idsQuitarEm  = idsOriginalEm.filter(function(cid) { return chequeEmitidoIds.indexOf(cid) === -1; });
-  var idsAgregarEm = chequeEmitidoIds.filter(function(cid) { return idsOriginalEm.indexOf(cid) === -1; });
-
-  idsAgregarEm.forEach(function(cid) {
+  chequeEmitidoIds.forEach(function(cid) {
     supabaseQuery('cheques_emitidos', 'PATCH', { gasto_id: gastoId, estado: 'ENTREGADO' }, { id: cid });
   });
-  idsQuitarEm.forEach(function(cid) {
-    supabaseQuery('cheques_emitidos', 'PATCH', { gasto_id: null, estado: 'PENDIENTE' }, { id: cid });
-  });
-  if (idsAgregarEm.length || idsQuitarEm.length) invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
 
-  return { ok: true, gastoId: gastoId };
+  if (chequeEmitidoIds.length > 0 || existentesEm.length > 0) {
+    invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
+  }
+
+  // Actualizar el campo cheque_numero del gasto con todos los números (recibidos y emitidos)
+  var chequesActuales = supabaseQuery('cheques', 'GET', null, { gasto_id: gastoId }) || [];
+  var chequesEmitidosActuales = supabaseQuery('cheques_emitidos', 'GET', null, { gasto_id: gastoId }) || [];
+  var todos = chequesActuales.concat(chequesEmitidosActuales);
+  var numerosCheques = todos.map(function(c) { return c.numero || c.numero_cheque; }).join(', ');
+  if (todos.length > 0) {
+    supabaseQuery('gastos', 'PATCH', { cheque_numero: numerosCheques }, { id: gastoId });
+  }
+
+  var responseObj = {};
+  responseObj.ok = true;
+  responseObj.gastoId = gastoId;
+  responseObj.chequesActualizados = chequesActualizados;
+  responseObj.chequesDesvinculados = chequesDesvinculados;
+  responseObj.chequeIdsRecibidos = chequeIds;
+  responseObj.mensaje = 'Gasto ' + gastoId + ' con ' + chequesActualizados + ' cheques actualizados';
+
+  return JSON.parse(JSON.stringify({ok:true,gastoId:gastoId,chequesActualizados:chequesActualizados,mensaje:'Cheques actualizados: ' + chequesActualizados}));
 }
 
 // Cheques disponibles para pagar un gasto: no vencidos y no entregados (recibidos) o
 // PENDIENTE (emitidos: propio/echeq/tercero), más los que ya estén vinculados al gasto
 // que se está editando (para poder desmarcarlos).
+function pruebaBuscarChequeGasto() {
+  var gastoId = 3121;
+  var resultado = {};
+
+  // Busca directa por gasto_id
+  var chequesDirectos = supabaseQuery('cheques', 'GET', null, { gasto_id: gastoId }) || [];
+  resultado.chequesDirectos = chequesDirectos.length;
+  resultado.chequesDirectosIds = chequesDirectos.map(function(c) { return c.id; });
+
+  // Busca todos con gasto_id no nulo
+  var todosCongasto = supabaseQuery('cheques', 'GET', null, null, 'gasto_id=not.is.null') || [];
+  resultado.totalCongasto = todosCongasto.length;
+  resultado.ejemplos = todosCongasto.slice(0, 5).map(function(c) { return { id: c.id, gasto_id: c.gasto_id, tipo: typeof c.gasto_id }; });
+
+  return resultado;
+}
+
 function obtenerChequesDisponiblesParaGasto(gastoId) {
+  gastoId = gastoId ? parseInt(gastoId, 10) : null;
+
   var hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'America/Argentina/Mendoza', 'yyyy-MM-dd');
-  var disponibles = supabaseQuery('cheques', 'GET', null, null, 'estado=eq.DISPONIBLE&fecha_vencimiento=gte.' + hoy + '&order=fecha_vencimiento.asc') || [];
-  var yaAsignados = gastoId ? (supabaseQuery('cheques', 'GET', null, { gasto_id: gastoId }) || []) : [];
+
+  // Cheques RECIBIDOS
+  var chequesDelGasto = [];
+  var chequesDisponibles = supabaseQuery('cheques', 'GET', null, null, 'estado=eq.DISPONIBLE&fecha_vencimiento=gte.' + hoy + '&order=fecha_vencimiento.asc') || [];
+
+  if (gastoId) {
+    var todosConGasto = supabaseQuery('cheques', 'GET', null, null, 'gasto_id=not.is.null&order=fecha_vencimiento.asc') || [];
+    chequesDelGasto = todosConGasto.filter(function(c) { return c.gasto_id == gastoId; });
+  }
 
   var mapa = {};
-  disponibles.forEach(function(c) { mapa[c.id] = c; });
-  yaAsignados.forEach(function(c) { mapa[c.id] = c; });
+  chequesDisponibles.forEach(function(c) { mapa[c.id] = c; });
+  chequesDelGasto.forEach(function(c) { mapa[c.id] = c; });
   var lista = Object.keys(mapa).map(function(id) { return mapa[id]; })
     .sort(function(a, b) { return (a.fecha_vencimiento || '').localeCompare(b.fecha_vencimiento || ''); });
 
+  // Cheques EMITIDOS
+  var chequesEmitidosDelGasto = [];
   var tipoQuery = TIPOS_CHEQUE_EMITIDO_PAGABLES.map(function(t) { return encodeURIComponent(t); }).join(',');
-  var disponiblesEm = supabaseQuery('cheques_emitidos', 'GET', null, null, 'estado=eq.PENDIENTE&tipo_cheque=in.(' + tipoQuery + ')&order=fecha_pago.asc') || [];
-  var yaAsignadosEm = gastoId ? (supabaseQuery('cheques_emitidos', 'GET', null, { gasto_id: gastoId }) || []) : [];
+  var chequesEmitidosPendientes = supabaseQuery('cheques_emitidos', 'GET', null, null, 'estado=eq.PENDIENTE&tipo_cheque=in.(' + tipoQuery + ')&order=fecha_pago.asc') || [];
+
+  if (gastoId) {
+    var todosEmitidosConGasto = supabaseQuery('cheques_emitidos', 'GET', null, null, 'gasto_id=not.is.null&order=fecha_pago.asc') || [];
+    chequesEmitidosDelGasto = todosEmitidosConGasto.filter(function(c) { return c.gasto_id == gastoId; });
+  }
 
   var mapaEm = {};
-  disponiblesEm.forEach(function(c) { mapaEm[c.id] = c; });
-  yaAsignadosEm.forEach(function(c) { mapaEm[c.id] = c; });
+  chequesEmitidosPendientes.forEach(function(c) { mapaEm[c.id] = c; });
+  chequesEmitidosDelGasto.forEach(function(c) { mapaEm[c.id] = c; });
   var listaEm = Object.keys(mapaEm).map(function(id) { return mapaEm[id]; })
     .sort(function(a, b) { return (a.fecha_pago || '').localeCompare(b.fecha_pago || ''); });
 
   return {
-    disponibles: lista, yaAsignadosIds: yaAsignados.map(function(c) { return c.id; }),
-    disponiblesEm: listaEm, yaAsignadosEmIds: yaAsignadosEm.map(function(c) { return c.id; })
+    disponibles: lista,
+    yaAsignadosIds: chequesDelGasto.map(function(c) { return c.id; }),
+    disponiblesEm: listaEm,
+    yaAsignadosEmIds: chequesEmitidosDelGasto.map(function(c) { return c.id; })
   };
 }
 
@@ -1348,4 +1446,24 @@ function obtenerGuiasDeObservaciones() {
   });
 
   return guias;
+}
+
+// ============================================
+// CONFIGURACIÓN CASHFLOW
+// ============================================
+function guardarConfigCashflow(gastosAbiertos) {
+  var props = PropertiesService.getUserProperties();
+  props.setProperty('cfGastosAbiertos', JSON.stringify(gastosAbiertos || []));
+  Logger.log('Config guardada');
+  return true;
+}
+
+function obtenerConfigCashflow() {
+  var props = PropertiesService.getUserProperties();
+  var cfg = props.getProperty('cfGastosAbiertos');
+  return cfg ? JSON.parse(cfg) : [];
+}
+
+function obtenerVersion() {
+  return APP_VERSION;
 }
