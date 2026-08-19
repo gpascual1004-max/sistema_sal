@@ -2566,12 +2566,9 @@ function mostrarVentas() {
       poblarAniosVentas();
       if(!ventasFiltroInicializado){
         ventasFiltroInicializado=true;
-        var ultimaFecha=todasVentas.reduce(function(max,v){return(v.fecha&&v.fecha>max)?v.fecha:max;},'');
-        if(ultimaFecha)document.getElementById('fVentaAnio').value=ultimaFecha.substr(0,4);
-        poblarMesesVenta();
-        if(ultimaFecha)document.getElementById('fVentaMes').value=ultimaFecha.substr(5,2);
+        poblarMesesVentas();
       } else {
-        poblarMesesVenta();
+        poblarMesesVentas();
       }
       if(!ventasDropdownsInicializados){
         ventasDropdownsInicializados=true;
