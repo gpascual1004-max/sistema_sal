@@ -962,7 +962,7 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
       <div id="msgClientesTab"></div>
       <div class="table-container">
-        <table><thead><tr><th>ID</th><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Dirección</th><th>Ciudad</th><th></th></tr></thead>
+        <table><thead><tr style="cursor:pointer"><th onclick="cambiarOrdenClientes('id')" style="cursor:pointer;user-select:none">ID <span id="ordClientesId"></span></th><th onclick="cambiarOrdenClientes('nombre')" style="cursor:pointer;user-select:none">Cliente <span id="ordClientesNombre"></span></th><th onclick="cambiarOrdenClientes('email')" style="cursor:pointer;user-select:none">Email <span id="ordClientesEmail"></span></th><th onclick="cambiarOrdenClientes('telefono')" style="cursor:pointer;user-select:none">Teléfono <span id="ordClientesTelefono"></span></th><th onclick="cambiarOrdenClientes('direccion')" style="cursor:pointer;user-select:none">Dirección <span id="ordClientesDireccion"></span></th><th onclick="cambiarOrdenClientes('ciudad')" style="cursor:pointer;user-select:none">Ciudad <span id="ordClientesCiudad"></span></th><th></th></tr></thead>
         <tbody id="cuerpoClientesTab"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody></table>
       </div>
       <div class="paginacion" id="paginacionClientes"></div>
@@ -2832,7 +2832,7 @@ document.getElementById('overlayVenta').addEventListener('click',function(e){if(
 // ==========================================
 // CLIENTES
 // ==========================================
-var todosClientes=[],clientesFiltrados=[],paginaActual=1,porPagina=20,modoEdicion=false,idEdicion=null;
+var todosClientes=[],clientesFiltrados=[],paginaActual=1,porPagina=20,modoEdicion=false,idEdicion=null,ordenClientes={campo:null,dir:'asc'};
 
 function mostrarClientesTab() {
   gsRun('obtenerClientes',[],function(data){todosClientes=data||[];clientesFiltrados=todosClientes;paginaActual=1;var i=document.getElementById('buscarCliente');if(i)i.value='';renderizarPagina();});
@@ -2840,6 +2840,8 @@ function mostrarClientesTab() {
 function filtrarClientes() {
   var q=(document.getElementById('buscarCliente').value||'').toLowerCase().trim();
   clientesFiltrados=q?todosClientes.filter(function(c){return(c.id||'').toLowerCase().includes(q)||(c.nombre||'').toLowerCase().includes(q);}):todosClientes;
+  if(ordenClientes.campo){clientesFiltrados.sort(function(a,b){var av=a[ordenClientes.campo]||'',bv=b[ordenClientes.campo]||'';if(typeof av==='string'){av=av.toLowerCase();bv=bv.toLowerCase();}return ordenClientes.dir==='asc'?av>bv?1:-1:av<bv?1:-1;});}
+  ['Id','Nombre','Email','Telefono','Direccion','Ciudad'].forEach(function(f){var id='ordClientes'+f,el=document.getElementById(id);if(!el)return;el.textContent='';});if(ordenClientes.campo){var id='ordClientes'+ordenClientes.campo.charAt(0).toUpperCase()+ordenClientes.campo.slice(1);var el=document.getElementById(id);if(el)el.textContent=ordenClientes.dir==='asc'?'▲':'▼';}
   paginaActual=1;renderizarPagina();
 }
 function renderizarPagina() {
@@ -3634,6 +3636,16 @@ function cambiarOrdenVentas(campo) {
   }
   paginaVentas = 1;
   renderizarVentas();
+}
+function cambiarOrdenClientes(campo) {
+  if (ordenClientes.campo === campo) {
+    ordenClientes.dir = ordenClientes.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    ordenClientes.campo = campo;
+    ordenClientes.dir = 'asc';
+  }
+  paginaActual = 1;
+  filtrarClientes();
 }
 function cambiarOrdenPagos(campo) {
   if (ordenPagos.campo === campo) {
