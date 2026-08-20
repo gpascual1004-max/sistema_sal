@@ -450,22 +450,9 @@ function gsRun(fnName, params, onSuccess, onError) {
         });
       });
     },
-    'guardarFlete': ([datos, id]) => {
-      if (id) {
-        return supabaseQuery('fletes', 'PATCH', datos, { id }).then(res => {
-          console.log('Flete actualizado en Supabase:', id);
-          return res;
-        });
-      } else {
-        return supabaseQuery('fletes', 'POST', [datos]).then(res => {
-          console.log('Nuevo flete insertado en Supabase:', res);
-          if (!res || !Array.isArray(res) || res.length === 0) {
-            throw new Error('No se pudo guardar el flete en la base de datos');
-          }
-          return res[0];
-        });
-      }
-    },
+    'guardarFlete': ([datos, id, chequeIds, chequeEmitidoIds]) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).guardarFlete(datos, id, chequeIds, chequeEmitidoIds);
+    }),
     'guardarGasto': ([datos, id, chequeIds, chequeEmitidoIds]) => {
       return new Promise((resolve, reject) => {
         google.script.run
@@ -878,8 +865,21 @@ function gsRun(fnName, params, onSuccess, onError) {
           <div class="form-group"><label>Importe ($)</label><input type="number" id="ffImporte" step="0.01" oninput="calcularTotalFlete()"></div>
           <div class="form-group"><label>IVA ($)</label><input type="number" id="ffIva" step="0.01" oninput="calcularTotalFlete()"></div>
           <div class="form-group"><label>Total ($)</label><input type="number" id="ffTotal" readonly style="background:#f8f9fa;color:#555"></div>
-          <div class="form-group"><label>Cheque N°</label><input type="text" id="ffCheque"></div>
-          <div class="form-group"><label>Fecha Pago</label><input type="date" id="ffFechaPago"></div>
+          <div class="form-group"><label>Método de Pago</label><select id="ffMetodoPago" onchange="toggleSeccionChequeFlete()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">-</option><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option><option value="CHEQUE">Cheque</option><option value="MIXTO">Mixto</option></select></div>
+          <div class="form-group" id="ffSeccionEfectivo" style="display:none"><label>Efectivo ($)</label><input type="number" id="ffEfectivo" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
+          <div class="form-group" id="ffSeccionTransferencia" style="display:none"><label>Transferencia ($)</label><input type="number" id="ffTransferencia" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
+          <div class="form-group" id="ffSeccionChequesDisponibles" style="grid-column:span 2;display:none">
+            <label>Pagar con cheques</label>
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <button type="button" id="btnFuenteRecibidosFlete" class="btn" style="padding:5px 12px;font-size:12px" onclick="toggleFuenteChequesFletes('recibidos')">Recibidos en cartera</button>
+              <button type="button" id="btnFuenteEmitidosFlete" class="btn" style="padding:5px 12px;font-size:12px;background:#e9ecef;color:#333" onclick="toggleFuenteChequesFletes('emitidos')">Emitidos (propios)</button>
+            </div>
+            <input type="text" id="ffChequesFiltro" placeholder="Buscar por banco o N° cheque..." style="width:100%;padding:7px 10px;margin-bottom:8px;border:1px solid #ddd;border-radius:4px;font-size:13px" onkeyup="renderizarChequesFlete()">
+            <div id="ffChequesResumen" style="font-size:12px;color:#666;margin-bottom:6px"></div>
+            <div id="ffChequesLista" style="max-height:180px;overflow-y:auto;border:1px solid #ddd;border-radius:5px;padding:6px 10px">
+              <div style="color:#999;font-size:12px;padding:8px 0">Cargando cheques disponibles...</div>
+            </div>
+          </div>
           <div class="form-group" style="grid-column:span 2"><label>Observaciones</label><input type="text" id="ffObs"></div>
         </div>
         <div class="modal-error" id="modalErrorFlete"></div>
@@ -2510,10 +2510,13 @@ function abrirModalFlete(idx) {
   document.getElementById('ffIva').value=f?parseFloat(f.iva)||0:0;
   document.getElementById('ffTotal').value=f?parseFloat(f.total)||0:'';
   document.getElementById('ffEstado').value=f?f.estado||'PENDIENTE':'PENDIENTE';
-  document.getElementById('ffCheque').value=f?f.cheque_numero||'':'';
-  document.getElementById('ffFechaPago').value=f?f.fecha_pago||'':'';
+  document.getElementById('ffMetodoPago').value=f?f.metodo_pago||'':'';
+  document.getElementById('ffEfectivo').value=f?parseFloat(f.efectivo)||0:0;
+  document.getElementById('ffTransferencia').value=f?parseFloat(f.transferencia)||0:0;
   document.getElementById('ffObs').value=f?f.observaciones||'':'';
   document.getElementById('modalErrorFlete').style.display='none';
+  chequesFleteSeleccionados={};chequesFleteEmSeleccionados={};fuenteChequesFletes='recibidos';
+  toggleSeccionChequeFlete();
   document.getElementById('overlayFlete').classList.add('activo');
 }
 function cerrarModalFlete(){document.getElementById('overlayFlete').classList.remove('activo');idFleteEdicion=null;}
@@ -2532,8 +2535,14 @@ function guardarFlete() {
   var iva=parseFloat(document.getElementById('ffIva').value)||0;
   var provId=document.getElementById('ffProveedorId').value.trim()?parseInt(document.getElementById('ffProveedorId').value):null;
   var choferId=document.getElementById('ffChoferId').value.trim()?parseInt(document.getElementById('ffChoferId').value):null;
-  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:imp+iva,estado:document.getElementById('ffEstado').value,cheque_numero:document.getElementById('ffCheque').value.trim(),fecha_pago:document.getElementById('ffFechaPago').value||null,observaciones:document.getElementById('ffObs').value.trim()};
-  gsRun('guardarFlete',[datos,idFleteEdicion],function(){cerrarModalFlete();mensaje('msgFletes',idFleteEdicion?'Flete actualizado.':'Flete agregado.','ok');mostrarFletes();},function(e){err.textContent='Error: '+e.message;err.style.display='block';});
+  var metodoPago=document.getElementById('ffMetodoPago').value||'';
+  var efectivo=metodoPago==='MIXTO'?parseFloat(document.getElementById('ffEfectivo').value)||0:0;
+  var transferencia=metodoPago==='MIXTO'?parseFloat(document.getElementById('ffTransferencia').value)||0:0;
+  var chequeIds=Object.keys(chequesFleteSeleccionados).map(function(k){return parseInt(k,10);});
+  var chequeEmitidoIds=Object.keys(chequesFleteEmSeleccionados).map(function(k){return parseInt(k,10);});
+  var numerosCheques=[].concat(Object.values(chequesFleteSeleccionados).map(function(c){return c.numero;}),Object.values(chequesFleteEmSeleccionados).map(function(c){return c.numero_cheque;})).filter(function(n){return n;}).join(', ');
+  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:imp+iva,estado:document.getElementById('ffEstado').value,cheque_numero:numerosCheques||null,fecha_pago:fecha,observaciones:document.getElementById('ffObs').value.trim(),metodo_pago:metodoPago,efectivo:efectivo,transferencia:transferencia};
+  gsRun('guardarFlete',[datos,idFleteEdicion,chequeIds,chequeEmitidoIds],function(){cerrarModalFlete();mensaje('msgFletes',idFleteEdicion?'Flete actualizado.':'Flete agregado.','ok');mostrarFletes();},function(e){err.textContent='Error: '+e.message;err.style.display='block';});
 }
 document.getElementById('overlayFlete').addEventListener('click',function(e){if(e.target===this)cerrarModalFlete();});
 
@@ -3467,6 +3476,9 @@ var gastosFiltroInicializado=false, todosRubros=[];
 var chequesGastoDisponibles=[], chequesGastoSeleccionados={}, chequesGastoOriginalIds=[];
 var chequesGastoEmDisponibles=[], chequesGastoEmSeleccionados={}, chequesGastoEmOriginalIds=[];
 var fuenteChequesGasto='recibidos';
+var chequesFleteDisponibles=[], chequesFleteSeleccionados={}, chequesFleteOriginalIds=[];
+var chequesFleteEmDisponibles=[], chequesFleteEmSeleccionados={}, chequesFleteEmOriginalIds=[];
+var fuenteChequesFletes='recibidos';
 
 function mostrarGastos() {
   gsRun('obtenerProveedores',[],function(proveedores){
@@ -3819,6 +3831,157 @@ function cargarChequesDisponiblesGasto(gastoIdParam) {
   });
 }
 var GRID_CHEQUES_GASTO = '26px 1fr 110px 80px 110px';
+var GRID_CHEQUES_FLETE = '26px 1fr 110px 80px 110px';
+
+function toggleSeccionChequeFlete() {
+  var metodo = document.getElementById('ffMetodoPago').value;
+  var esCheque = metodo === 'CHEQUE' || metodo === 'MIXTO';
+  var esMixto = metodo === 'MIXTO';
+  document.getElementById('ffSeccionChequesDisponibles').style.display = esCheque ? 'block' : 'none';
+  document.getElementById('ffSeccionEfectivo').style.display = esMixto ? 'block' : 'none';
+  document.getElementById('ffSeccionTransferencia').style.display = esMixto ? 'block' : 'none';
+  if (esCheque) {
+    cargarChequesDisponiblesFlete();
+  } else {
+    chequesFleteSeleccionados   = {};
+    chequesFleteEmSeleccionados = {};
+  }
+  if (!esMixto) {
+    document.getElementById('ffEfectivo').value = '';
+    document.getElementById('ffTransferencia').value = '';
+  }
+}
+
+function actualizarMontoMixtoFlete() {
+  // Función placeholder - el usuario podrá ver cuánto falta cubrir con cheques
+  var total = parseFloat(document.getElementById('ffTotal').value) || 0;
+  var efectivo = parseFloat(document.getElementById('ffEfectivo').value) || 0;
+  var transferencia = parseFloat(document.getElementById('ffTransferencia').value) || 0;
+  var falta = total - efectivo - transferencia;
+  var resumen = document.getElementById('ffChequesResumen');
+  if (resumen && falta > 0) {
+    resumen.textContent = 'Falta cubrir con cheques: $' + falta.toFixed(2);
+  }
+}
+
+function cargarChequesDisponiblesFlete() {
+  var fleteId = idFleteEdicion || null;
+  document.getElementById('ffChequesLista').innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">Cargando cheques disponibles...</div>';
+  gsRun('obtenerChequesDisponiblesParaGasto', [fleteId], function(res) {
+    if (!res || typeof res !== 'object') {
+      document.getElementById('ffChequesLista').innerHTML = '<div style="color:#dc3545;font-size:12px">Error: respuesta inválida del servidor</div>';
+      return;
+    }
+    chequesFleteDisponibles = res.disponibles || [];
+    chequesFleteOriginalIds = res.yaAsignadosIds || [];
+    chequesFleteSeleccionados = {};
+    chequesFleteDisponibles.forEach(function(c) { if (chequesFleteOriginalIds.indexOf(c.id) !== -1) chequesFleteSeleccionados[c.id] = c; });
+
+    chequesFleteEmDisponibles = res.disponiblesEm || [];
+    chequesFleteEmOriginalIds = res.yaAsignadosEmIds || [];
+    chequesFleteEmSeleccionados = {};
+    chequesFleteEmDisponibles.forEach(function(c) { if (chequesFleteEmOriginalIds.indexOf(c.id) !== -1) chequesFleteEmSeleccionados[c.id] = c; });
+
+    actualizarBotonesFuenteChequesFletes();
+    renderizarChequesFlete();
+  }, function(err) {
+    console.error('Error cargando cheques para flete:', err);
+    document.getElementById('ffChequesLista').innerHTML = '<div style="color:#dc3545;font-size:12px">Error al cargar cheques: ' + (err.message || err) + '</div>';
+  });
+}
+
+function toggleFuenteChequesFletes(fuente) {
+  fuenteChequesFletes = fuente;
+  actualizarBotonesFuenteChequesFletes();
+  renderizarChequesFlete();
+}
+
+function actualizarBotonesFuenteChequesFletes() {
+  var activo   = 'padding:5px 12px;font-size:12px;background:#667eea;color:white';
+  var inactivo = 'padding:5px 12px;font-size:12px;background:#e9ecef;color:#333';
+  document.getElementById('btnFuenteRecibidosFlete').style.cssText = fuenteChequesFletes === 'recibidos' ? activo : inactivo;
+  document.getElementById('btnFuenteEmitidosFlete').style.cssText  = fuenteChequesFletes === 'emitidos'  ? activo : inactivo;
+}
+
+function renderizarChequesFlete() {
+  var cont = document.getElementById('ffChequesLista');
+  var filtro = (document.getElementById('ffChequesFiltro') || {}).value || '';
+  var filtroLower = filtro.toLowerCase();
+
+  if (fuenteChequesFletes === 'emitidos') {
+    if (!chequesFleteEmDisponibles.length) {
+      cont.innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">No hay cheques emitidos disponibles.</div>';
+    } else {
+      var chequesFiltrados = chequesFleteEmDisponibles.filter(function(c) {
+        return !filtro || (c.banco || '').toLowerCase().includes(filtroLower) || (c.numero_cheque || '').includes(filtro);
+      });
+      var chequesOrdenados = chequesFiltrados.sort(function(a, b) {
+        var aSelec = chequesFleteEmSeleccionados[a.id] ? 1 : 0;
+        var bSelec = chequesFleteEmSeleccionados[b.id] ? 1 : 0;
+        return bSelec - aSelec;
+      });
+      var headerEm = '<div style="display:grid;grid-template-columns:' + GRID_CHEQUES_FLETE + ';gap:8px;padding:2px 0 6px;font-size:10px;color:#999;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ddd">' +
+        '<span></span><span>Banco</span><span>Cheque/Débito</span><span>Fecha Pago</span><span style="text-align:right">Importe</span></div>';
+      var filasEm = chequesOrdenados.map(function(c) {
+        var checked = chequesFleteEmSeleccionados[c.id] ? 'checked' : '';
+        return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_FLETE + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer;background:' + (chequesFleteEmSeleccionados[c.id] ? '#f0f8ff' : '') + '">' +
+          '<input type="checkbox" ' + checked + ' onchange="toggleChequeEmFleteSeleccion(' + c.id + ',this.checked)">' +
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.banco || '-') + '</span>' +
+          '<span style="font-family:monospace;font-size:12px">' + esc(c.numero_cheque || '-') + '</span>' +
+          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_pago) + '</span>' +
+          '<span style="font-weight:600;text-align:right">' + pesos(c.importe_cheque) + '</span>' +
+        '</label>';
+      }).join('');
+      cont.innerHTML = headerEm + filasEm;
+    }
+  } else {
+    if (!chequesFleteDisponibles.length) {
+      cont.innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">No hay cheques recibidos disponibles.</div>';
+    } else {
+      var chequesFiltrados = chequesFleteDisponibles.filter(function(c) {
+        return !filtro || (c.banco || '').toLowerCase().includes(filtroLower) || (c.numero || '').includes(filtro);
+      });
+      var chequesOrdenados = chequesFiltrados.sort(function(a, b) {
+        var aSelec = chequesFleteSeleccionados[a.id] ? 1 : 0;
+        var bSelec = chequesFleteSeleccionados[b.id] ? 1 : 0;
+        return bSelec - aSelec;
+      });
+      var header = '<div style="display:grid;grid-template-columns:' + GRID_CHEQUES_FLETE + ';gap:8px;padding:2px 0 6px;font-size:10px;color:#999;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ddd">' +
+        '<span></span><span>Banco</span><span>N° Cheque</span><span>Vto.</span><span style="text-align:right">Importe</span></div>';
+      var filas = chequesOrdenados.map(function(c) {
+        var checked = chequesFleteSeleccionados[c.id] ? 'checked' : '';
+        return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_FLETE + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer;background:' + (chequesFleteSeleccionados[c.id] ? '#f0f8ff' : '') + '">' +
+          '<input type="checkbox" ' + checked + ' onchange="toggleChequeFleteSeleccion(' + c.id + ',this.checked)">' +
+          '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.banco || '-') + '</span>' +
+          '<span style="font-family:monospace;font-size:12px">' + esc(c.numero || '-') + '</span>' +
+          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_vencimiento) + '</span>' +
+          '<span style="font-weight:600;text-align:right">' + pesos(c.importe) + '</span>' +
+        '</label>';
+      }).join('');
+      cont.innerHTML = header + filas;
+    }
+  }
+}
+
+function toggleChequeFleteSeleccion(chequeId, checked) {
+  if (checked) {
+    var cheque = chequesFleteDisponibles.find(function(c) { return c.id === chequeId; });
+    if (cheque) chequesFleteSeleccionados[chequeId] = cheque;
+  } else {
+    delete chequesFleteSeleccionados[chequeId];
+  }
+  renderizarChequesFlete();
+}
+
+function toggleChequeEmFleteSeleccion(chequeId, checked) {
+  if (checked) {
+    var cheque = chequesFleteEmDisponibles.find(function(c) { return c.id === chequeId; });
+    if (cheque) chequesFleteEmSeleccionados[chequeId] = cheque;
+  } else {
+    delete chequesFleteEmSeleccionados[chequeId];
+  }
+  renderizarChequesFlete();
+}
 
 function toggleFuenteChequesGasto(fuente) {
   fuenteChequesGasto = fuente;
