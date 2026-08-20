@@ -285,10 +285,16 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
       fleteId = (tempArray && tempArray[0] && tempArray[0].id) ? tempArray[0].id : null;
       tempArray = null;
     } catch(e) {
-      fleteId = null;
+      Logger.log('[guardarFlete] Error creando flete: ' + e.message);
+      return { ok: false, error: 'Error al guardar flete: ' + e.message };
     }
   } else {
-    supabaseQuery('fletes', 'PATCH', datos, { id: id });
+    try {
+      supabaseQuery('fletes', 'PATCH', datos, { id: id });
+    } catch(e) {
+      Logger.log('[guardarFlete] Error actualizando flete: ' + e.message);
+      return { ok: false, error: 'Error al actualizar flete: ' + e.message };
+    }
   }
 
   if (!id && !fleteId) {
@@ -296,32 +302,60 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
   }
 
   invalidarCacheTabla('fletes', QUERY_FLETES);
+  Logger.log('[guardarFlete] Flete guardado: ' + fleteId);
 
-  // Convertir cheque IDs
+  // Convertir y validar cheque IDs
   chequeIds = (chequeIds || []).map(function(x) { return parseInt(x, 10); });
   chequeEmitidoIds = (chequeEmitidoIds || []).map(function(x) { return parseInt(x, 10); });
 
+  // Validar que no haya IDs duplicados entre tablas (protección extra)
+  var chequeIdsSet = new Set(chequeIds);
+  var chequeEmitidoIdsSet = new Set(chequeEmitidoIds);
+  chequeIdsSet.forEach(function(id) {
+    if (chequeEmitidoIdsSet.has(id)) {
+      Logger.log('[guardarFlete] ADVERTENCIA: ID ' + id + ' aparece en ambas tablas');
+    }
+  });
+
   var chequesActualizados = 0;
   var chequesDesvinculados = 0;
+  var erroresCheques = [];
 
   // Desvincular cheques actuales (si es edición)
   if (id) {
-    var tempExistentes = supabaseQuery('cheques', 'GET', null, null, 'estado=eq.ENTREGADO&select=id&limit=1000') || [];
-    tempExistentes = tempExistentes.filter(function(c) { return c.fecha_salida === datos.fecha_flete; });
-    for (var j = 0; j < tempExistentes.length; j++) {
-      supabaseQuery('cheques', 'PATCH', { estado: 'DISPONIBLE', fecha_salida: null }, { id: tempExistentes[j].id });
-      chequesDesvinculados++;
+    try {
+      var tempExistentes = supabaseQuery('cheques', 'GET', null, null, 'estado=eq.ENTREGADO&select=id&limit=1000') || [];
+      tempExistentes = tempExistentes.filter(function(c) { return c.fecha_salida === datos.fecha_flete; });
+      for (var j = 0; j < tempExistentes.length; j++) {
+        try {
+          supabaseQuery('cheques', 'PATCH', { estado: 'DISPONIBLE', fecha_salida: null }, { id: tempExistentes[j].id });
+          chequesDesvinculados++;
+        } catch(e) {
+          erroresCheques.push('Error desvinculando cheque ' + tempExistentes[j].id + ': ' + e.message);
+        }
+      }
+      tempExistentes = null;
+    } catch(e) {
+      Logger.log('[guardarFlete] Error consultando cheques existentes: ' + e.message);
     }
-    tempExistentes = null;
   }
 
-  // Vincular cheques nuevos
+  // Vincular cheques nuevos (recibidos)
   for (var i = 0; i < chequeIds.length; i++) {
-    supabaseQuery('cheques', 'PATCH', {
-      estado: 'ENTREGADO',
-      fecha_salida: datos.fecha_flete
-    }, { id: chequeIds[i] });
-    chequesActualizados++;
+    try {
+      var chequeData = supabaseQuery('cheques', 'GET', null, { id: chequeIds[i] }, 'limit=1');
+      if (!chequeData || !chequeData[0]) {
+        erroresCheques.push('Cheque recibido ' + chequeIds[i] + ' no encontrado');
+        continue;
+      }
+      supabaseQuery('cheques', 'PATCH', {
+        estado: 'ENTREGADO',
+        fecha_salida: datos.fecha_flete
+      }, { id: chequeIds[i] });
+      chequesActualizados++;
+    } catch(e) {
+      erroresCheques.push('Error vinculando cheque recibido ' + chequeIds[i] + ': ' + e.message);
+    }
   }
 
   if (chequesActualizados > 0 || chequesDesvinculados > 0) {
@@ -330,21 +364,44 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
 
   // Cheques emitidos
   if (id) {
-    var existentesEm = supabaseQuery('cheques_emitidos', 'GET', null, { estado: 'ENTREGADO' }, 'select=id,created_at&limit=1000') || [];
-    existentesEm = existentesEm.filter(function(c) { return c.created_at && c.created_at.substr(0,10) === datos.fecha_flete; });
-    existentesEm.forEach(function(c) {
-      supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'PENDIENTE' }, { id: c.id });
-    });
+    try {
+      var existentesEm = supabaseQuery('cheques_emitidos', 'GET', null, { estado: 'ENTREGADO' }, 'select=id,created_at&limit=1000') || [];
+      existentesEm = existentesEm.filter(function(c) { return c.created_at && c.created_at.substr(0,10) === datos.fecha_flete; });
+      existentesEm.forEach(function(c) {
+        try {
+          supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'PENDIENTE' }, { id: c.id });
+        } catch(e) {
+          erroresCheques.push('Error desvinculando cheque emitido ' + c.id + ': ' + e.message);
+        }
+      });
+    } catch(e) {
+      Logger.log('[guardarFlete] Error consultando cheques emitidos existentes: ' + e.message);
+    }
   }
 
   chequeEmitidoIds.forEach(function(cid) {
-    supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'ENTREGADO' }, { id: cid });
+    try {
+      var chequeEmData = supabaseQuery('cheques_emitidos', 'GET', null, { id: cid }, 'limit=1');
+      if (!chequeEmData || !chequeEmData[0]) {
+        erroresCheques.push('Cheque emitido ' + cid + ' no encontrado');
+        return;
+      }
+      supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'ENTREGADO' }, { id: cid });
+    } catch(e) {
+      erroresCheques.push('Error vinculando cheque emitido ' + cid + ': ' + e.message);
+    }
   });
 
   if (chequeEmitidoIds.length > 0) {
     invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
   }
 
+  if (erroresCheques.length > 0) {
+    Logger.log('[guardarFlete] Errores procesando cheques: ' + erroresCheques.join(' | '));
+    return { ok: true, warning: 'Flete guardado pero con errores en cheques: ' + erroresCheques.join('; ') };
+  }
+
+  Logger.log('[guardarFlete] Completado - Actualizados: ' + chequesActualizados + ', Desvinculados: ' + chequesDesvinculados);
   return { ok: true };
 }
 

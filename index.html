@@ -2533,6 +2533,7 @@ function guardarFlete() {
   if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
   if(!imp){err.textContent='El importe es obligatorio.';err.style.display='block';return;}
   var iva=parseFloat(document.getElementById('ffIva').value)||0;
+  var total=imp+iva;
   var provId=document.getElementById('ffProveedorId').value.trim()?parseInt(document.getElementById('ffProveedorId').value):null;
   var choferId=document.getElementById('ffChoferId').value.trim()?parseInt(document.getElementById('ffChoferId').value):null;
   var metodoPago=document.getElementById('ffMetodoPago').value||'';
@@ -2540,8 +2541,14 @@ function guardarFlete() {
   var transferencia=metodoPago==='MIXTO'?parseFloat(document.getElementById('ffTransferencia').value)||0:0;
   var chequeIds=Object.keys(chequesFleteSeleccionados).map(function(k){return parseInt(k,10);});
   var chequeEmitidoIds=Object.keys(chequesFleteEmSeleccionados).map(function(k){return parseInt(k,10);});
+  var totalCheques=Object.values(chequesFleteSeleccionados).reduce(function(s,c){return s+(c.importe||0);},0)+Object.values(chequesFleteEmSeleccionados).reduce(function(s,c){return s+(c.importe_cheque||0);},0);
   var numerosCheques=[].concat(Object.values(chequesFleteSeleccionados).map(function(c){return c.numero;}),Object.values(chequesFleteEmSeleccionados).map(function(c){return c.numero_cheque;})).filter(function(n){return n;}).join(', ');
-  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:imp+iva,estado:document.getElementById('ffEstado').value,cheque_numero:numerosCheques||null,fecha_pago:fecha,observaciones:document.getElementById('ffObs').value.trim(),metodo_pago:metodoPago,efectivo:efectivo,transferencia:transferencia};
+
+  if(metodoPago==='CHEQUE'&&chequeIds.length===0&&chequeEmitidoIds.length===0){err.textContent='Debe seleccionar al menos un cheque cuando el método es CHEQUE.';err.style.display='block';return;}
+
+  if(metodoPago==='MIXTO'){var sumaParcial=efectivo+transferencia+totalCheques;var diferencia=Math.abs(sumaParcial-total);if(diferencia>0.01){err.textContent='La suma de efectivo ($'+efectivo.toFixed(2)+') + transferencia ($'+transferencia.toFixed(2)+') + cheques ($'+totalCheques.toFixed(2)+') = $'+sumaParcial.toFixed(2)+' no coincide con el total ($'+total.toFixed(2)+').';err.style.display='block';return;}}
+
+  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:total,estado:document.getElementById('ffEstado').value,cheque_numero:numerosCheques||null,fecha_pago:fecha,observaciones:document.getElementById('ffObs').value.trim(),metodo_pago:metodoPago,efectivo:efectivo,transferencia:transferencia};
   gsRun('guardarFlete',[datos,idFleteEdicion,chequeIds,chequeEmitidoIds],function(){cerrarModalFlete();mensaje('msgFletes',idFleteEdicion?'Flete actualizado.':'Flete agregado.','ok');mostrarFletes();},function(e){err.textContent='Error: '+e.message;err.style.display='block';});
 }
 document.getElementById('overlayFlete').addEventListener('click',function(e){if(e.target===this)cerrarModalFlete();});
@@ -3907,6 +3914,10 @@ function renderizarChequesFlete() {
   var cont = document.getElementById('ffChequesLista');
   var filtro = (document.getElementById('ffChequesFiltro') || {}).value || '';
   var filtroLower = filtro.toLowerCase();
+  var totalCheques=Object.values(chequesFleteSeleccionados).reduce(function(s,c){return s+(c.importe||0);},0)+Object.values(chequesFleteEmSeleccionados).reduce(function(s,c){return s+(c.importe_cheque||0);},0);
+  var countCheques=Object.keys(chequesFleteSeleccionados).length+Object.keys(chequesFleteEmSeleccionados).length;
+  var resumenDiv=document.getElementById('ffChequesResumen');
+  if(resumenDiv){resumenDiv.textContent=countCheques>0?'Seleccionados: '+countCheques+' cheque'+(countCheques!==1?'s':'')+' - Total: '+pesos(totalCheques):'';}
 
   if (fuenteChequesFletes === 'emitidos') {
     if (!chequesFleteEmDisponibles.length) {
