@@ -395,6 +395,22 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
     invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
   }
 
+  // Guardar números de cheque en el flete
+  var todosChequesIds = chequeIds.concat(chequeEmitidoIds);
+  if (todosChequesIds.length > 0) {
+    try {
+      var chequesRecibidos = chequeIds.length > 0 ? (supabaseQuery('cheques', 'GET', null, null, 'id=in.(' + chequeIds.join(',') + ')') || []) : [];
+      var chequesEmitidos = chequeEmitidoIds.length > 0 ? (supabaseQuery('cheques_emitidos', 'GET', null, null, 'id=in.(' + chequeEmitidoIds.join(',') + ')') || []) : [];
+      var todos = chequesRecibidos.concat(chequesEmitidos);
+      var numerosCheques = todos.map(function(c) { return c.numero || c.numero_cheque; }).join(', ');
+      if (numerosCheques) {
+        supabaseQuery('fletes', 'PATCH', { cheque_numero: numerosCheques }, { id: fleteId });
+      }
+    } catch(e) {
+      Logger.log('[guardarFlete] Error guardando números de cheque: ' + e.message);
+    }
+  }
+
   if (erroresCheques.length > 0) {
     Logger.log('[guardarFlete] Errores procesando cheques: ' + erroresCheques.join(' | '));
     return { ok: true, warning: 'Flete guardado pero con errores en cheques: ' + erroresCheques.join('; ') };
@@ -1321,12 +1337,14 @@ function obtenerChequesDelFlete(fleteId) {
   var todosCheques = supabaseQueryAll('cheques', QUERY_CHEQUES) || [];
   var todosChequesEm = supabaseQueryAll('cheques_emitidos', QUERY_CHEQUES_EM) || [];
 
+  var fleteIdStr = String(fleteId);
+
   var chequesRecibidos = todosCheques.filter(function(c) {
-    return c.fletes_id === fleteId || c.fletes_id == fleteId;
+    return String(c.fletes_id) === fleteIdStr;
   });
 
   var chequesEmitidos = todosChequesEm.filter(function(c) {
-    return c.fletes_id === fleteId || c.fletes_id == fleteId;
+    return String(c.fletes_id) === fleteIdStr;
   });
 
   return {
