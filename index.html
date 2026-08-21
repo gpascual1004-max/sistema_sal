@@ -5985,31 +5985,29 @@ function guardarConfiguracionGastosER(){
 
 function cargarEstadoResultado(){
   cargarConfiguracionGastosER();
-  document.getElementById('msgEstadoResultado').innerHTML='<div style="padding:15px;background:#e3f2fd;color:#1976d2;border-radius:6px;margin-bottom:15px">Cargando datos...</div>';
   Promise.all([
-    new Promise(r => gsRun('obtenerVentas',[],d=>{todosVentas=d||[];r();},e=>{console.error('Error obtenerVentas:',e);r();})),
-    new Promise(r => gsRun('obtenerPagos',[],d=>{todosPagos=d||[];r();},e=>{console.error('Error obtenerPagos:',e);r();})),
-    new Promise(r => gsRun('obtenerFletes',[],d=>{cfTodosFletes=d||[];r();},e=>{console.error('Error obtenerFletes:',e);r();})),
-    new Promise(r => gsRun('obtenerGastos',[],d=>{cfTodosGastos=d||[];r();},e=>{console.error('Error obtenerGastos:',e);r();}))
+    new Promise(r => gsRun('obtenerVentas',[],d=>{todosVentas=d||[];r();},e=>r())),
+    new Promise(r => gsRun('obtenerPagos',[],d=>{todosPagos=d||[];r();},e=>r())),
+    new Promise(r => gsRun('obtenerFletes',[],d=>{cfTodosFletes=d||[];r();},e=>r())),
+    new Promise(r => gsRun('obtenerGastos',[],d=>{cfTodosGastos=d||[];r();},e=>r()))
   ]).then(function(){
-    document.getElementById('msgEstadoResultado').innerHTML='';
     var hoy=new Date();var fechas=[];
     for(var i=12;i>=0;i--){
       var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
       fechas.push({fecha:d.toISOString().substr(0,7),label:NOMBRES_MESES[d.getMonth()]+' '+d.getFullYear()});
     }
-    console.log('Fechas generadas:',fechas);
-    console.log('Datos cargados - Ventas:',todosVentas.length,'Pagos:',todosPagos.length,'Fletes:',cfTodosFletes.length,'Gastos:',cfTodosGastos.length);
     renderizarEstadoResultado(fechas);
   });
 }
 
 function renderizarEstadoResultado(fechas){
-  var tabla=document.getElementById('tablaEstadoResultado');
   var cabecera=document.getElementById('cabeceraER');
   var cuerpo=document.getElementById('cuerpoER');
 
-  cabecera.innerHTML='<tr><th style="text-align:left;padding:12px;font-weight:700">Concepto</th>'+fechas.map(f=>'<th style="text-align:right;padding:12px;font-weight:700">'+f.label+'</th>').join('')+'</tr>';
+  var html='<tr><th style="text-align:left;padding:12px;font-weight:700">Concepto</th>';
+  fechas.forEach(function(f){html+='<th style="text-align:right;padding:12px;font-weight:700">'+f.label+'</th>';});
+  html+='</tr>';
+  cabecera.innerHTML=html;
 
   var filas=[
     {tipo:'ingreso',label:'Ingresos'},
@@ -6023,20 +6021,11 @@ function renderizarEstadoResultado(fechas){
     {tipo:'mensual',label:'Resultado Mensual'}
   ];
 
-  cuerpo.innerHTML='';
+  var cuerpoHtml='';
   filas.forEach(function(fila){
-    var tr=cuerpo.insertRow();
-    tr.style.borderBottom='1px solid #ddd';
-
-    var td=tr.insertCell(0);
-    td.textContent=fila.label;
-    td.style.cssText='padding:10px 12px;font-weight:600;background:#f8f9fa';
-
-    fechas.forEach(function(f,idx){
-      var td=tr.insertCell(idx+1);
-      td.style.cssText='text-align:right;padding:10px 12px';
+    cuerpoHtml+='<tr style="border-bottom:1px solid #ddd"><td style="padding:10px 12px;font-weight:600;background:#f8f9fa">'+fila.label+'</td>';
+    fechas.forEach(function(f){
       var valor=0;
-
       if(fila.tipo==='ingreso'){
         valor=calcularIngresosMes(f.fecha);
       }else if(fila.tipo==='carta_porte'){
@@ -6044,28 +6033,30 @@ function renderizarEstadoResultado(fechas){
       }else if(fila.tipo==='egreso'&&fila.categoria){
         valor=calcularEgresoMes(f.fecha,fila.categoria);
       }else if(fila.tipo==='operativo'){
-        var gastosFijos=calcularEgresoMes(f.fecha,'gastos_fijos');
-        var gastosVariables=calcularEgresoMes(f.fecha,'gastos_variables');
-        var gastosBsAs=calcularEgresoMes(f.fecha,'gastos_bsas');
-        var gastosBancarios=calcularEgresoMes(f.fecha,'gastos_bancarios');
-        var otrosGastos=calcularEgresoMes(f.fecha,'otros_gastos');
-        valor=gastosFijos+gastosVariables+gastosBsAs+gastosBancarios+otrosGastos;
+        var g1=calcularEgresoMes(f.fecha,'gastos_fijos');
+        var g2=calcularEgresoMes(f.fecha,'gastos_variables');
+        var g3=calcularEgresoMes(f.fecha,'gastos_bsas');
+        var g4=calcularEgresoMes(f.fecha,'gastos_bancarios');
+        var g5=calcularEgresoMes(f.fecha,'otros_gastos');
+        valor=g1+g2+g3+g4+g5;
       }else if(fila.tipo==='mensual'){
-        var ingresos=calcularIngresosMes(f.fecha);
-        var cartaPorte=calcularCartaPorteMes(f.fecha);
-        var gastosFijos=calcularEgresoMes(f.fecha,'gastos_fijos');
-        var gastosVariables=calcularEgresoMes(f.fecha,'gastos_variables');
-        var gastosBsAs=calcularEgresoMes(f.fecha,'gastos_bsas');
-        var gastosBancarios=calcularEgresoMes(f.fecha,'gastos_bancarios');
-        var otrosGastos=calcularEgresoMes(f.fecha,'otros_gastos');
-        var resultadoOperativo=gastosFijos+gastosVariables+gastosBsAs+gastosBancarios+otrosGastos;
-        valor=ingresos+cartaPorte-resultadoOperativo;
+        var ing=calcularIngresosMes(f.fecha);
+        var cp=calcularCartaPorteMes(f.fecha);
+        var g1=calcularEgresoMes(f.fecha,'gastos_fijos');
+        var g2=calcularEgresoMes(f.fecha,'gastos_variables');
+        var g3=calcularEgresoMes(f.fecha,'gastos_bsas');
+        var g4=calcularEgresoMes(f.fecha,'gastos_bancarios');
+        var g5=calcularEgresoMes(f.fecha,'otros_gastos');
+        var resultOp=g1+g2+g3+g4+g5;
+        valor=ing+cp-resultOp;
       }
-
-      td.textContent=valor!==0?(valor<0?'-':'+')+pesos(Math.abs(valor)):'—';
-      td.style.color=valor>0?'#28a745':(valor<0?'#dc3545':'#999');
+      var color=valor>0?'#28a745':(valor<0?'#dc3545':'#999');
+      var txt=valor!==0?(valor<0?'-':'+')+pesos(Math.abs(valor)):'—';
+      cuerpoHtml+='<td style="text-align:right;padding:10px 12px;color:'+color+'">'+txt+'</td>';
     });
+    cuerpoHtml+='</tr>';
   });
+  cuerpo.innerHTML=cuerpoHtml;
 }
 
 function calcularIngresosMes(mes){
