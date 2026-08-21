@@ -865,6 +865,8 @@ function gsRun(fnName, params, onSuccess, onError) {
           <div class="form-group"><label>Importe ($)</label><input type="number" id="ffImporte" step="0.01" oninput="calcularTotalFlete()"></div>
           <div class="form-group"><label>IVA ($)</label><input type="number" id="ffIva" step="0.01" oninput="calcularTotalFlete()"></div>
           <div class="form-group"><label>Total ($)</label><input type="number" id="ffTotal" readonly style="background:#f8f9fa;color:#555"></div>
+          <div class="form-group"><label>Fecha de Pago</label><input type="date" id="ffFechaPago"></div>
+          <div class="form-group"><label>Cheque N°</label><input type="text" id="ffChequeNumero"></div>
           <div class="form-group"><label>Método de Pago</label><select id="ffMetodoPago" onchange="toggleSeccionChequeFlete()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">-</option><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option><option value="CHEQUE">Cheque</option><option value="MIXTO">Mixto</option></select></div>
           <div class="form-group" id="ffSeccionEfectivo" style="display:none"><label>Efectivo ($)</label><input type="number" id="ffEfectivo" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
           <div class="form-group" id="ffSeccionTransferencia" style="display:none"><label>Transferencia ($)</label><input type="number" id="ffTransferencia" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
@@ -2596,7 +2598,9 @@ function guardarFlete() {
 
   var provId=document.getElementById('ffProveedorId').value.trim()?parseInt(document.getElementById('ffProveedorId').value):null;
   var choferId=document.getElementById('ffChoferId').value.trim()?parseInt(document.getElementById('ffChoferId').value):null;
-  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:total,estado:document.getElementById('ffEstado').value,cheque_numero:numerosCheques||null,fecha_pago:fecha,observaciones:document.getElementById('ffObs').value.trim()};
+  var fechaPago=document.getElementById('ffFechaPago').value||fecha;
+  var chequeNumero=document.getElementById('ffChequeNumero').value.trim()||numerosCheques||null;
+  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:total,estado:document.getElementById('ffEstado').value,cheque_numero:chequeNumero,fecha_pago:fechaPago,observaciones:document.getElementById('ffObs').value.trim()};
   gsRun('guardarFlete',[datos,idFleteEdicion,chequeIds,chequeEmitidoIds],function(){cerrarModalFlete();mensaje('msgFletes',idFleteEdicion?'Flete actualizado.':'Flete agregado.','ok');mostrarFletes();},function(e){err.textContent='Error: '+e.message;err.style.display='block';});
 }
 document.getElementById('overlayFlete').addEventListener('click',function(e){if(e.target===this)cerrarModalFlete();});
