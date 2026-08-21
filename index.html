@@ -2545,35 +2545,26 @@ function seleccionarChoferFlete(choferId){
     document.getElementById('ffChoferSugerencias').style.display='none';
   }
 }
-function cargarChequesDelFlete(fleteId,fechaFlete){
-  chequesFleteSeleccionados={};
-  chequesFleteEmSeleccionados={};
-  var loadedCheques=null, loadedChequeEm=null;
-  function finalizarCargaCheques(){
-    if(!loadedCheques || !loadedChequeEm) return;
-    var chequesVinculados=loadedCheques.filter(function(c){return c.fletes_id===fleteId;});
-    chequesVinculados.forEach(function(c){chequesFleteSeleccionados[c.id]=c;});
-    var chequesEmVinculados=loadedChequeEm.filter(function(c){return c.fletes_id===fleteId;});
-    chequesEmVinculados.forEach(function(c){chequesFleteEmSeleccionados[c.id]=c;});
-    chequesFleteDisponibles = loadedCheques.filter(function(c) { return c.estado === 'DISPONIBLE' || c.fletes_id === fleteId; });
-    chequesFleteEmDisponibles = loadedChequeEm.filter(function(c) { return c.estado === 'PENDIENTE' || c.fletes_id === fleteId; });
-    renderizarChequesFlete();
-    toggleSeccionChequeFlete();
-    calcularTotalFlete();
-    actualizarChequeNumerosEnModal();
-  }
-  gsRun('obtenerCheques',[],function(cheques){
-    loadedCheques=cheques;
-    finalizarCargaCheques();
-  });
-  gsRun('obtenerCheqEm',[],function(chequeEm){
-    loadedChequeEm=chequeEm;
-    finalizarCargaCheques();
-  });
-}
-
 function abrirModalFlete(idx) {
-  var f=idx!==null&&idx!==undefined?todosFletes[idx]:null;idFleteEdicion=f?f.id:null;
+  var f=idx!==null&&idx!==undefined?todosFletes[idx]:null;
+  idFleteEdicion=f?f.id:null;
+  chequesFleteSeleccionados = {};
+  chequesFleteOriginalIds = [];
+  chequesFleteDisponibles = [];
+  chequesFleteEmSeleccionados = {};
+  chequesFleteEmOriginalIds = [];
+  chequesFleteEmDisponibles = [];
+  fuenteChequesFletes = 'recibidos';
+
+  // Cargar cheques del flete desde todosCheques (localmente, IGUAL QUE GASTOS)
+  if (idFleteEdicion && todosCheques) {
+    var chequesDelFlete = todosCheques.filter(function(c) { return c.fletes_id === idFleteEdicion; });
+    chequesDelFlete.forEach(function(c) {
+      chequesFleteSeleccionados[c.id] = c;
+      chequesFleteOriginalIds.push(c.id);
+    });
+  }
+
   document.getElementById('modalTituloFlete').textContent=f?'Editar Flete':'Nuevo Flete';
   document.getElementById('ffFecha').value=f?f.fecha_flete||'':new Date().toISOString().substr(0,10);
   document.getElementById('ffProveedor').value=f?f.proveedor_nombre||'':'';
@@ -2594,12 +2585,8 @@ function abrirModalFlete(idx) {
   document.getElementById('ffTransferencia').value=f?parseFloat(f.transferencia)||0:0;
   document.getElementById('ffObs').value=f?f.observaciones||'':'';
   document.getElementById('modalErrorFlete').style.display='none';
-  chequesFleteSeleccionados={};chequesFleteEmSeleccionados={};fuenteChequesFletes='recibidos';
-  if(f&&f.id){
-    cargarChequesDelFlete(f.id,f.fecha_flete);
-  }else{
-    toggleSeccionChequeFlete();
-  }
+  toggleSeccionChequeFlete();
+  cargarChequesDisponiblesFlete();
   document.getElementById('overlayFlete').classList.add('activo');
 }
 function cerrarModalFlete(){document.getElementById('overlayFlete').classList.remove('activo');idFleteEdicion=null;}
@@ -4005,12 +3992,7 @@ function toggleSeccionChequeFlete() {
     if(metodo==='CHEQUE'){
       document.getElementById('ffEstado').value='PAGADO';
     }
-    // Solo cargar cheques si es un flete nuevo (sin idFleteEdicion)
-    if (!idFleteEdicion && !chequesFleteDisponibles.length && !chequesFleteEmDisponibles.length) {
-      cargarChequesDisponiblesFlete();
-    } else if (chequesFleteDisponibles.length || chequesFleteEmDisponibles.length) {
-      renderizarChequesFlete();
-    }
+    renderizarChequesFlete();
   } else {
     chequesFleteSeleccionados   = {};
     chequesFleteEmSeleccionados = {};
@@ -4041,25 +4023,7 @@ function cargarChequesDisponiblesFlete() {
       return;
     }
     chequesFleteDisponibles = res.disponibles || [];
-    chequesFleteOriginalIds = res.yaAsignadosIds || [];
-    // No reemplazar chequesFleteSeleccionados - ya fue cargado en cargarChequesDelFlete
-    // Solo agregar los que no estén ya
-    chequesFleteOriginalIds.forEach(function(id) {
-      var cheque = chequesFleteDisponibles.find(function(c) { return c.id === id; });
-      if (cheque && !chequesFleteSeleccionados[id]) {
-        chequesFleteSeleccionados[id] = cheque;
-      }
-    });
-
     chequesFleteEmDisponibles = res.disponiblesEm || [];
-    chequesFleteEmOriginalIds = res.yaAsignadosEmIds || [];
-    // No reemplazar chequesFleteEmSeleccionados - ya fue cargado en cargarChequesDelFlete
-    chequesFleteEmOriginalIds.forEach(function(id) {
-      var cheque = chequesFleteEmDisponibles.find(function(c) { return c.id === id; });
-      if (cheque && !chequesFleteEmSeleccionados[id]) {
-        chequesFleteEmSeleccionados[id] = cheque;
-      }
-    });
 
     actualizarBotonesFuenteChequesFletes();
     renderizarChequesFlete();
