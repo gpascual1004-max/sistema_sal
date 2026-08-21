@@ -3,7 +3,7 @@
 // Backend + conexión Supabase
 // ============================================
 
-const APP_VERSION = '3.3.1';
+const APP_VERSION = '3.3.2';
 const SUPABASE_URL = 'https://mlgvalvuacdfjscelpnm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_xqJh9IwGfjKDBkYUDeuaVg_9c3EQZ0Q';
 
