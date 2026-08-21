@@ -4006,6 +4006,12 @@ function toggleSeccionChequeFlete() {
     if(metodo==='CHEQUE'){
       document.getElementById('ffEstado').value='PAGADO';
     }
+    // Cargar cheques disponibles si no están ya cargados
+    if (!chequesFleteDisponibles.length && !chequesFleteEmDisponibles.length) {
+      cargarChequesDisponiblesFlete();
+    } else {
+      renderizarChequesFlete();
+    }
   } else {
     chequesFleteSeleccionados   = {};
     chequesFleteEmSeleccionados = {};
