@@ -1318,8 +1318,17 @@ function obtenerCheques() {
 }
 
 function obtenerChequesDelFlete(fleteId) {
-  var chequesRecibidos = supabaseQuery('cheques', 'GET', null, { fletes_id: fleteId }) || [];
-  var chequesEmitidos = supabaseQuery('cheques_emitidos', 'GET', null, { fletes_id: fleteId }) || [];
+  var todosCheques = supabaseQueryAll('cheques', QUERY_CHEQUES) || [];
+  var todosChequesEm = supabaseQueryAll('cheques_emitidos', QUERY_CHEQUES_EM) || [];
+
+  var chequesRecibidos = todosCheques.filter(function(c) {
+    return c.fletes_id === fleteId || c.fletes_id == fleteId;
+  });
+
+  var chequesEmitidos = todosChequesEm.filter(function(c) {
+    return c.fletes_id === fleteId || c.fletes_id == fleteId;
+  });
+
   return {
     recibidos: chequesRecibidos,
     emitidos: chequesEmitidos
