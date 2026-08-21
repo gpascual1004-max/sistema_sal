@@ -619,7 +619,6 @@ function gsRun(fnName, params, onSuccess, onError) {
     },
     'eliminarVentaById': ([id]) => supabaseQuery('ventas', 'DELETE', null, { id }),
     'eliminarPagoById': ([id]) => supabaseQuery('pagos', 'DELETE', null, { id }),
-    'eliminarFleteById': ([id]) => supabaseQuery('fletes', 'DELETE', null, { id }),
     'eliminarGastoById': ([id]) => supabaseQuery('gastos', 'DELETE', null, { id }),
     'eliminarChequeById': ([id]) => supabaseQuery('cheques', 'DELETE', null, { id }),
     'eliminarCheqEmById': ([id]) => supabaseQuery('cheques_emitidos', 'DELETE', null, { id }),
@@ -2586,10 +2585,10 @@ function abrirModalFlete(idx) {
   document.getElementById('ffFactura').value=f?f.factura||'':'';
   document.getElementById('ffImporte').value=f?parseFloat(f.importe)||0:'';
   document.getElementById('ffIva').value=f?parseFloat(f.iva)||0:0;
-  document.getElementById('ffTotal').value=f?parseFloat(f.total)||0:'';
+  document.getElementById('ffTotal').value='';
   document.getElementById('ffEstado').value=f?f.estado||'PENDIENTE':'PENDIENTE';
   document.getElementById('ffFechaPago').value=f?f.fecha_pago||'':'';
-  document.getElementById('ffChequeNumero').value=f?f.cheque_numero||'':'';
+  document.getElementById('ffChequeNumero').value='';
   document.getElementById('ffMetodoPago').value=f?f.metodo_pago||'':'';
   document.getElementById('ffEfectivo').value=f?parseFloat(f.efectivo)||0:0;
   document.getElementById('ffTransferencia').value=f?parseFloat(f.transferencia)||0:0;
@@ -4006,10 +4005,10 @@ function toggleSeccionChequeFlete() {
     if(metodo==='CHEQUE'){
       document.getElementById('ffEstado').value='PAGADO';
     }
-    // Cargar cheques disponibles si no están ya cargados
-    if (!chequesFleteDisponibles.length && !chequesFleteEmDisponibles.length) {
+    // Solo cargar cheques si es un flete nuevo (sin idFleteEdicion)
+    if (!idFleteEdicion && !chequesFleteDisponibles.length && !chequesFleteEmDisponibles.length) {
       cargarChequesDisponiblesFlete();
-    } else {
+    } else if (chequesFleteDisponibles.length || chequesFleteEmDisponibles.length) {
       renderizarChequesFlete();
     }
   } else {
