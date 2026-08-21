@@ -3996,17 +3996,16 @@ function toggleSeccionChequeFlete() {
   document.getElementById('ffSeccionEfectivo').style.display = 'none';
   document.getElementById('ffSeccionTransferencia').style.display = 'none';
   if (esCheque) {
-    cargarChequesDisponiblesFlete();
     if(metodo==='CHEQUE'){
       document.getElementById('ffEstado').value='PAGADO';
     }
   } else {
     chequesFleteSeleccionados   = {};
     chequesFleteEmSeleccionados = {};
+    calcularTotalFlete();
   }
   document.getElementById('ffEfectivo').value = '';
   document.getElementById('ffTransferencia').value = '';
-  calcularTotalFlete();
 }
 
 function actualizarMontoMixtoFlete() {
