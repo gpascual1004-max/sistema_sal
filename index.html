@@ -2555,7 +2555,10 @@ function cargarChequesDelFlete(fleteId,fechaFlete){
     gsRun('obtenerCheqEm',[],function(chequeEm){
       var chequesEmVinculados=chequeEm.filter(function(c){return c.fletes_id===fleteId;});
       chequesEmVinculados.forEach(function(c){chequesFleteEmSeleccionados[c.id]=c;});
-      cargarChequesDisponiblesFlete();
+      // Cargar todos los cheques disponibles para renderizar
+      chequesFleteDisponibles = cheques.filter(function(c) { return c.estado === 'DISPONIBLE' || c.fletes_id === fleteId; });
+      chequesFleteEmDisponibles = chequeEm.filter(function(c) { return c.estado === 'PENDIENTE' || c.fletes_id === fleteId; });
+      renderizarChequesFlete();
       toggleSeccionChequeFlete();
       calcularTotalFlete();
       actualizarChequeNumerosEnModal();
