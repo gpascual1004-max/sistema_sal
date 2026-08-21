@@ -866,7 +866,7 @@ function gsRun(fnName, params, onSuccess, onError) {
           <div class="form-group"><label>IVA ($)</label><input type="number" id="ffIva" step="0.01" oninput="calcularTotalFlete()"></div>
           <div class="form-group"><label>Total ($)</label><input type="number" id="ffTotal" readonly style="background:#f8f9fa;color:#555"></div>
           <div class="form-group"><label>Fecha de Pago</label><input type="date" id="ffFechaPago"></div>
-          <div class="form-group"><label>Cheque N°</label><input type="text" id="ffChequeNumero"></div>
+          <div class="form-group"><label>Cheque N°</label><input type="text" id="ffChequeNumero" readonly style="background:#f8f9fa;color:#555"></div>
           <div class="form-group"><label>Método de Pago</label><select id="ffMetodoPago" onchange="toggleSeccionChequeFlete()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">-</option><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option><option value="CHEQUE">Cheque</option><option value="MIXTO">Mixto</option></select></div>
           <div class="form-group" id="ffSeccionEfectivo" style="display:none"><label>Efectivo ($)</label><input type="number" id="ffEfectivo" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
           <div class="form-group" id="ffSeccionTransferencia" style="display:none"><label>Transferencia ($)</label><input type="number" id="ffTransferencia" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
@@ -2587,6 +2587,8 @@ function calcularTotalFlete(){
   var sumaCheques=Object.values(chequesFleteSeleccionados).reduce(function(s,c){return s+(parseFloat(c.importe)||0);},0)+Object.values(chequesFleteEmSeleccionados).reduce(function(s,c){return s+(parseFloat(c.importe_cheque)||0);},0);
   var total=0;
   if(metodo==='CHEQUE'){
+    importe=sumaCheques;
+    document.getElementById('ffImporte').value=importe.toFixed(2);
     total=sumaCheques;
   }else if(metodo==='MIXTO'){
     total=importe+iva+sumaCheques;
@@ -3999,7 +4001,7 @@ function actualizarMontoMixtoFlete() {
 function cargarChequesDisponiblesFlete() {
   var fleteId = idFleteEdicion || null;
   document.getElementById('ffChequesLista').innerHTML = '<div style="color:#999;font-size:12px;padding:8px 0">Cargando cheques disponibles...</div>';
-  gsRun('obtenerChequesDisponiblesParaGasto', [fleteId], function(res) {
+  gsRun('obtenerChequesDisponiblesParaFlete', [fleteId], function(res) {
     if (!res || typeof res !== 'object') {
       document.getElementById('ffChequesLista').innerHTML = '<div style="color:#dc3545;font-size:12px">Error: respuesta inválida del servidor</div>';
       return;
@@ -4108,6 +4110,7 @@ function toggleChequeFleteSeleccion(chequeId, checked) {
   }
   renderizarChequesFlete();
   calcularTotalFlete();
+  actualizarChequeNumerosEnModal();
 }
 
 function toggleChequeEmFleteSeleccion(chequeId, checked) {
@@ -4119,6 +4122,15 @@ function toggleChequeEmFleteSeleccion(chequeId, checked) {
   }
   renderizarChequesFlete();
   calcularTotalFlete();
+  actualizarChequeNumerosEnModal();
+}
+
+function actualizarChequeNumerosEnModal() {
+  var numeros = [].concat(
+    Object.values(chequesFleteSeleccionados).map(function(c) { return c.numero; }),
+    Object.values(chequesFleteEmSeleccionados).map(function(c) { return c.numero_cheque; })
+  ).filter(function(n) { return n; });
+  document.getElementById('ffChequeNumero').value = numeros.join(', ');
 }
 
 function toggleFuenteChequesGasto(fuente) {

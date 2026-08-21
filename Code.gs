@@ -995,6 +995,50 @@ function obtenerChequesDisponiblesParaGasto(gastoId) {
   };
 }
 
+function obtenerChequesDisponiblesParaFlete(fleteId) {
+  fleteId = fleteId ? parseInt(fleteId, 10) : null;
+
+  var hoy = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'America/Argentina/Mendoza', 'yyyy-MM-dd');
+
+  // Cheques RECIBIDOS
+  var chequesDelFlete = [];
+  var chequesDisponibles = supabaseQuery('cheques', 'GET', null, null, 'estado=eq.DISPONIBLE&fecha_vencimiento=gte.' + hoy + '&order=fecha_vencimiento.asc') || [];
+
+  if (fleteId) {
+    var todosConFlete = supabaseQuery('cheques', 'GET', null, null, 'fletes_id=not.is.null&order=fecha_vencimiento.asc') || [];
+    chequesDelFlete = todosConFlete.filter(function(c) { return c.fletes_id == fleteId; });
+  }
+
+  var mapa = {};
+  chequesDisponibles.forEach(function(c) { mapa[c.id] = c; });
+  chequesDelFlete.forEach(function(c) { mapa[c.id] = c; });
+  var lista = Object.keys(mapa).map(function(id) { return mapa[id]; })
+    .sort(function(a, b) { return (a.fecha_vencimiento || '').localeCompare(b.fecha_vencimiento || ''); });
+
+  // Cheques EMITIDOS
+  var chequesEmitidosDelFlete = [];
+  var tipoQuery = TIPOS_CHEQUE_EMITIDO_PAGABLES.map(function(t) { return encodeURIComponent(t); }).join(',');
+  var chequesEmitidosPendientes = supabaseQuery('cheques_emitidos', 'GET', null, null, 'estado=eq.PENDIENTE&tipo_cheque=in.(' + tipoQuery + ')&order=fecha_pago.asc') || [];
+
+  if (fleteId) {
+    var todosEmitidosConFlete = supabaseQuery('cheques_emitidos', 'GET', null, null, 'fletes_id=not.is.null&order=fecha_pago.asc') || [];
+    chequesEmitidosDelFlete = todosEmitidosConFlete.filter(function(c) { return c.fletes_id == fleteId; });
+  }
+
+  var mapaEm = {};
+  chequesEmitidosPendientes.forEach(function(c) { mapaEm[c.id] = c; });
+  chequesEmitidosDelFlete.forEach(function(c) { mapaEm[c.id] = c; });
+  var listaEm = Object.keys(mapaEm).map(function(id) { return mapaEm[id]; })
+    .sort(function(a, b) { return (a.fecha_pago || '').localeCompare(b.fecha_pago || ''); });
+
+  return {
+    disponibles: lista,
+    yaAsignadosIds: chequesDelFlete.map(function(c) { return c.id; }),
+    disponiblesEm: listaEm,
+    yaAsignadosEmIds: chequesEmitidosDelFlete.map(function(c) { return c.id; })
+  };
+}
+
 // Libera los cheques (recibidos y emitidos) vinculados a un gasto y recién después lo
 // borra — si no, el DELETE falla por la FK gasto_id.
 function eliminarGastoById(id) {
