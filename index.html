@@ -312,6 +312,25 @@ function gsRun(fnName, params, onSuccess, onError) {
         };
       });
     },
+    'obtenerChequesDisponiblesParaFlete': ([fleteId]) => {
+      return Promise.all([
+        supabaseQueryAll('cheques', 'order=fecha_vencimiento.asc'),
+        supabaseQueryAll('cheques_emitidos', 'order=fecha_pago.asc')
+      ]).then(([todosCheques, todosChequesEm]) => {
+        var yaAsignados = fleteId ? todosCheques.filter(c => c.fletes_id === fleteId) : [];
+        var disponibles = todosCheques.filter(c => c.estado === 'DISPONIBLE' || c.fletes_id === fleteId);
+
+        var yaAsignadosEm = fleteId ? todosChequesEm.filter(c => c.fletes_id === fleteId) : [];
+        var disponiblesEm = todosChequesEm.filter(c => c.estado === 'PENDIENTE' || c.fletes_id === fleteId);
+
+        return {
+          disponibles: disponibles || [],
+          yaAsignadosIds: yaAsignados.map(c => c.id),
+          disponiblesEm: disponiblesEm || [],
+          yaAsignadosEmIds: yaAsignadosEm.map(c => c.id)
+        };
+      });
+    },
     'obtenerClientes': () => supabaseQueryAll('clientes', 'order=id.asc'),
     'obtenerProveedores': () => supabaseQueryAll('proveedores', 'order=nombre.asc'),
     'obtenerRubros': () => supabaseQueryAll('rubros', 'order=nombre.asc'),
