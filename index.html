@@ -2531,10 +2531,10 @@ function cargarChequesDelFlete(fleteId,fechaFlete){
   chequesFleteSeleccionados={};
   chequesFleteEmSeleccionados={};
   gsRun('obtenerCheques',[],function(cheques){
-    var chequesVinculados=cheques.filter(function(c){return c.estado==='ENTREGADO'&&c.fecha_salida===fechaFlete;});
+    var chequesVinculados=cheques.filter(function(c){return c.fletes_id===fleteId;});
     chequesVinculados.forEach(function(c){chequesFleteSeleccionados[c.id]=c;});
     gsRun('obtenerCheqEm',[],function(chequeEm){
-      var chequesEmVinculados=chequeEm.filter(function(c){return c.estado==='ENTREGADO'&&c.fecha_pago===fechaFlete;});
+      var chequesEmVinculados=chequeEm.filter(function(c){return c.fletes_id===fleteId;});
       chequesEmVinculados.forEach(function(c){chequesFleteEmSeleccionados[c.id]=c;});
       cargarChequesDisponiblesFlete();
       toggleSeccionChequeFlete();

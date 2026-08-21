@@ -350,7 +350,8 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
       }
       supabaseQuery('cheques', 'PATCH', {
         estado: 'ENTREGADO',
-        fecha_salida: datos.fecha_flete
+        fecha_salida: datos.fecha_flete,
+        fletes_id: fleteId
       }, { id: chequeIds[i] });
       chequesActualizados++;
     } catch(e) {
@@ -386,7 +387,7 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
         erroresCheques.push('Cheque emitido ' + cid + ' no encontrado');
         return;
       }
-      supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'ENTREGADO', fecha_pago: datos.fecha_flete }, { id: cid });
+      supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'ENTREGADO', fecha_pago: datos.fecha_flete, fletes_id: fleteId }, { id: cid });
     } catch(e) {
       erroresCheques.push('Error vinculando cheque emitido ' + cid + ': ' + e.message);
     }
