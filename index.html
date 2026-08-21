@@ -5969,8 +5969,12 @@ function guardarConfiguracionGastosER(){
 
 function cargarEstadoResultado(){
   cargarConfiguracionGastosER();
-  gsRun('obtenerVentas',[],function(ventas){
-    todosVentas=ventas||[];
+  Promise.all([
+    new Promise(r => gsRun('obtenerVentas',[],d=>{todosVentas=d||[];r();},e=>r())),
+    new Promise(r => gsRun('obtenerPagos',[],d=>{todosPagos=d||[];r();},e=>r())),
+    new Promise(r => gsRun('obtenerFletes',[],d=>{cfTodosFletes=d||[];r();},e=>r())),
+    new Promise(r => gsRun('obtenerGastos',[],d=>{cfTodosGastos=d||[];r();},e=>r()))
+  ]).then(function(){
     var hoy=new Date();var fechas=[];
     for(var i=12;i>=0;i--){
       var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
