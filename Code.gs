@@ -324,7 +324,7 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
   // Desvincular cheques actuales (si es edición)
   if (id) {
     try {
-      var tempExistentes = supabaseQuery('cheques', 'GET', null, null, 'estado=eq.ENTREGADO&select=id&limit=1000') || [];
+      var tempExistentes = supabaseQuery('cheques', 'GET', null, { estado: 'ENTREGADO' }, 'select=id,fecha_salida&limit=1000') || [];
       tempExistentes = tempExistentes.filter(function(c) { return c.fecha_salida === datos.fecha_flete; });
       for (var j = 0; j < tempExistentes.length; j++) {
         try {
@@ -366,7 +366,7 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
   if (id) {
     try {
       var existentesEm = supabaseQuery('cheques_emitidos', 'GET', null, { estado: 'ENTREGADO' }, 'select=id,created_at&limit=1000') || [];
-      existentesEm = existentesEm.filter(function(c) { return c.created_at && c.created_at.substr(0,10) === datos.fecha_flete; });
+      existentesEm = (existentesEm || []).filter(function(c) { return c && c.created_at && c.created_at.substr(0,10) === datos.fecha_flete; });
       existentesEm.forEach(function(c) {
         try {
           supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'PENDIENTE' }, { id: c.id });
