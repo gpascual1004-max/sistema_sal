@@ -619,6 +619,9 @@ function gsRun(fnName, params, onSuccess, onError) {
     },
     'eliminarVentaById': ([id]) => supabaseQuery('ventas', 'DELETE', null, { id }),
     'eliminarPagoById': ([id]) => supabaseQuery('pagos', 'DELETE', null, { id }),
+    'eliminarFleteById': ([id]) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).eliminarFleteById(id);
+    }),
     'eliminarGastoById': ([id]) => supabaseQuery('gastos', 'DELETE', null, { id }),
     'eliminarChequeById': ([id]) => supabaseQuery('cheques', 'DELETE', null, { id }),
     'eliminarCheqEmById': ([id]) => supabaseQuery('cheques_emitidos', 'DELETE', null, { id }),
