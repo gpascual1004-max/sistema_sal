@@ -386,7 +386,7 @@ function guardarFlete(datos, id, chequeIds, chequeEmitidoIds) {
         erroresCheques.push('Cheque emitido ' + cid + ' no encontrado');
         return;
       }
-      supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'ENTREGADO' }, { id: cid });
+      supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'ENTREGADO', fecha_pago: datos.fecha_flete }, { id: cid });
     } catch(e) {
       erroresCheques.push('Error vinculando cheque emitido ' + cid + ': ' + e.message);
     }
