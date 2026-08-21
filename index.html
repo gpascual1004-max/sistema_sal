@@ -862,8 +862,8 @@ function gsRun(fnName, params, onSuccess, onError) {
           <div class="form-group" style="grid-column:span 2"><label>Detalle</label><input type="text" id="ffDetalle"></div>
           <div class="form-group"><label>Remito</label><input type="text" id="ffRemito"></div>
           <div class="form-group"><label>Factura</label><input type="text" id="ffFactura"></div>
-          <div class="form-group"><label>Importe ($)</label><input type="number" id="ffImporte" step="0.01" oninput="calcularTotalFlete()"></div>
-          <div class="form-group"><label>IVA ($)</label><input type="number" id="ffIva" step="0.01" oninput="calcularTotalFlete()"></div>
+          <div class="form-group" id="ffSeccionImporte"><label>Importe ($)</label><input type="number" id="ffImporte" step="0.01" oninput="calcularTotalFlete()"></div>
+          <div class="form-group" id="ffSeccionIva"><label>IVA ($)</label><input type="number" id="ffIva" step="0.01" oninput="calcularTotalFlete()"></div>
           <div class="form-group"><label>Total ($)</label><input type="number" id="ffTotal" readonly style="background:#f8f9fa;color:#555"></div>
           <div class="form-group"><label>Método de Pago</label><select id="ffMetodoPago" onchange="toggleSeccionChequeFlete()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">-</option><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option><option value="CHEQUE">Cheque</option><option value="MIXTO">Mixto</option></select></div>
           <div class="form-group" id="ffSeccionEfectivo" style="display:none"><label>Efectivo ($)</label><input type="number" id="ffEfectivo" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
@@ -3951,8 +3951,8 @@ function toggleSeccionChequeFlete() {
   document.getElementById('ffSeccionChequesDisponibles').style.display = esCheque ? 'block' : 'none';
   document.getElementById('ffSeccionEfectivo').style.display = 'none';
   document.getElementById('ffSeccionTransferencia').style.display = 'none';
-  document.getElementById('ffImporte').parentElement.parentElement.style.display = mostrarImportesIva ? 'block' : 'none';
-  document.getElementById('ffIva').parentElement.parentElement.style.display = mostrarImportesIva ? 'block' : 'none';
+  document.getElementById('ffSeccionImporte').style.display = mostrarImportesIva ? 'block' : 'none';
+  document.getElementById('ffSeccionIva').style.display = mostrarImportesIva ? 'block' : 'none';
   if (esCheque) {
     cargarChequesDisponiblesFlete();
   } else {
