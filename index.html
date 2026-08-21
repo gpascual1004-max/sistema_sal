@@ -2559,13 +2559,31 @@ function abrirModalFlete(idx) {
   chequesFleteEmDisponibles = [];
   fuenteChequesFletes = 'recibidos';
 
-  // Cargar cheques del flete desde todosCheques (localmente, IGUAL QUE GASTOS)
-  if (idFleteEdicion && todosCheques) {
-    var chequesDelFlete = todosCheques.filter(function(c) { return c.fletes_id === idFleteEdicion; });
-    chequesDelFlete.forEach(function(c) {
-      chequesFleteSeleccionados[c.id] = c;
-      chequesFleteOriginalIds.push(c.id);
+  // Cargar cheques del flete - SIEMPRE desde el servidor si está editando
+  if (idFleteEdicion) {
+    gsRun('obtenerCheques', [], function(cheques) {
+      var chequesDelFlete = cheques.filter(function(c) { return c.fletes_id === idFleteEdicion; });
+      chequesDelFlete.forEach(function(c) {
+        chequesFleteSeleccionados[c.id] = c;
+        chequesFleteOriginalIds.push(c.id);
+      });
+      gsRun('obtenerCheqEm', [], function(chequesEm) {
+        var chequesEmDelFlete = chequesEm.filter(function(c) { return c.fletes_id === idFleteEdicion; });
+        chequesEmDelFlete.forEach(function(c) {
+          chequesFleteEmSeleccionados[c.id] = c;
+          chequesFleteEmOriginalIds.push(c.id);
+        });
+        toggleSeccionChequeFlete();
+        cargarChequesDisponiblesFlete();
+        calcularTotalFlete();
+        actualizarChequeNumerosEnModal();
+      });
     });
+  } else {
+    toggleSeccionChequeFlete();
+    cargarChequesDisponiblesFlete();
+    calcularTotalFlete();
+    actualizarChequeNumerosEnModal();
   }
 
   document.getElementById('modalTituloFlete').textContent=f?'Editar Flete':'Nuevo Flete';
