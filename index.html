@@ -2607,24 +2607,6 @@ function abrirModalFlete(idx) {
   document.getElementById('ffTransferencia').value=f?parseFloat(f.transferencia)||0:0;
   document.getElementById('ffObs').value=f?f.observaciones||'':'';
   document.getElementById('modalErrorFlete').style.display='none';
-  // Asegurar que todosCheques esté cargado antes de continuar
-  if (!todosCheques || todosCheques.length === 0) {
-    gsRun('obtenerCheques', [], function(cheques) {
-      todosCheques = cheques || [];
-      gsRun('obtenerCheqEm', [], function(chequesEm) {
-        // Ahora proceder con la carga
-        toggleSeccionChequeFlete();
-        cargarChequesDisponiblesFlete();
-        calcularTotalFlete();
-        actualizarChequeNumerosEnModal();
-      });
-    });
-  } else {
-    toggleSeccionChequeFlete();
-    cargarChequesDisponiblesFlete();
-    calcularTotalFlete();
-    actualizarChequeNumerosEnModal();
-  }
   document.getElementById('overlayFlete').classList.add('activo');
 }
 function cerrarModalFlete(){document.getElementById('overlayFlete').classList.remove('activo');idFleteEdicion=null;}
