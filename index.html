@@ -862,8 +862,8 @@ function gsRun(fnName, params, onSuccess, onError) {
           <div class="form-group" style="grid-column:span 2"><label>Detalle</label><input type="text" id="ffDetalle"></div>
           <div class="form-group"><label>Remito</label><input type="text" id="ffRemito"></div>
           <div class="form-group"><label>Factura</label><input type="text" id="ffFactura"></div>
-          <div class="form-group" id="ffSeccionImporte"><label>Importe ($)</label><input type="number" id="ffImporte" step="0.01" oninput="calcularTotalFlete()"></div>
-          <div class="form-group" id="ffSeccionIva"><label>IVA ($)</label><input type="number" id="ffIva" step="0.01" oninput="calcularTotalFlete()"></div>
+          <div class="form-group"><label>Importe ($)</label><input type="number" id="ffImporte" step="0.01" oninput="calcularTotalFlete()"></div>
+          <div class="form-group"><label>IVA ($)</label><input type="number" id="ffIva" step="0.01" oninput="calcularTotalFlete()"></div>
           <div class="form-group"><label>Total ($)</label><input type="number" id="ffTotal" readonly style="background:#f8f9fa;color:#555"></div>
           <div class="form-group"><label>Método de Pago</label><select id="ffMetodoPago" onchange="toggleSeccionChequeFlete()" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:5px;font-size:14px"><option value="">-</option><option value="EFECTIVO">Efectivo</option><option value="TRANSFERENCIA">Transferencia</option><option value="CHEQUE">Cheque</option><option value="MIXTO">Mixto</option></select></div>
           <div class="form-group" id="ffSeccionEfectivo" style="display:none"><label>Efectivo ($)</label><input type="number" id="ffEfectivo" step="0.01" oninput="actualizarMontoMixtoFlete()"></div>
@@ -2572,9 +2572,10 @@ function calcularTotalFlete(){
   document.getElementById('ffTotal').value=total.toFixed(2);
 }
 function guardarFlete() {
-  var fecha=document.getElementById('ffFecha').value,err=document.getElementById('modalErrorFlete');
+  var fecha=document.getElementById('ffFecha').value,imp=parseFloat(document.getElementById('ffImporte').value)||0,iva=parseFloat(document.getElementById('ffIva').value)||0,err=document.getElementById('modalErrorFlete');
   err.style.display='none';
   if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
+  if(!imp){err.textContent='El importe es obligatorio.';err.style.display='block';return;}
 
   var metodoPago=document.getElementById('ffMetodoPago').value||'';
   if(!metodoPago){err.textContent='Debe seleccionar un método de pago.';err.style.display='block';return;}
@@ -2584,20 +2585,12 @@ function guardarFlete() {
   var totalCheques=Object.values(chequesFleteSeleccionados).reduce(function(s,c){return s+(parseFloat(c.importe)||0);},0)+Object.values(chequesFleteEmSeleccionados).reduce(function(s,c){return s+(parseFloat(c.importe_cheque)||0);},0);
   var numerosCheques=[].concat(Object.values(chequesFleteSeleccionados).map(function(c){return c.numero;}),Object.values(chequesFleteEmSeleccionados).map(function(c){return c.numero_cheque;})).filter(function(n){return n;}).join(', ');
 
-  var imp=0,iva=0,total=0;
-
+  var total=0;
   if(metodoPago==='CHEQUE'){
-    if(chequeIds.length===0&&chequeEmitidoIds.length===0){err.textContent='Debe seleccionar al menos un cheque.';err.style.display='block';return;}
-    total=totalCheques;
+    total=imp+iva+totalCheques;
   }else if(metodoPago==='MIXTO'){
-    imp=parseFloat(document.getElementById('ffImporte').value)||0;
-    iva=parseFloat(document.getElementById('ffIva').value)||0;
-    if(!imp){err.textContent='El importe es obligatorio en modo Mixto.';err.style.display='block';return;}
     total=imp+iva+totalCheques;
   }else{
-    imp=parseFloat(document.getElementById('ffImporte').value)||0;
-    iva=parseFloat(document.getElementById('ffIva').value)||0;
-    if(!imp){err.textContent='El importe es obligatorio.';err.style.display='block';return;}
     total=imp+iva;
   }
 
@@ -3947,12 +3940,9 @@ var GRID_CHEQUES_FLETE = '26px 1fr 110px 80px 110px';
 function toggleSeccionChequeFlete() {
   var metodo = document.getElementById('ffMetodoPago').value;
   var esCheque = metodo === 'CHEQUE' || metodo === 'MIXTO';
-  var mostrarImportesIva = metodo === 'EFECTIVO' || metodo === 'TRANSFERENCIA' || metodo === 'MIXTO';
   document.getElementById('ffSeccionChequesDisponibles').style.display = esCheque ? 'block' : 'none';
   document.getElementById('ffSeccionEfectivo').style.display = 'none';
   document.getElementById('ffSeccionTransferencia').style.display = 'none';
-  document.getElementById('ffSeccionImporte').style.display = mostrarImportesIva ? 'block' : 'none';
-  document.getElementById('ffSeccionIva').style.display = mostrarImportesIva ? 'block' : 'none';
   if (esCheque) {
     cargarChequesDisponiblesFlete();
   } else {
