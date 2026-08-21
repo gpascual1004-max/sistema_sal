@@ -5985,19 +5985,18 @@ function guardarConfiguracionGastosER(){
 
 function cargarEstadoResultado(){
   cargarConfiguracionGastosER();
-  Promise.all([
-    new Promise(r => gsRun('obtenerVentas',[],d=>{todosVentas=d||[];r();},e=>r())),
-    new Promise(r => gsRun('obtenerPagos',[],d=>{todosPagos=d||[];r();},e=>r())),
-    new Promise(r => gsRun('obtenerFletes',[],d=>{cfTodosFletes=d||[];r();},e=>r())),
-    new Promise(r => gsRun('obtenerGastos',[],d=>{cfTodosGastos=d||[];r();},e=>r()))
-  ]).then(function(){
-    var hoy=new Date();var fechas=[];
-    for(var i=12;i>=0;i--){
-      var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
-      fechas.push({fecha:d.toISOString().substr(0,7),label:NOMBRES_MESES[d.getMonth()]+' '+d.getFullYear()});
-    }
-    renderizarEstadoResultado(fechas);
-  });
+  if(cfTodosFletes.length===0||cfTodosGastos.length===0||todosPagos.length===0){
+    gsRun('obtenerFletes',[],function(d){cfTodosFletes=d||[];});
+    gsRun('obtenerGastos',[],function(d){cfTodosGastos=d||[];});
+    gsRun('obtenerPagos',[],function(d){todosPagos=d||[];});
+    gsRun('obtenerVentas',[],function(d){todosVentas=d||[];});
+  }
+  var hoy=new Date();var fechas=[];
+  for(var i=12;i>=0;i--){
+    var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
+    fechas.push({fecha:d.toISOString().substr(0,7),label:NOMBRES_MESES[d.getMonth()]+' '+d.getFullYear()});
+  }
+  setTimeout(function(){renderizarEstadoResultado(fechas);},500);
 }
 
 function renderizarEstadoResultado(fechas){
