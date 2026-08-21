@@ -422,6 +422,25 @@ function insertarFletes(rows) {
 }
 
 function eliminarFleteById(id) {
+  // Liberar cheques recibidos vinculados a este flete
+  var chequesVinculados = supabaseQuery('cheques', 'GET', null, { fletes_id: id }) || [];
+  chequesVinculados.forEach(function(c) {
+    supabaseQuery('cheques', 'PATCH', { estado: 'DISPONIBLE', fecha_salida: null, fletes_id: null }, { id: c.id });
+  });
+
+  // Liberar cheques emitidos vinculados a este flete
+  var chequesEmVinculados = supabaseQuery('cheques_emitidos', 'GET', null, { fletes_id: id }) || [];
+  chequesEmVinculados.forEach(function(c) {
+    supabaseQuery('cheques_emitidos', 'PATCH', { estado: 'PENDIENTE', fletes_id: null }, { id: c.id });
+  });
+
+  // Invalidar caché de cheques si había alguno vinculado
+  if (chequesVinculados.length > 0 || chequesEmVinculados.length > 0) {
+    invalidarCacheTabla('cheques', QUERY_CHEQUES);
+    invalidarCacheTabla('cheques_emitidos', QUERY_CHEQUES_EM);
+  }
+
+  // Borrar el flete
   var res = supabaseDelete('fletes', id);
   invalidarCacheTabla('fletes', QUERY_FLETES);
   return res;
