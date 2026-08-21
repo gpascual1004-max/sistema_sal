@@ -2587,6 +2587,8 @@ function abrirModalFlete(idx) {
   document.getElementById('modalErrorFlete').style.display='none';
   toggleSeccionChequeFlete();
   cargarChequesDisponiblesFlete();
+  calcularTotalFlete();
+  actualizarChequeNumerosEnModal();
   document.getElementById('overlayFlete').classList.add('activo');
 }
 function cerrarModalFlete(){document.getElementById('overlayFlete').classList.remove('activo');idFleteEdicion=null;}
@@ -2630,7 +2632,8 @@ function guardarFlete() {
 
   var total=0;
   if(metodoPago==='CHEQUE'){
-    total=imp+iva+totalCheques;
+    imp=totalCheques;
+    total=totalCheques;
   }else if(metodoPago==='MIXTO'){
     total=imp+iva+totalCheques;
   }else{
