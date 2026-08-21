@@ -298,11 +298,12 @@ function gsRun(fnName, params, onSuccess, onError) {
         supabaseQueryAll('cheques', 'order=fecha_vencimiento.asc'),
         supabaseQueryAll('cheques_emitidos', 'order=fecha_pago.asc')
       ]).then(([todosCheques, todosChequesEm]) => {
+        var hoy = new Date().toISOString().split('T')[0];
         var yaAsignados = gastoId ? todosCheques.filter(c => c.gasto_id === gastoId) : [];
-        var disponibles = todosCheques.filter(c => c.estado === 'DISPONIBLE' || c.gasto_id === gastoId);
+        var disponibles = todosCheques.filter(c => (c.estado === 'DISPONIBLE' && (!c.fecha_vencimiento || c.fecha_vencimiento >= hoy)) || c.gasto_id === gastoId);
 
         var yaAsignadosEm = gastoId ? todosChequesEm.filter(c => c.gasto_id === gastoId) : [];
-        var disponiblesEm = todosChequesEm.filter(c => c.estado === 'PENDIENTE' || c.gasto_id === gastoId);
+        var disponiblesEm = todosChequesEm.filter(c => (c.estado === 'PENDIENTE' && (!c.fecha_pago || c.fecha_pago >= hoy)) || c.gasto_id === gastoId);
 
         return {
           disponibles: disponibles || [],
@@ -317,12 +318,13 @@ function gsRun(fnName, params, onSuccess, onError) {
         supabaseQueryAll('cheques', 'order=fecha_vencimiento.asc'),
         supabaseQueryAll('cheques_emitidos', 'order=fecha_pago.asc')
       ]).then(([todosCheques, todosChequesEm]) => {
+        var hoy = new Date().toISOString().split('T')[0];
         var fleteIdStr = fleteId ? String(fleteId) : '';
         var yaAsignados = fleteId ? todosCheques.filter(c => String(c.fletes_id) === fleteIdStr) : [];
-        var disponibles = todosCheques.filter(c => c.estado === 'DISPONIBLE' || String(c.fletes_id) === fleteIdStr);
+        var disponibles = todosCheques.filter(c => (c.estado === 'DISPONIBLE' && (!c.fecha_vencimiento || c.fecha_vencimiento >= hoy)) || String(c.fletes_id) === fleteIdStr);
 
         var yaAsignadosEm = fleteId ? todosChequesEm.filter(c => String(c.fletes_id) === fleteIdStr) : [];
-        var disponiblesEm = todosChequesEm.filter(c => c.estado === 'PENDIENTE' || String(c.fletes_id) === fleteIdStr);
+        var disponiblesEm = todosChequesEm.filter(c => (c.estado === 'PENDIENTE' && (!c.fecha_pago || c.fecha_pago >= hoy)) || String(c.fletes_id) === fleteIdStr);
 
         return {
           disponibles: disponibles || [],
