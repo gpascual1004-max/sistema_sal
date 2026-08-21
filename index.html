@@ -4058,7 +4058,14 @@ function cargarChequesDisponiblesFlete() {
       return;
     }
     chequesFleteDisponibles = res.disponibles || [];
+    chequesFleteOriginalIds = res.yaAsignadosIds || [];
+    chequesFleteSeleccionados = {};
+    chequesFleteDisponibles.forEach(function(c) { if (chequesFleteOriginalIds.indexOf(c.id) !== -1) chequesFleteSeleccionados[c.id] = c; });
+
     chequesFleteEmDisponibles = res.disponiblesEm || [];
+    chequesFleteEmOriginalIds = res.yaAsignadosEmIds || [];
+    chequesFleteEmSeleccionados = {};
+    chequesFleteEmDisponibles.forEach(function(c) { if (chequesFleteEmOriginalIds.indexOf(c.id) !== -1) chequesFleteEmSeleccionados[c.id] = c; });
 
     actualizarBotonesFuenteChequesFletes();
     renderizarChequesFlete();
