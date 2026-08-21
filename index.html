@@ -1076,8 +1076,8 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
       <div id="msgPagos"></div>
       <div class="table-container">
-        <table><thead><tr style="cursor:pointer"><th onclick="cambiarOrdenPagos('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="ordPagosFecha"></span></th><th onclick="cambiarOrdenPagos('cliente_nombre')" style="cursor:pointer;user-select:none">Cliente <span id="ordPagosCli"></span></th><th onclick="cambiarOrdenPagos('cliente_id')" style="cursor:pointer;user-select:none">Cliente ID <span id="ordPagosCliId"></span></th><th onclick="cambiarOrdenPagos('haber')" style="cursor:pointer;user-select:none">Haber <span id="ordPagosHab"></span></th><th onclick="cambiarOrdenPagos('efectivo')" style="cursor:pointer;user-select:none">Efectivo <span id="ordPagosEf"></span></th><th onclick="cambiarOrdenPagos('transferencia')" style="cursor:pointer;user-select:none">Transferencia <span id="ordPagosTrans"></span></th><th onclick="cambiarOrdenPagos('cheque_numero')" style="cursor:pointer;user-select:none">Cheque N° <span id="ordPagosCh"></span></th><th onclick="cambiarOrdenPagos('banco')" style="cursor:pointer;user-select:none">Banco <span id="ordPagosBan"></span></th><th onclick="cambiarOrdenPagos('importe_cheque')" style="cursor:pointer;user-select:none">Imp. Cheque <span id="ordPagosImpCh"></span></th><th onclick="cambiarOrdenPagos('observaciones')" style="cursor:pointer;user-select:none">Observaciones <span id="ordPagosObs"></span></th><th></th></tr></thead>
-        <tbody id="cuerpoPagos"><tr><td colspan="11" class="loading">Cargando...</td></tr></tbody></table>
+        <table><thead><tr style="cursor:pointer"><th style="text-align:center;width:50px;padding:8px 4px"><input type="checkbox" id="chkSeleccionarTodosPagos" onchange="seleccionarTodosPagos(this.checked)" style="cursor:pointer"></th><th onclick="cambiarOrdenPagos('fecha')" style="cursor:pointer;user-select:none">Fecha <span id="ordPagosFecha"></span></th><th onclick="cambiarOrdenPagos('cliente_nombre')" style="cursor:pointer;user-select:none">Cliente <span id="ordPagosCli"></span></th><th onclick="cambiarOrdenPagos('cliente_id')" style="cursor:pointer;user-select:none">Cliente ID <span id="ordPagosCliId"></span></th><th onclick="cambiarOrdenPagos('haber')" style="cursor:pointer;user-select:none">Haber <span id="ordPagosHab"></span></th><th onclick="cambiarOrdenPagos('efectivo')" style="cursor:pointer;user-select:none">Efectivo <span id="ordPagosEf"></span></th><th onclick="cambiarOrdenPagos('transferencia')" style="cursor:pointer;user-select:none">Transferencia <span id="ordPagosTrans"></span></th><th onclick="cambiarOrdenPagos('cheque_numero')" style="cursor:pointer;user-select:none">Cheque N° <span id="ordPagosCh"></span></th><th onclick="cambiarOrdenPagos('banco')" style="cursor:pointer;user-select:none">Banco <span id="ordPagosBan"></span></th><th onclick="cambiarOrdenPagos('importe_cheque')" style="cursor:pointer;user-select:none">Imp. Cheque <span id="ordPagosImpCh"></span></th><th onclick="cambiarOrdenPagos('observaciones')" style="cursor:pointer;user-select:none">Observaciones <span id="ordPagosObs"></span></th><th></th></tr></thead>
+        <tbody id="cuerpoPagos"><tr><td colspan="12" class="loading">Cargando...</td></tr></tbody></table>
       </div>
       <div class="paginacion" id="paginacionPagos"></div>
     </div>
@@ -2978,7 +2978,7 @@ document.getElementById('overlayProveedor').addEventListener('click',function(e)
 // ==========================================
 // PAGOS
 // ==========================================
-var todosPagos=[],pagosFiltrados=[],paginaPagos=1,porPaginaPagos=20,idPagoEdicion=null,mapaClientesPagos={},mesesSeleccionados={},comprobantesSeleccionados=new Set(),ventasDisponibles=[],comprobantesInfo={},comprobantesOriginales=[],todosBancos=[];
+var todosPagos=[],pagosFiltrados=[],paginaPagos=1,porPaginaPagos=20,idPagoEdicion=null,mapaClientesPagos={},mesesSeleccionados={},comprobantesSeleccionados=new Set(),ventasDisponibles=[],comprobantesInfo={},comprobantesOriginales=[],todosBancos=[],pagosSeleccionados={};
 var pagoChequesState=[];
 
 // CASHFLOW
@@ -3106,6 +3106,49 @@ function filtrarPagos() {
   paginaPagos=1;renderizarPagos();
 }
 function limpiarFiltrosPagos(){aniosSeleccionados={};document.getElementById('fPagoFecha').value='';document.getElementById('fPagoObs').value='';mesesSeleccionados={};poblarAniosPagos();poblarDropdownMeses();dmSelectAll('dmPagoCliente',true);pagosFiltrados=todosPagos;paginaPagos=1;renderizarPagos();}
+function toggleSeleccionPago(pagoId, checked) {
+  if (checked) {
+    pagosSeleccionados[pagoId] = true;
+  } else {
+    delete pagosSeleccionados[pagoId];
+  }
+  recalcularTotalesPagosSeleccionados();
+}
+
+function recalcularTotalesPagosSeleccionados() {
+  var pagoIds = Object.keys(pagosSeleccionados);
+  var pagosSelec = pagoIds.length > 0 ? todosPagos.filter(function(p) { return pagosSeleccionados[p.id]; }) : [];
+
+  var totalHaber = pagosSelec.reduce(function(s, p) { return s + (parseFloat(p.haber) || 0); }, 0);
+  var totalCobrado = pagosSelec.reduce(function(s, p) { return s + cobroReal(p); }, 0);
+  var pctCobrado = totalHaber > 0 ? (totalCobrado / totalHaber * 100) : 0;
+
+  if (pagoIds.length > 0) {
+    document.getElementById('infoPagos').textContent = 'Haber: ' + pesos(totalHaber) + ' · Cobrado: ' + pesos(totalCobrado) + ' (' + pctCobrado.toFixed(1) + '% cobrado) [' + pagoIds.length + ' seleccionado' + (pagoIds.length !== 1 ? 's' : '') + ']';
+  } else {
+    renderizarPagos();
+  }
+}
+
+function limpiarSeleccionPagos() {
+  pagosSeleccionados = {};
+  document.getElementById('chkSeleccionarTodosPagos').checked = false;
+  renderizarPagos();
+}
+
+function seleccionarTodosPagos(checked) {
+  var inicio=(paginaPagos-1)*porPaginaPagos,pagina=pagosFiltrados.slice(inicio,inicio+porPaginaPagos);
+  pagina.forEach(function(p) {
+    if (checked) {
+      pagosSeleccionados[p.id] = true;
+    } else {
+      delete pagosSeleccionados[p.id];
+    }
+  });
+  renderizarPagos();
+  recalcularTotalesPagosSeleccionados();
+}
+
 function renderizarPagos() {
   var tbody=document.getElementById('cuerpoPagos'),total=pagosFiltrados.length;
 
@@ -3130,12 +3173,14 @@ function renderizarPagos() {
   });
 
   var inicio=(paginaPagos-1)*porPaginaPagos,pagina=datosOrdenados.slice(inicio,inicio+porPaginaPagos);
-  var totalHaber=pagosFiltrados.reduce(function(s,p){return s+(parseFloat(p.haber)||0);},0);
-  var totalCobrado=pagosFiltrados.reduce(function(s,p){return s+cobroReal(p);},0);
+  var pagoSeleccionadoCount=Object.keys(pagosSeleccionados).length;
+  var totalHaber=pagoSeleccionadoCount>0?0:pagosFiltrados.reduce(function(s,p){return s+(parseFloat(p.haber)||0);},0);
+  var totalCobrado=pagoSeleccionadoCount>0?0:pagosFiltrados.reduce(function(s,p){return s+cobroReal(p);},0);
   var pctCobrado=totalHaber>0?(totalCobrado/totalHaber*100):0;
   document.getElementById('countPagos').textContent=total+' registro'+(total!==1?'s':'')+(total!==todosPagos.length?' (filtrado de '+todosPagos.length+')':'');
-  document.getElementById('infoPagos').textContent='Haber: '+pesos(totalHaber)+' · Cobrado: '+pesos(totalCobrado)+' ('+pctCobrado.toFixed(1)+'% cobrado)';
-  if(!total){tbody.innerHTML='<tr><td colspan="11" style="text-align:center;color:#999">Sin resultados</td></tr>';document.getElementById('paginacionPagos').innerHTML='';return;}
+  if(pagoSeleccionadoCount===0){document.getElementById('infoPagos').textContent='Haber: '+pesos(totalHaber)+' · Cobrado: '+pesos(totalCobrado)+' ('+pctCobrado.toFixed(1)+'% cobrado)';}
+  var pagChkAll=document.getElementById('chkSeleccionarTodosPagos');if(pagChkAll){pagChkAll.checked=pagina.length>0&&pagina.every(function(p){return pagosSeleccionados[p.id];});}
+  if(!total){tbody.innerHTML='<tr><td colspan="12" style="text-align:center;color:#999">Sin resultados</td></tr>';document.getElementById('paginacionPagos').innerHTML='';return;}
   tbody.innerHTML='';
   pagina.forEach(function(p){
     var idx=todosPagos.indexOf(p),ms=p.cliente_id?'color:#28a745;font-size:12px':'color:#dc3545;font-size:12px',tr=tbody.insertRow();
@@ -3143,7 +3188,8 @@ function renderizarPagos() {
     var hayDiferencia=Math.abs(cobrado-haber)>0.01;
     var bgRow=hayDiferencia?'background:#fffacd;':'';
     tr.style.cssText=bgRow;
-    tr.innerHTML='<td>'+formatFecha(p.fecha)+'</td><td>'+(p.cliente_nombre||'')+'</td><td style="'+ms+'">'+(p.cliente_id||'— sin match')+'</td><td style="text-align:right">'+pesos(p.haber)+'</td><td style="text-align:right">'+pesos(p.efectivo)+'</td><td style="text-align:right">'+pesos(p.transferencia)+'</td><td style="font-family:monospace;font-size:12px">'+(p.cheque_numero||'-')+'</td><td>'+(p.banco||'-')+'</td><td style="text-align:right">'+pesos(p.importe_cheque)+'</td><td style="color:#999;font-size:12px">'+(p.observaciones||'')+'</td><td style="white-space:nowrap"><button class="btn-edit" onclick="abrirModalPago('+idx+')">Editar</button><button class="btn-delete" onclick="eliminarPago('+idx+')">Borrar</button></td>';
+    var isChecked=pagosSeleccionados[p.id]?'checked':'';
+    tr.innerHTML='<td style="text-align:center;padding:8px 4px"><input type="checkbox" '+isChecked+' onchange="toggleSeleccionPago(\''+p.id+'\',this.checked)" style="cursor:pointer"></td><td>'+formatFecha(p.fecha)+'</td><td>'+(p.cliente_nombre||'')+'</td><td style="'+ms+'">'+(p.cliente_id||'— sin match')+'</td><td style="text-align:right">'+pesos(p.haber)+'</td><td style="text-align:right">'+pesos(p.efectivo)+'</td><td style="text-align:right">'+pesos(p.transferencia)+'</td><td style="font-family:monospace;font-size:12px">'+(p.cheque_numero||'-')+'</td><td>'+(p.banco||'-')+'</td><td style="text-align:right">'+pesos(p.importe_cheque)+'</td><td style="color:#999;font-size:12px">'+(p.observaciones||'')+'</td><td style="white-space:nowrap"><button class="btn-edit" onclick="abrirModalPago('+idx+')">Editar</button><button class="btn-delete" onclick="eliminarPago('+idx+')">Borrar</button></td>';
   });
   var tp=Math.ceil(total/porPaginaPagos),div=document.getElementById('paginacionPagos');
   div.innerHTML=tp<=1?'':'<button onclick="irPaginaPagos('+(paginaPagos-1)+')" '+(paginaPagos===1?'disabled':'')+'>&#8249;</button><span class="info-pag">'+(inicio+1)+'-'+Math.min(inicio+porPaginaPagos,total)+' de '+total+'</span><button onclick="irPaginaPagos('+(paginaPagos+1)+')" '+(paginaPagos===tp?'disabled':'')+'>&#8250;</button>';
