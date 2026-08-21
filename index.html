@@ -2542,6 +2542,8 @@ function abrirModalFlete(idx) {
   document.getElementById('ffIva').value=f?parseFloat(f.iva)||0:0;
   document.getElementById('ffTotal').value=f?parseFloat(f.total)||0:'';
   document.getElementById('ffEstado').value=f?f.estado||'PENDIENTE':'PENDIENTE';
+  document.getElementById('ffFechaPago').value=f?f.fecha_pago||'':'';
+  document.getElementById('ffChequeNumero').value=f?f.cheque_numero||'':'';
   document.getElementById('ffMetodoPago').value=f?f.metodo_pago||'':'';
   document.getElementById('ffEfectivo').value=f?parseFloat(f.efectivo)||0:0;
   document.getElementById('ffTransferencia').value=f?parseFloat(f.transferencia)||0:0;
