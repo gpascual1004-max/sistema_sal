@@ -1235,6 +1235,19 @@ function gsRun(fnName, params, onSuccess, onError) {
       </div>
     </div>
 
+    <!-- MODAL CONFIGURAR GASTOS ESTADO RESULTADO -->
+    <div class="overlay" id="overlayConfigGastosER">
+      <div class="modal" style="width:700px;max-height:92vh;overflow-y:auto">
+        <h3>Configurar Categorías de Gastos</h3>
+        <p style="color:#666;font-size:13px;margin-bottom:15px">Selecciona qué rubros pertenecen a cada categoría de egreso</p>
+        <div id="configGastosERContenido"></div>
+        <div class="modal-footer">
+          <button class="btn" onclick="cerrarConfigGastosER()" style="background:#6c757d;color:white">Cancelar</button>
+          <button class="btn btn-success" onclick="guardarConfigGastosER()">Guardar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- CASHFLOW -->
     <div class="section" id="cashflow">
       <div id="msgCashflow"></div>
@@ -1246,6 +1259,7 @@ function gsRun(fnName, params, onSuccess, onError) {
             <option value="">Agregar concepto...</option>
           </select>
           <span id="cfConfigGuardada" style="font-size:12px;color:#28a745;display:none">✓ Configuración guardada</span>
+          <button class="btn btn-primary" onclick="irEstadoResultado()" style="margin-left:auto">→ Estado de Resultado</button>
           <div id="cfGastosAbiertos" style="display:flex;gap:8px;flex-wrap:wrap"></div>
         </div>
       </div>
@@ -1449,6 +1463,22 @@ function gsRun(fnName, params, onSuccess, onError) {
         </table>
       </div>
       <div class="paginacion" id="paginacionCheqEm"></div>
+    </div>
+
+    <!-- ESTADO DE RESULTADO -->
+    <div class="section" id="estado-resultado" style="display:none">
+      <div class="tabla-header">
+        <h2>Estado de Resultado</h2>
+        <button class="btn btn-primary" onclick="configurarGastosER()">⚙ Configurar Gastos</button>
+        <button class="btn" onclick="irCashflow()" style="background:#6c757d;color:white">← Volver a CashFlow</button>
+      </div>
+      <div id="msgEstadoResultado"></div>
+      <div style="overflow-x:auto;border:1px solid #ddd;border-radius:8px">
+        <table id="tablaEstadoResultado" style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead id="cabeceraER" style="background:#f8f9fa;border-bottom:2px solid #ddd"></thead>
+          <tbody id="cuerpoER"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- SALDOS CAJA/BANCO -->
@@ -2984,6 +3014,9 @@ var pagoChequesState=[];
 // CASHFLOW
 var cfGastosAbiertos=[],cfTodosCheques=[],cfTodosPagos=[],cfTodosFletes=[],cfTodosGastos=[],cfSaldosPorDia={};
 var cfFechasInicio=null,cfFechasHoy=null,cfFechas=[]; // cheques del pago que se está editando/creando: [{id, numero, banco, importe, tipo, fecha_emision, fecha_pago, dias, fecha_vencimiento}]
+
+// ESTADO DE RESULTADO
+var configGastosER={gastos_fijos:[],gastos_variables:[],gastos_bsas:[],gastos_bancarios:[],otros_gastos:[]},todosRubros=[],todosVentas=[];
 
 function toggleDropdownMeses(){var d=document.getElementById('dropdownMeses');d.style.display=d.style.display==='none'?'block':'none';}
 document.addEventListener('click',function(e){var btn=document.getElementById('btnMesesPago'),dd=document.getElementById('dropdownMeses');if(btn&&dd&&!btn.contains(e.target)&&!dd.contains(e.target))dd.style.display='none';});
@@ -5913,6 +5946,171 @@ window.testGasto3121 = function() {
   });
 };
 console.log('Ejecuta testGasto3121() en la consola para probar');
+
+// ========== ESTADO DE RESULTADO ==========
+function irEstadoResultado(){
+  document.getElementById('cashflow').classList.remove('active');
+  document.getElementById('estado-resultado').classList.add('active');
+  cargarEstadoResultado();
+}
+function irCashflow(){
+  document.getElementById('estado-resultado').classList.remove('active');
+  document.getElementById('cashflow').classList.add('active');
+}
+
+function cargarConfiguracionGastosER(){
+  var config=localStorage.getItem('configGastosER');
+  if(config){try{configGastosER=JSON.parse(config);}catch(e){configGastosER={gastos_fijos:[],gastos_variables:[],gastos_bsas:[],gastos_bancarios:[],otros_gastos:[]};}}
+}
+
+function guardarConfiguracionGastosER(){
+  localStorage.setItem('configGastosER',JSON.stringify(configGastosER));
+}
+
+function cargarEstadoResultado(){
+  cargarConfiguracionGastosER();
+  gsRun('obtenerVentas',[],function(ventas){
+    todosVentas=ventas||[];
+    var hoy=new Date();var fechas=[];
+    for(var i=12;i>=0;i--){
+      var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
+      fechas.push({fecha:d.toISOString().substr(0,7),label:NOMBRES_MESES[d.getMonth()]+' '+d.getFullYear()});
+    }
+    renderizarEstadoResultado(fechas);
+  });
+}
+
+function renderizarEstadoResultado(fechas){
+  var tabla=document.getElementById('tablaEstadoResultado');
+  var cabecera=document.getElementById('cabeceraER');
+  var cuerpo=document.getElementById('cuerpoER');
+
+  cabecera.innerHTML='<tr><th style="text-align:left;padding:12px;font-weight:700">Concepto</th>'+fechas.map(f=>'<th style="text-align:right;padding:12px;font-weight:700">'+f.label+'</th>').join('')+'</tr>';
+
+  var filas=[
+    {tipo:'ingreso',label:'Ingresos'},
+    {tipo:'carta_porte',label:'Suma Carta Porte'},
+    {tipo:'egreso',label:'Gastos Fijos',categoria:'gastos_fijos'},
+    {tipo:'egreso',label:'Gastos Variables',categoria:'gastos_variables'},
+    {tipo:'egreso',label:'Gastos Bs. As.',categoria:'gastos_bsas'},
+    {tipo:'egreso',label:'Gastos Bancarios',categoria:'gastos_bancarios'},
+    {tipo:'egreso',label:'Otros Gastos',categoria:'otros_gastos'},
+    {tipo:'operativo',label:'Resultado Operativo'},
+    {tipo:'mensual',label:'Resultado Mensual'}
+  ];
+
+  cuerpo.innerHTML='';
+  filas.forEach(function(fila){
+    var tr=cuerpo.insertRow();
+    tr.style.borderBottom='1px solid #ddd';
+
+    var td=tr.insertCell(0);
+    td.textContent=fila.label;
+    td.style.cssText='padding:10px 12px;font-weight:600;background:#f8f9fa';
+
+    fechas.forEach(function(f,idx){
+      var td=tr.insertCell(idx+1);
+      td.style.cssText='text-align:right;padding:10px 12px';
+      var valor=0;
+
+      if(fila.tipo==='ingreso'){
+        valor=calcularIngresosMes(f.fecha);
+      }else if(fila.tipo==='carta_porte'){
+        valor=calcularCartaPorteMes(f.fecha);
+      }else if(fila.tipo==='egreso'&&fila.categoria){
+        valor=calcularEgresoMes(f.fecha,fila.categoria);
+      }else if(fila.tipo==='operativo'){
+        var gastosFijos=calcularEgresoMes(f.fecha,'gastos_fijos');
+        var gastosVariables=calcularEgresoMes(f.fecha,'gastos_variables');
+        var gastosBsAs=calcularEgresoMes(f.fecha,'gastos_bsas');
+        var gastosBancarios=calcularEgresoMes(f.fecha,'gastos_bancarios');
+        var otrosGastos=calcularEgresoMes(f.fecha,'otros_gastos');
+        valor=gastosFijos+gastosVariables+gastosBsAs+gastosBancarios+otrosGastos;
+      }else if(fila.tipo==='mensual'){
+        var ingresos=calcularIngresosMes(f.fecha);
+        var cartaPorte=calcularCartaPorteMes(f.fecha);
+        var gastosFijos=calcularEgresoMes(f.fecha,'gastos_fijos');
+        var gastosVariables=calcularEgresoMes(f.fecha,'gastos_variables');
+        var gastosBsAs=calcularEgresoMes(f.fecha,'gastos_bsas');
+        var gastosBancarios=calcularEgresoMes(f.fecha,'gastos_bancarios');
+        var otrosGastos=calcularEgresoMes(f.fecha,'otros_gastos');
+        var resultadoOperativo=gastosFijos+gastosVariables+gastosBsAs+gastosBancarios+otrosGastos;
+        valor=ingresos+cartaPorte-resultadoOperativo;
+      }
+
+      td.textContent=valor!==0?(valor<0?'-':'+')+pesos(Math.abs(valor)):'—';
+      td.style.color=valor>0?'#28a745':(valor<0?'#dc3545':'#999');
+    });
+  });
+}
+
+function calcularIngresosMes(mes){
+  var inicio=mes+'-01',fin=mes+'-31';
+  var cobros=todosPagos.filter(p=>p.fecha>=inicio&&p.fecha<=fin);
+  return cobros.reduce((s,p)=>s+(parseFloat(p.efectivo)||0)+(parseFloat(p.transferencia)||0)+(parseFloat(p.importe_cheque)||0),0);
+}
+
+function calcularCartaPorteMes(mes){
+  var inicio=mes+'-01',fin=mes+'-31';
+  var ventas=todosVentas.filter(v=>v.fecha>=inicio&&v.fecha<=fin&&v.estado!=='ANULADA');
+  return ventas.reduce((s,v)=>s+(parseFloat(v.monto)||0),0);
+}
+
+function calcularEgresoMes(mes,categoria){
+  var inicio=mes+'-01',fin=mes+'-31';
+  var rubrosCategoria=configGastosER[categoria]||[];
+
+  var fletes=0;
+  if(rubrosCategoria.indexOf('Fletes')>-1){
+    fletes=cfTodosFletes.filter(f=>f.fecha_flete>=inicio&&f.fecha_flete<=fin).reduce((s,f)=>s+(parseFloat(f.total)||0),0);
+  }
+
+  var gastos=0;
+  if(rubrosCategoria.length>0){
+    gastos=cfTodosGastos.filter(g=>g.fecha>=inicio&&g.fecha<=fin&&rubrosCategoria.indexOf(g.rubro||'Sin rubro')>-1).reduce((s,g)=>s+(parseFloat(g.monto)||0),0);
+  }
+
+  return fletes+gastos;
+}
+
+function configurarGastosER(){
+  gsRun('obtenerGastos',[],function(gastos){
+    todosRubros=[...new Set((gastos||[]).map(g=>g.rubro||'Sin rubro'))].sort();
+    var html='<div style="display:grid;gap:20px">';
+    ['gastos_fijos','gastos_variables','gastos_bsas','gastos_bancarios','otros_gastos'].forEach(function(cat){
+      var label=cat.replace('_',' ').replace(/gastos /, 'Gastos ').replace('bsas','Bs. As.');
+      label=label.charAt(0).toUpperCase()+label.slice(1);
+      var seleccionados=configGastosER[cat]||[];
+      html+='<div style="border:1px solid #ddd;padding:15px;border-radius:6px"><h4 style="margin:0 0 12px 0">'+label+'</h4>';
+      html+='<div style="display:flex;flex-direction:column;gap:8px">';
+      todosRubros.forEach(function(rubro){
+        var checked=seleccionados.indexOf(rubro)>-1?'checked':'';
+        html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" value="'+rubro+'" '+checked+' class="chk-'+cat+'"> '+rubro+'</label>';
+      });
+      html+='<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px"><input type="checkbox" value="Fletes" '+(seleccionados.indexOf('Fletes')>-1?'checked':'')+' class="chk-'+cat+'"> Fletes</label>';
+      html+='</div></div>';
+    });
+    html+='</div>';
+    document.getElementById('configGastosERContenido').innerHTML=html;
+    document.getElementById('overlayConfigGastosER').classList.add('activo');
+  });
+}
+
+function guardarConfigGastosER(){
+  configGastosER={gastos_fijos:[],gastos_variables:[],gastos_bsas:[],gastos_bancarios:[],otros_gastos:[]};
+  ['gastos_fijos','gastos_variables','gastos_bsas','gastos_bancarios','otros_gastos'].forEach(function(cat){
+    var checkboxes=document.querySelectorAll('.chk-'+cat+':checked');
+    configGastosER[cat]=[...checkboxes].map(c=>c.value);
+  });
+  guardarConfiguracionGastosER();
+  cerrarConfigGastosER();
+  cargarEstadoResultado();
+  mensaje('msgEstadoResultado','Configuración guardada.','ok');
+}
+
+function cerrarConfigGastosER(){
+  document.getElementById('overlayConfigGastosER').classList.remove('activo');
+}
 </script>
 
 </body>
