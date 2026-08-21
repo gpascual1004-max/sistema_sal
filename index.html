@@ -2527,6 +2527,22 @@ function seleccionarChoferFlete(choferId){
     document.getElementById('ffChoferSugerencias').style.display='none';
   }
 }
+function cargarChequesDelFlete(fleteId,fechaFlete){
+  chequesFleteSeleccionados={};
+  chequesFleteEmSeleccionados={};
+  gsRun('obtenerCheques',[],function(cheques){
+    var chequesVinculados=cheques.filter(function(c){return c.estado==='ENTREGADO'&&c.fecha_salida===fechaFlete;});
+    chequesVinculados.forEach(function(c){chequesFleteSeleccionados[c.id]=c;});
+    gsRun('obtenerCheqEm',[],function(chequeEm){
+      var chequesEmVinculados=chequeEm.filter(function(c){return c.estado==='ENTREGADO'&&c.fecha_pago===fechaFlete;});
+      chequesEmVinculados.forEach(function(c){chequesFleteEmSeleccionados[c.id]=c;});
+      cargarChequesDisponiblesFlete();
+      toggleSeccionChequeFlete();
+      calcularTotalFlete();
+    });
+  });
+}
+
 function abrirModalFlete(idx) {
   var f=idx!==null&&idx!==undefined?todosFletes[idx]:null;idFleteEdicion=f?f.id:null;
   document.getElementById('modalTituloFlete').textContent=f?'Editar Flete':'Nuevo Flete';
@@ -2550,7 +2566,11 @@ function abrirModalFlete(idx) {
   document.getElementById('ffObs').value=f?f.observaciones||'':'';
   document.getElementById('modalErrorFlete').style.display='none';
   chequesFleteSeleccionados={};chequesFleteEmSeleccionados={};fuenteChequesFletes='recibidos';
-  toggleSeccionChequeFlete();
+  if(f&&f.id){
+    cargarChequesDelFlete(f.id,f.fecha_flete);
+  }else{
+    toggleSeccionChequeFlete();
+  }
   document.getElementById('overlayFlete').classList.add('activo');
 }
 function cerrarModalFlete(){document.getElementById('overlayFlete').classList.remove('activo');idFleteEdicion=null;}
@@ -2603,7 +2623,7 @@ function guardarFlete() {
   var choferId=document.getElementById('ffChoferId').value.trim()?parseInt(document.getElementById('ffChoferId').value):null;
   var fechaPago=document.getElementById('ffFechaPago').value||fecha;
   var chequeNumero=document.getElementById('ffChequeNumero').value.trim()||numerosCheques||null;
-  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:total,estado:document.getElementById('ffEstado').value,cheque_numero:chequeNumero,fecha_pago:fechaPago,observaciones:document.getElementById('ffObs').value.trim()};
+  var datos={fecha_flete:fecha,proveedor_id:provId,proveedor_nombre:document.getElementById('ffProveedor').value.trim(),chofer_id:choferId,chofer_nombre:document.getElementById('ffChofer').value.trim(),detalle:document.getElementById('ffDetalle').value.trim(),remito:document.getElementById('ffRemito').value.trim(),factura:document.getElementById('ffFactura').value.trim(),importe:imp,iva:iva,total:total,estado:document.getElementById('ffEstado').value,cheque_numero:chequeNumero,fecha_pago:fechaPago,metodo_pago:metodoPago,observaciones:document.getElementById('ffObs').value.trim()};
   gsRun('guardarFlete',[datos,idFleteEdicion,chequeIds,chequeEmitidoIds],function(){cerrarModalFlete();mensaje('msgFletes',idFleteEdicion?'Flete actualizado.':'Flete agregado.','ok');mostrarFletes();},function(e){err.textContent='Error: '+e.message;err.style.display='block';});
 }
 document.getElementById('overlayFlete').addEventListener('click',function(e){if(e.target===this)cerrarModalFlete();});
