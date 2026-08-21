@@ -2577,10 +2577,11 @@ function guardarFlete() {
   var fecha=document.getElementById('ffFecha').value,imp=parseFloat(document.getElementById('ffImporte').value)||0,iva=parseFloat(document.getElementById('ffIva').value)||0,err=document.getElementById('modalErrorFlete');
   err.style.display='none';
   if(!fecha){err.textContent='La fecha es obligatoria.';err.style.display='block';return;}
-  if(!imp){err.textContent='El importe es obligatorio.';err.style.display='block';return;}
 
   var metodoPago=document.getElementById('ffMetodoPago').value||'';
   if(!metodoPago){err.textContent='Debe seleccionar un método de pago.';err.style.display='block';return;}
+
+  if(metodoPago!=='CHEQUE'&&!imp){err.textContent='El importe es obligatorio.';err.style.display='block';return;}
 
   var chequeIds=Object.keys(chequesFleteSeleccionados).map(function(k){return parseInt(k,10);});
   var chequeEmitidoIds=Object.keys(chequesFleteEmSeleccionados).map(function(k){return parseInt(k,10);});
@@ -3949,6 +3950,9 @@ function toggleSeccionChequeFlete() {
   document.getElementById('ffSeccionTransferencia').style.display = 'none';
   if (esCheque) {
     cargarChequesDisponiblesFlete();
+    if(metodo==='CHEQUE'){
+      document.getElementById('ffEstado').value='PAGADO';
+    }
   } else {
     chequesFleteSeleccionados   = {};
     chequesFleteEmSeleccionados = {};
@@ -4081,6 +4085,7 @@ function toggleChequeFleteSeleccion(chequeId, checked) {
     delete chequesFleteSeleccionados[chequeId];
   }
   renderizarChequesFlete();
+  calcularTotalFlete();
 }
 
 function toggleChequeEmFleteSeleccion(chequeId, checked) {
@@ -4091,6 +4096,7 @@ function toggleChequeEmFleteSeleccion(chequeId, checked) {
     delete chequesFleteEmSeleccionados[chequeId];
   }
   renderizarChequesFlete();
+  calcularTotalFlete();
 }
 
 function toggleFuenteChequesGasto(fuente) {
