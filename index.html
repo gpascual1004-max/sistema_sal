@@ -4113,11 +4113,13 @@ function renderizarChequesFlete() {
         '<span></span><span>Banco</span><span>Cheque/Débito</span><span>Fecha Pago</span><span style="text-align:right">Importe</span></div>';
       var filasEm = chequesOrdenados.map(function(c) {
         var checked = chequesFleteEmSeleccionados[c.id] ? 'checked' : '';
+        var esOriginal = chequesFleteEmOriginalIds.indexOf(c.id) !== -1;
+        var estadoEstilo = esOriginal && c.estado === 'ENTREGADO' ? 'color:#28a745;font-weight:600' : '';
         return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_FLETE + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer;background:' + (chequesFleteEmSeleccionados[c.id] ? '#f0f8ff' : '') + '">' +
           '<input type="checkbox" ' + checked + ' onchange="toggleChequeEmFleteSeleccion(' + c.id + ',this.checked)">' +
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.banco || '-') + '</span>' +
           '<span style="font-family:monospace;font-size:12px">' + esc(c.numero_cheque || '-') + '</span>' +
-          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_pago) + '</span>' +
+          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_pago) + (esOriginal && c.estado === 'ENTREGADO' ? ' <span style="' + estadoEstilo + '">(ENTREGADO)</span>' : '') + '</span>' +
           '<span style="font-weight:600;text-align:right">' + pesos(c.importe_cheque) + '</span>' +
         '</label>';
       }).join('');
@@ -4139,11 +4141,13 @@ function renderizarChequesFlete() {
         '<span></span><span>Banco</span><span>N° Cheque</span><span>Vto.</span><span style="text-align:right">Importe</span></div>';
       var filas = chequesOrdenados.map(function(c) {
         var checked = chequesFleteSeleccionados[c.id] ? 'checked' : '';
+        var esOriginal = chequesFleteOriginalIds.indexOf(c.id) !== -1;
+        var estadoEstilo = esOriginal && c.estado === 'ENTREGADO' ? 'color:#28a745;font-weight:600' : '';
         return '<label style="display:grid;grid-template-columns:' + GRID_CHEQUES_FLETE + ';align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer;background:' + (chequesFleteSeleccionados[c.id] ? '#f0f8ff' : '') + '">' +
           '<input type="checkbox" ' + checked + ' onchange="toggleChequeFleteSeleccion(' + c.id + ',this.checked)">' +
           '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(c.banco || '-') + '</span>' +
           '<span style="font-family:monospace;font-size:12px">' + esc(c.numero || '-') + '</span>' +
-          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_vencimiento) + '</span>' +
+          '<span style="color:#666;font-size:12px">' + formatFecha(c.fecha_vencimiento) + (esOriginal && c.estado === 'ENTREGADO' ? ' <span style="' + estadoEstilo + '">(ENTREGADO)</span>' : '') + '</span>' +
           '<span style="font-weight:600;text-align:right">' + pesos(c.importe) + '</span>' +
         '</label>';
       }).join('');
