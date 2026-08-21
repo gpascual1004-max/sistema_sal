@@ -332,6 +332,20 @@ function gsRun(fnName, params, onSuccess, onError) {
         };
       });
     },
+    'obtenerChequesDelFlete': ([fleteId]) => {
+      return Promise.all([
+        supabaseQueryAll('cheques', 'order=fecha_vencimiento.asc'),
+        supabaseQueryAll('cheques_emitidos', 'order=fecha_pago.asc')
+      ]).then(([todosCheques, todosChequesEm]) => {
+        var fleteIdStr = fleteId ? String(fleteId) : '';
+        var chequesRecibidos = todosCheques.filter(c => String(c.fletes_id) === fleteIdStr);
+        var chequesEmitidos = todosChequesEm.filter(c => String(c.fletes_id) === fleteIdStr);
+        return {
+          recibidos: chequesRecibidos,
+          emitidos: chequesEmitidos
+        };
+      });
+    },
     'obtenerClientes': () => supabaseQueryAll('clientes', 'order=id.asc'),
     'obtenerProveedores': () => supabaseQueryAll('proveedores', 'order=nombre.asc'),
     'obtenerRubros': () => supabaseQueryAll('rubros', 'order=nombre.asc'),
