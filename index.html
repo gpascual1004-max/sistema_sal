@@ -2558,6 +2558,7 @@ function cargarChequesDelFlete(fleteId,fechaFlete){
       cargarChequesDisponiblesFlete();
       toggleSeccionChequeFlete();
       calcularTotalFlete();
+      actualizarChequeNumerosEnModal();
     });
   });
 }
@@ -4027,13 +4028,24 @@ function cargarChequesDisponiblesFlete() {
     }
     chequesFleteDisponibles = res.disponibles || [];
     chequesFleteOriginalIds = res.yaAsignadosIds || [];
-    chequesFleteSeleccionados = {};
-    chequesFleteDisponibles.forEach(function(c) { if (chequesFleteOriginalIds.indexOf(c.id) !== -1) chequesFleteSeleccionados[c.id] = c; });
+    // No reemplazar chequesFleteSeleccionados - ya fue cargado en cargarChequesDelFlete
+    // Solo agregar los que no estén ya
+    chequesFleteOriginalIds.forEach(function(id) {
+      var cheque = chequesFleteDisponibles.find(function(c) { return c.id === id; });
+      if (cheque && !chequesFleteSeleccionados[id]) {
+        chequesFleteSeleccionados[id] = cheque;
+      }
+    });
 
     chequesFleteEmDisponibles = res.disponiblesEm || [];
     chequesFleteEmOriginalIds = res.yaAsignadosEmIds || [];
-    chequesFleteEmSeleccionados = {};
-    chequesFleteEmDisponibles.forEach(function(c) { if (chequesFleteEmOriginalIds.indexOf(c.id) !== -1) chequesFleteEmSeleccionados[c.id] = c; });
+    // No reemplazar chequesFleteEmSeleccionados - ya fue cargado en cargarChequesDelFlete
+    chequesFleteEmOriginalIds.forEach(function(id) {
+      var cheque = chequesFleteEmDisponibles.find(function(c) { return c.id === id; });
+      if (cheque && !chequesFleteEmSeleccionados[id]) {
+        chequesFleteEmSeleccionados[id] = cheque;
+      }
+    });
 
     actualizarBotonesFuenteChequesFletes();
     renderizarChequesFlete();
