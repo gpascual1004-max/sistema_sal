@@ -5995,17 +5995,21 @@ function guardarConfiguracionGastosER(){
 
 function cargarEstadoResultado(){
   cargarConfiguracionGastosER();
+  document.getElementById('msgEstadoResultado').innerHTML='<div style="padding:15px;background:#e3f2fd;color:#1976d2;border-radius:6px;margin-bottom:15px">Cargando datos...</div>';
   Promise.all([
-    new Promise(r => gsRun('obtenerVentas',[],d=>{todosVentas=d||[];r();},e=>r())),
-    new Promise(r => gsRun('obtenerPagos',[],d=>{todosPagos=d||[];r();},e=>r())),
-    new Promise(r => gsRun('obtenerFletes',[],d=>{cfTodosFletes=d||[];r();},e=>r())),
-    new Promise(r => gsRun('obtenerGastos',[],d=>{cfTodosGastos=d||[];r();},e=>r()))
+    new Promise(r => gsRun('obtenerVentas',[],d=>{todosVentas=d||[];r();},e=>{console.error('Error obtenerVentas:',e);r();})),
+    new Promise(r => gsRun('obtenerPagos',[],d=>{todosPagos=d||[];r();},e=>{console.error('Error obtenerPagos:',e);r();})),
+    new Promise(r => gsRun('obtenerFletes',[],d=>{cfTodosFletes=d||[];r();},e=>{console.error('Error obtenerFletes:',e);r();})),
+    new Promise(r => gsRun('obtenerGastos',[],d=>{cfTodosGastos=d||[];r();},e=>{console.error('Error obtenerGastos:',e);r();}))
   ]).then(function(){
+    document.getElementById('msgEstadoResultado').innerHTML='';
     var hoy=new Date();var fechas=[];
     for(var i=12;i>=0;i--){
       var d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1);
       fechas.push({fecha:d.toISOString().substr(0,7),label:NOMBRES_MESES[d.getMonth()]+' '+d.getFullYear()});
     }
+    console.log('Fechas generadas:',fechas);
+    console.log('Datos cargados - Ventas:',todosVentas.length,'Pagos:',todosPagos.length,'Fletes:',cfTodosFletes.length,'Gastos:',cfTodosGastos.length);
     renderizarEstadoResultado(fechas);
   });
 }
