@@ -1317,6 +1317,15 @@ function obtenerCheques() {
   return supabaseQueryAllCached('cheques', QUERY_CHEQUES);
 }
 
+function obtenerChequesDelFlete(fleteId) {
+  var chequesRecibidos = supabaseQuery('cheques', 'GET', null, { fletes_id: fleteId }) || [];
+  var chequesEmitidos = supabaseQuery('cheques_emitidos', 'GET', null, { fletes_id: fleteId }) || [];
+  return {
+    recibidos: chequesRecibidos,
+    emitidos: chequesEmitidos
+  };
+}
+
 function guardarCheque(datos, id) {
   if (id) {
     supabaseQuery('cheques', 'PATCH', datos, { id: id });

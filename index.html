@@ -2559,28 +2559,25 @@ function abrirModalFlete(idx) {
   chequesFleteEmDisponibles = [];
   fuenteChequesFletes = 'recibidos';
 
-  // Cargar cheques del flete - buscar por número de cheque guardado
-  if (idFleteEdicion && f && f.cheque_numero) {
-    var numerosGuardados = f.cheque_numero.split(',').map(function(n) { return n.trim(); });
-    gsRun('obtenerCheques', [], function(cheques) {
-      cheques.forEach(function(c) {
-        if (numerosGuardados.indexOf(c.numero) !== -1) {
+  // Cargar cheques del flete desde el backend
+  if (idFleteEdicion) {
+    gsRun('obtenerChequesDelFlete', [idFleteEdicion], function(resultado) {
+      if (resultado && resultado.recibidos) {
+        resultado.recibidos.forEach(function(c) {
           chequesFleteSeleccionados[c.id] = c;
           chequesFleteOriginalIds.push(c.id);
-        }
-      });
-      gsRun('obtenerCheqEm', [], function(chequesEm) {
-        chequesEm.forEach(function(c) {
-          if (numerosGuardados.indexOf(c.numero_cheque) !== -1) {
-            chequesFleteEmSeleccionados[c.id] = c;
-            chequesFleteEmOriginalIds.push(c.id);
-          }
         });
-        toggleSeccionChequeFlete();
-        cargarChequesDisponiblesFlete();
-        calcularTotalFlete();
-        actualizarChequeNumerosEnModal();
-      });
+      }
+      if (resultado && resultado.emitidos) {
+        resultado.emitidos.forEach(function(c) {
+          chequesFleteEmSeleccionados[c.id] = c;
+          chequesFleteEmOriginalIds.push(c.id);
+        });
+      }
+      toggleSeccionChequeFlete();
+      cargarChequesDisponiblesFlete();
+      calcularTotalFlete();
+      actualizarChequeNumerosEnModal();
     });
   } else {
     toggleSeccionChequeFlete();
